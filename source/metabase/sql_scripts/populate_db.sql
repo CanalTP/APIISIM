@@ -1,4 +1,3 @@
-\connect afimb_db
 BEGIN;
 
 INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date, 

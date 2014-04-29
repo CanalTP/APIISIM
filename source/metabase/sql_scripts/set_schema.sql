@@ -1,6 +1,3 @@
--- CREATE USER afimb_user password 'afimb_user';
-CREATE DATABASE afimb_db owner postgres;
-\connect afimb_db
 BEGIN;
 
 CREATE TABLE mis(
@@ -19,6 +16,8 @@ CREATE TYPE transport_mode_enum AS ENUM ('all', 'bus', 'trolleybus', 'tram', 'co
                                'intercityrail', 'urbanrail', 'metro', 'air', 'water',
                                'cable', 'funicular', 'taxi', 'bike', 'car');
 
+-- These values below are just here for testing purposes, the "real" enum
+-- values are yet to be defined.
 CREATE TYPE stop_type_enum AS ENUM ('GL', 'LAMU', 'ZE');
 
 CREATE TABLE stop(
