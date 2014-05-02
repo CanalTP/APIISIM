@@ -32,6 +32,8 @@ CREATE TABLE stop(
     parent_id integer REFERENCES stop(id),
     transport_mode transport_mode_enum,
     quay_type varchar(255),
+    -- We'll use PostGIS geography type to calculate distance between stop points.
+    geog GEOGRAPHY(Point),
     UNIQUE(code, mis_id)
 );
 
@@ -75,6 +77,30 @@ CREATE TABLE schema_migrations(
 );
 
 CREATE UNIQUE INDEX unique_schema_migrations ON schema_migrations USING btree(version);
+CREATE INDEX stop_geog_gist ON stop USING GIST (geog);
+
+-- Triggers
+
+-- If "lat" or "long" attributes change, update PostGIS geography column accordingly.
+CREATE OR REPLACE FUNCTION stop_pre_update_handler()
+RETURNS trigger AS $$
+BEGIN
+    -- When inserting, OLD is not defined so we have to make a special case for INSERT
+    IF (TG_OP = 'INSERT') THEN
+        NEW.geog:='POINT('||NEW.long||' '||NEW.lat||')';
+    ELSE 
+        IF NEW.lat != OLD.lat OR NEW.long != OLD.long THEN
+            NEW.geog:='POINT('||NEW.long||' '||NEW.lat||')';
+        END IF;
+    END IF; 
+
+    RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';  
+
+CREATE TRIGGER stop_post_update BEFORE INSERT OR UPDATE ON stop
+FOR EACH ROW 
+EXECUTE PROCEDURE stop_pre_update_handler();
 
 COMMIT;
 \q

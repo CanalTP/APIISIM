@@ -12,6 +12,8 @@ ADMIN_NAME="postgres" # User with admin rights (required to create a new databas
 psql -U $ADMIN_NAME -h localhost -c "CREATE USER $USER_NAME with encrypted password '$USER_NAME';" &&
 psql -U $ADMIN_NAME -h localhost -c "CREATE DATABASE $DB_NAME owner $USER_NAME;" &&
 psql -U $ADMIN_NAME -h localhost -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $USER_NAME;" &&
+# Create PostGIS extension in order to have Geography type
+psql -U $ADMIN_NAME -h localhost -c "CREATE EXTENSION IF NOT EXISTS postgis;" $DB_NAME &&
 
 # Next, set the database schema and populate database with some data.
 echo "Password for <$USER_NAME> is <$USER_NAME>"
