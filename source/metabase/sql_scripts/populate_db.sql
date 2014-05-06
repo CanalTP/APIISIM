@@ -11,8 +11,8 @@ INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date,
 
 INSERT INTO stop (code, mis_id, name, lat, long) VALUES
     ('stop_code1', 1, 'stop1', 11, 111),
-    ('stop_code2', 2, 'stop2', 22, 222),
-    ('stop_code3', 3, 'stop3', 33, 333);
+    ('stop_code2', 2, 'stop2', 21, 122),
+    ('stop_code3', 3, 'stop3', 33, 133);
 
 INSERT INTO transfer (stop1_id, stop2_id, distance, duration, prm_duration, status) VALUES
     (1, 2, 120, 10, 20,'auto'),

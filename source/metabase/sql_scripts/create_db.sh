@@ -12,8 +12,18 @@ ADMIN_NAME="postgres" # User with admin rights (required to create a new databas
 psql -U $ADMIN_NAME -h localhost -c "CREATE USER $USER_NAME with encrypted password '$USER_NAME';" &&
 psql -U $ADMIN_NAME -h localhost -c "CREATE DATABASE $DB_NAME owner $USER_NAME;" &&
 psql -U $ADMIN_NAME -h localhost -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $USER_NAME;" &&
+
 # Create PostGIS extension in order to have Geography type
-psql -U $ADMIN_NAME -h localhost -c "CREATE EXTENSION IF NOT EXISTS postgis;" $DB_NAME &&
+# PostGIS 2
+# psql -U $ADMIN_NAME -h localhost -c "CREATE EXTENSION IF NOT EXISTS postgis;" $DB_NAME &&
+
+# PostGIS 1.5
+psql -U $ADMIN_NAME -d $DB_NAME -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql &&
+psql -U $ADMIN_NAME -d $DB_NAME -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql &&
+psql -U $ADMIN_NAME -d $DB_NAME -c "select postgis_lib_version();" &&
+psql -U $ADMIN_NAME -d $DB_NAME -c "GRANT ALL ON geometry_columns TO PUBLIC;" &&
+psql -U $ADMIN_NAME -d $DB_NAME -c "GRANT ALL ON spatial_ref_sys TO PUBLIC;" &&
+psql -U $ADMIN_NAME -d $DB_NAME -c "GRANT ALL ON geography_columns TO PUBLIC;" &&
 
 # Next, set the database schema and populate database with some data.
 echo "Password for <$USER_NAME> is <$USER_NAME>"
