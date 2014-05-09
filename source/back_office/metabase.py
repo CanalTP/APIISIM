@@ -79,7 +79,7 @@ class MisConnection(Base):
     mis2 = relationship(u'Mis', primaryjoin='MisConnection.mis2_id == Mis.id')
     UniqueConstraint('mis1_id', 'mis2_id')
 
-def __repr__(self):
+    def __repr__(self):
         return ("<MisConnection(id='%s', mis1_id='%s', mis2_id='%s', start_date=%s, end_date=%s)>" % \
                 (self.id, self.mis1_id, self.mis2_id, self.start_date, self.end_date)) \
                 .encode(OUTPUT_ENCODING)
