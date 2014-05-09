@@ -1,16 +1,10 @@
 from mis_api import MisApi
 from math import sqrt
 import metabase
-from sqlalchemy import create_engine, or_
-from sqlalchemy.orm import Session, aliased
-import logging, sys
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+import logging, sys, argparse, ConfigParser
 from geoalchemy2.functions import ST_Distance, ST_DWithin
-
-
-DB_URL = 'postgresql+psycopg2://postgres:postgres@localhost/test_db'
-
-# Maximum distance between the 2 stops of a transfer (in meters).
-TRANSFER_MAX_DISTANCE = 400
 
 
 def init_logging():
@@ -51,7 +45,7 @@ def add_stop(db_session, mis_id, stop):
 
 """
 Update stop in database with data contained in given Stop object.
-Return True if stop in database has been modified (i.e. given Stop object 
+Return True if stop in database has been modified (i.e. given Stop object
 was different than stop in database), False otherwise.
 """
 def update_stop(db_session, mis_id, stop):
@@ -140,18 +134,18 @@ def retrieve_all_stops(db_session):
 Calculate all transfers by parsing all stops and add them to the database.
 """
 @db_transaction
-def compute_transfers(db_session):
+def compute_transfers(db_session, transfer_max_distance):
     all_stops = db_session.query(metabase.Stop).all()
     transfers = [] # List of frozensets: [(stop1_id, stop2_id)]
 
-    # For each stop, look for all stops that are within a specified distance 
+    # For each stop, look for all stops that are within a specified distance
     # (and that are not in the same MIS).
     for stop in all_stops:
-        # We're using two subqueries to filter out some rows and columns that 
+        # We're using two subqueries to filter out some rows and columns that
         # we don't need, and then we do a query using these two subqueries to do
         # the actual distance calculation.
 
-        # First subquery: select current stop "geog" attribute. We'll be looking 
+        # First subquery: select current stop "geog" attribute. We'll be looking
         # at all stops that are within a specified from this position.
         subq = db_session.query(metabase.Stop.geog) \
                          .filter(metabase.Stop.id == stop.id) \
@@ -163,10 +157,10 @@ def compute_transfers(db_session):
                           .filter(metabase.Stop.mis_id != stop.mis_id) \
                           .subquery()
 
-        # Final query: For each stop not in current stop MIS, get its "id" 
+        # Final query: For each stop not in current stop MIS, get its "id"
         # if it is within a specified distance from the current stop.
         q = db_session.query(subq2.c.id) \
-                      .filter(ST_DWithin(subq2.c.geog,subq.c.geog, TRANSFER_MAX_DISTANCE)) \
+                      .filter(ST_DWithin(subq2.c.geog,subq.c.geog, transfer_max_distance)) \
                       .all()
 
         for s in q:
@@ -197,9 +191,9 @@ def compute_transfers(db_session):
             transfer.stop1_id = stop1_id
             transfer.stop2_id = stop2_id
         elif transfer.status != 'recalculate':
-            # If transfer already exists and its status is not 'recalculate', 
+            # If transfer already exists and its status is not 'recalculate',
             # don't touch it and go the next one.
-            # If its status is 'recalculate', just recalculate its distance, 
+            # If its status is 'recalculate', just recalculate its distance,
             # duration, and prm_duration attributes.
             continue
 
@@ -229,7 +223,7 @@ def compute_transfers(db_session):
 
     # Remove obsolete transfers
     db_transfers = db_session.query(metabase.Transfer.id,
-                                    metabase.Transfer.stop1_id, 
+                                    metabase.Transfer.stop1_id,
                                     metabase.Transfer.stop2_id) \
                              .all()
     nb_deleted = 0
@@ -245,7 +239,7 @@ def compute_transfers(db_session):
 
 
 """
-Calculate all mis_connections by parsing all transfers and add them to the 
+Calculate all mis_connections by parsing all transfers and add them to the
 database (if they don't already exist).
 """
 @db_transaction
@@ -267,22 +261,43 @@ def compute_mis_connections(db_session):
         new_mis_connection = metabase.MisConnection()
         new_mis_connection.mis1_id = mis1_id
         new_mis_connection.mis2_id = mis2_id
-        # start_date and end_date attributes are automatically set by SQL triggers 
+        # start_date and end_date attributes are automatically set by SQL triggers
         # when a new mis_connection is inserted, so need to set them here.
 
         db_session.add(new_mis_connection)
         logging.info("New mis_connection: %s", new_mis_connection)
 
 
+def get_config():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_file", help="Configuration file")
+    config_file = "default.conf"
+    args = parser.parse_args()
+    if args.config_file:
+        config_file = args.config_file
+
+    logging.info("Configuration retrieved from '%s':", config_file)
+    config = ConfigParser.RawConfigParser()
+    config.read(config_file)
+
+    return config
+
+
 def main():
     init_logging()
 
+    config = get_config()
+    db_url = config.get('General', 'db_url')
+    transfer_max_distance = config.getint('General', 'transfer_max_distance')
+    logging.info("db_url: %s", db_url)
+    logging.info("transfer_max_distance: %s", transfer_max_distance)
+
     # Create engine used to connect to database
-    db_engine = create_engine(DB_URL, echo=False)
+    db_engine = create_engine(db_url, echo=False)
     db_session = Session(bind=db_engine, expire_on_commit=False)
 
     retrieve_all_stops(db_session)
-    compute_transfers(db_session)
+    compute_transfers(db_session, transfer_max_distance)
     compute_mis_connections(db_session)
 
 
