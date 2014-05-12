@@ -1,9 +1,9 @@
 """
 This test uses 3 components (metabase, back_office and mis_translator).
-It creates a database, retrieve stops from 2 stub MISes and launch the 
+It creates a database, retrieve stops from 2 stub MISes and launch the
 back_office several times, each time with a different maximum distance between
-stops (to calculate transfers). For each different setting, we generate a dump 
-of the resulting database and compare it to a reference dump. If they don't match, 
+stops (to calculate transfers). For each different setting, we generate a dump
+of the resulting database and compare it to a reference dump. If they don't match,
 we exit the test and consider it as failed.
 """
 import os, tempfile, subprocess, time
@@ -11,7 +11,7 @@ import os, tempfile, subprocess, time
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
 CREATE_DB_SCRIPT = TEST_DIR + "../../metabase/sql_scripts/create_db.sh"
 MIS_TRANSLATOR = TEST_DIR + "../../mis_translator/__init__.py"
-BACK_OFFICE = TEST_DIR + "../../back_office/back_office.py"
+BACK_OFFICE = TEST_DIR + "../../back_office/__init__.py"
 
 DB_NAME = "test1_db"
 USER_NAME = "test1_user"
@@ -29,7 +29,7 @@ def process_and_check(conf_file, ref_dump_file):
     subprocess.call(['python', BACK_OFFICE, "--config_file", conf_file])
 
     _, dump_file = tempfile.mkstemp(text=True, prefix="test1", suffix=".dump")
-    subprocess.call(['pg_dump', '-U', ADMIN_NAME, '-h', 'localhost', '-f', 
+    subprocess.call(['pg_dump', '-U', ADMIN_NAME, '-h', 'localhost', '-f',
                      dump_file, DB_NAME])
     if subprocess.call(['diff', dump_file, ref_dump_file]) == 0:
         return True
@@ -52,8 +52,8 @@ mis_translator_process = subprocess.Popen(['python', MIS_TRANSLATOR])
 time.sleep(3)
 
 try:
-    # Launch back_office several times, with different settings. 
-    # Each time, generate a dump of the resulting database and compare it to a 
+    # Launch back_office several times, with different settings.
+    # Each time, generate a dump of the resulting database and compare it to a
     # reference dump. If they don't match, exit the test and consider it as failed.
     for conf_file, ref_dump_file in \
         [('test1_1.conf', 'db_dump1'), ('test1_2.conf', 'db_dump2'),
@@ -66,9 +66,9 @@ finally:
     # Cleanup
     mis_translator_process.terminate()
     mis_translator_process.wait()
-    subprocess.call(['psql', '-U', ADMIN_NAME, '-h', 'localhost', 
+    subprocess.call(['psql', '-U', ADMIN_NAME, '-h', 'localhost',
                       '-c', 'DROP DATABASE %s' % DB_NAME])
-    subprocess.call(['psql', '-U', ADMIN_NAME, '-h', 'localhost', 
+    subprocess.call(['psql', '-U', ADMIN_NAME, '-h', 'localhost',
                      '-c', 'DROP USER %s' % USER_NAME])
 
 print ("*** SUCCESS ***")
