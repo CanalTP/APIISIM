@@ -4,7 +4,15 @@
 # Once created, the database is initialized with the schema defined in set_schema.sql
 # and finally it is populated with some data.
 
-source $(dirname $0)/create_db.config
+if [ -n "$1" ]; then
+    source $1
+    if [ $? != 0 ]; then
+    	echo "Sourcing '$1' failed"
+    	exit 1
+    fi
+else
+    source $(dirname $0)/create_db.conf
+fi
 
 read -s -p "Password for $USER_NAME: " USER_PASS
 echo
@@ -37,4 +45,11 @@ PGPASSWORD=$ADMIN_PASS psql -U $ADMIN_NAME -h localhost -d $DB_NAME -c "GRANT AL
 
 # Next, set the database schema and populate database with some data.
 PGPASSWORD=$USER_PASS psql -w -U $USER_NAME -h localhost -f $(dirname $0)/set_schema.sql $DB_NAME &&
-PGPASSWORD=$USER_PASS psql -w -U $USER_NAME -h localhost -f $(dirname $0)/populate_db.sql $DB_NAME
+if [ "$POPULATE_DB" = true ]; then
+    if [[ "$POPULATE_DB_SCRIPT" != /* ]]; then
+        # If path is relative, use dirname.
+        # If path is absolute, let it as is.
+        $POPULATE_DB_SCRIPT=$(dirname $0)/$POPULATE_DB_SCRIPT
+    fi
+    PGPASSWORD=$USER_PASS psql -w -U $USER_NAME -h localhost -f $POPULATE_DB_SCRIPT $DB_NAME
+fi
