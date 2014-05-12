@@ -157,6 +157,11 @@ def compute_transfers(db_session, transfer_max_distance):
                           .filter(metabase.Stop.mis_id != stop.mis_id) \
                           .subquery()
 
+        # q = db_session.query(subq2.c.id, ST_Distance(subq2.c.geog,subq.c.geog)).all()
+        # logging.debug(len(q))
+        # for s in q:
+        #     logging.info("Distance from %s to %s: %sm",stop.id, s[0], s[1])
+
         # Final query: For each stop not in current stop MIS, get its "id"
         # if it is within a specified distance from the current stop.
         q = db_session.query(subq2.c.id) \

@@ -21,4 +21,4 @@ app = Flask(__name__)
 api = flask_restful.Api(app)
 api.add_resource(resources.Stop, '/<string:mis_name>/v0/stops/')
 
-app.run(debug=True)
+app.run(debug=False)

@@ -1,12 +1,14 @@
 from base import MisApiBase, Stop
-import json
+import json, os
 
 NAME = "test1"
 
 class MisApi(MisApiBase):
-    def get_stops(self, city=""):
+    _file_dir = os.path.dirname(os.path.realpath(__file__)) + "/"
+
+    def get_stops(self):
         stops = []
-        with open("./mis_api/test1_stops.json", 'r') as f:
+        with open(self._file_dir + "test1_stops.json", 'r') as f:
             content = f.read()
             content = json.loads(content[content.find('{"stop_points"'):])
 
