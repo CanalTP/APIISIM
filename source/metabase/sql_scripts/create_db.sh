@@ -14,11 +14,15 @@ else
     source $(dirname $0)/create_db.conf
 fi
 
-read -s -p "Password for $USER_NAME: " USER_PASS
-echo
+if [ -z "$USER_PASS" ]; then
+    read -s -p "Password for $USER_NAME: " USER_PASS
+    echo
+fi
 
-read -s -p "Password for $ADMIN_NAME: " ADMIN_PASS
-echo
+if [ -z "$ADMIN_PASS" ]; then
+    read -s -p "Password for $ADMIN_NAME: " ADMIN_PASS
+    echo
+fi
 
 # Check that admin password is OK
 PGPASSWORD=$ADMIN_PASS psql -U $ADMIN_NAME -h localhost -c '\q'
