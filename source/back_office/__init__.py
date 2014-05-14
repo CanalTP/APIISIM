@@ -75,6 +75,7 @@ and remove obsolete ones).
 @db_transaction
 def retrieve_all_stops(db_session):
     # First, retrieve stops for all Mis existing in the DB
+    logging.info("Retrieving stops...")
     all_stops = {} # {mis_id : [list of stops]}
     for mis in db_session.query(metabase.Mis).all():
         try:
@@ -141,6 +142,7 @@ def compute_transfers(db_session, transfer_max_distance):
 
     # For each stop, look for all stops that are within a specified distance
     # (and that are not in the same MIS).
+    logging.info("Computing transfers...")
     for stop in all_stops:
         # We're using two subqueries to filter out some rows and columns that
         # we don't need, and then we do a query using these two subqueries to do
@@ -178,6 +180,7 @@ def compute_transfers(db_session, transfer_max_distance):
     # logging.debug("Transfers: %s", transfers)
 
     # Add new transfers and update existing ones, if needed.
+    logging.info("Adding/updating transfers...")
     nb_new = 0
     nb_updated = 0
     for t in transfers:
@@ -226,8 +229,8 @@ def compute_transfers(db_session, transfer_max_distance):
             nb_updated = nb_updated + 1
             logging.debug("Transfer udpated: %s", transfer)
 
-
     # Remove obsolete transfers
+    logging.info("Removing obsolete transfers...")
     db_transfers = db_session.query(metabase.Transfer.id,
                                     metabase.Transfer.stop1_id,
                                     metabase.Transfer.stop2_id) \
