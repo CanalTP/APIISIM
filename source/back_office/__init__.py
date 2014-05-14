@@ -132,6 +132,7 @@ def retrieve_all_stops(db_session):
 
 """
 Calculate all transfers by parsing all stops and add them to the database.
+Also remove obsolete transfers.
 """
 @db_transaction
 def compute_transfers(db_session, transfer_max_distance):
@@ -157,10 +158,10 @@ def compute_transfers(db_session, transfer_max_distance):
                           .filter(metabase.Stop.mis_id != stop.mis_id) \
                           .subquery()
 
-        # q = db_session.query(subq2.c.id, ST_Distance(subq2.c.geog,subq.c.geog)).all()
-        # logging.debug(len(q))
-        # for s in q:
-        #     logging.info("Distance from %s to %s: %sm",stop.id, s[0], s[1])
+#         q = db_session.query(subq2.c.id, ST_Distance(subq2.c.geog,subq.c.geog)).all()
+#         logging.debug(len(q))
+#         for s in q:
+#             logging.info("Distance from %s to %s: %sm",stop.id, s[0], s[1])
 
         # Final query: For each stop not in current stop MIS, get its "id"
         # if it is within a specified distance from the current stop.
@@ -246,18 +247,23 @@ def compute_transfers(db_session, transfer_max_distance):
 """
 Calculate all mis_connections by parsing all transfers and add them to the
 database (if they don't already exist).
+Also remove obsolete mis_connections (i.e. mis_connections where the 2 MIS
+don't have any transfer between them).
 """
 @db_transaction
 def compute_mis_connections(db_session):
 
-    transfers = db_session.query(metabase.Transfer).all()
-    for t in transfers:
+    mis_connections = []
+    db_transfers = db_session.query(metabase.Transfer).all()
+    # Add new mis_connections
+    for t in db_transfers:
         m1 = t.stop1.mis_id
         m2 = t.stop2.mis_id
         # Ensure that mis1_id is always < mis2_id, this makes mis_connection
         # identification easier.
         mis1_id = min(m1, m2)
         mis2_id = max(m1, m2)
+        mis_connections.append(frozenset([mis1_id, mis2_id]))
         if db_session.query(metabase.MisConnection) \
                      .filter_by(mis1_id=mis1_id, mis2_id=mis2_id) \
                      .first() is not None:
@@ -271,6 +277,22 @@ def compute_mis_connections(db_session):
 
         db_session.add(new_mis_connection)
         logging.info("New mis_connection: %s", new_mis_connection)
+
+
+    # Remove obsolete mis_connections
+    db_mis_connections = db_session.query(metabase.MisConnection.id,
+                                          metabase.MisConnection.mis1_id,
+                                          metabase.MisConnection.mis2_id) \
+                                   .all()
+    mis_connections = set(mis_connections) # Remove duplicates
+    nb_deleted = 0
+    for m in db_mis_connections:
+        if set([m[1], m[2]]) not in mis_connections:
+            db_session.query(metabase.MisConnection).filter_by(id=m[0]).delete()
+            nb_deleted = nb_deleted + 1
+
+    #TODO add more stats (new, updated and total mis_connections)
+    logging.info("%s deleted mis_connections", nb_deleted)
 
 
 def get_config():
@@ -301,10 +323,13 @@ def main():
     db_engine = create_engine(db_url, echo=False)
     db_session = Session(bind=db_engine, expire_on_commit=False)
 
-    retrieve_all_stops(db_session)
-    compute_transfers(db_session, transfer_max_distance)
-    compute_mis_connections(db_session)
-
+    try:
+        retrieve_all_stops(db_session)
+        compute_transfers(db_session, transfer_max_distance)
+        compute_mis_connections(db_session)
+    finally:
+        db_session.close()
+        db_session.bind.dispose()
 
 if __name__ == '__main__':
     main()
