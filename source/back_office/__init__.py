@@ -258,6 +258,7 @@ def compute_mis_connections(db_session):
 
     mis_connections = []
     db_transfers = db_session.query(metabase.Transfer).all()
+    nb_new = 0
     # Add new mis_connections
     for t in db_transfers:
         m1 = t.stop1.mis_id
@@ -272,6 +273,7 @@ def compute_mis_connections(db_session):
                      .first() is not None:
             continue
 
+        nb_new = nb_new + 1
         new_mis_connection = metabase.MisConnection()
         new_mis_connection.mis1_id = mis1_id
         new_mis_connection.mis2_id = mis2_id
@@ -294,7 +296,8 @@ def compute_mis_connections(db_session):
             db_session.query(metabase.MisConnection).filter_by(id=m[0]).delete()
             nb_deleted = nb_deleted + 1
 
-    #TODO add more stats (new, updated and total mis_connections)
+    logging.info("%s mis_connections", len(mis_connections))
+    logging.info("%s new mis_connections", nb_new)
     logging.info("%s deleted mis_connections", nb_deleted)
 
 
