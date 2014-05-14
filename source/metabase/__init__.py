@@ -31,8 +31,8 @@ class Mis(Base):
     stops = relationship("Stop", backref="mis")
 
     def __repr__(self):
-        return "<Mis(id='%s', name='%s', api_url='%s', start_date='%s', end_date='%s')>" % \
-                (self.id, self.name, self.api_url, self.start_date, self.end_date) \
+        return ("<Mis(id='%s', name='%s', api_url='%s', start_date='%s', end_date='%s')>" % \
+                (self.id, self.name, self.api_url, self.start_date, self.end_date)) \
                 .encode(OUTPUT_ENCODING)
 
 class Stop(Base):
