@@ -53,7 +53,7 @@ if [ "$POPULATE_DB" = true ]; then
     if [[ "$POPULATE_DB_SCRIPT" != /* ]]; then
         # If path is relative, use dirname.
         # If path is absolute, let it as is.
-        $POPULATE_DB_SCRIPT=$(dirname $0)/$POPULATE_DB_SCRIPT
+        POPULATE_DB_SCRIPT=$(dirname $0)/$POPULATE_DB_SCRIPT
     fi
     PGPASSWORD=$USER_PASS psql -w -U $USER_NAME -h localhost -f $POPULATE_DB_SCRIPT $DB_NAME
 fi
