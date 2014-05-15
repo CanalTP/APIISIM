@@ -3,11 +3,11 @@ import json, httplib2, logging
 
 NAME = "navitia"
 HTTP_OK = 200
-COUNT="count=100" # Items per page
+COUNT="count=10" # Items per page
 
 
 class MisApi(MisApiBase):
-    _api_url = "http://api.navitia.io/v1/coverage/paris/stop_areas"
+    _api_url = "http://api.navitia.io/v1/coverage/paris/stop_points"
 
     def get_stops(self):
         h = httplib2.Http(".cache")
@@ -29,7 +29,7 @@ class MisApi(MisApiBase):
                 raise Exception("GET <%s> FAILED: %s" % (url, resp.status))
 
             content = json.loads(content)
-            for s in  content["stop_areas"]:
+            for s in  content["stop_points"]:
                 stops.append(Stop(code=s["id"],
                                         name=s["name"],
                                         lat=s["coord"]["lat"],

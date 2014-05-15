@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import logging, sys, argparse, ConfigParser, datetime
 from geoalchemy2.functions import ST_Distance, ST_DWithin
-toto
+
 
 def init_logging():
     # TODO add possibility to read logging config from a file/variable
@@ -89,7 +89,6 @@ def retrieve_all_stops(db_session):
     # Udpate database by adding new stops and removing old ones.
     # Do it Mis by Mis.
     # TODO what if all_stops is empty (delete all stops???)
-    logging.info("Merging stops in database...")
     nb_stops = 0
     nb_new_stops = 0
     nb_extra_stops = 0
