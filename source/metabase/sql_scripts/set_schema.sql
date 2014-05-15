@@ -168,7 +168,7 @@ EXECUTE PROCEDURE mis_post_update_handler();
 
 
 -- When inserting a new mis_connection, calculate its dates based on the dates
--- of the 2 linked MISes.
+-- of the 2 linked MIS.
 CREATE OR REPLACE FUNCTION mis_connection_pre_insert_handler()
 RETURNS trigger AS $$
 BEGIN
