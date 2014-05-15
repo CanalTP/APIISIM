@@ -3,7 +3,7 @@ from math import sqrt
 import metabase
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-import logging, sys, argparse, ConfigParser
+import logging, sys, argparse, ConfigParser, datetime
 from geoalchemy2.functions import ST_Distance, ST_DWithin
 
 
@@ -318,6 +318,7 @@ def get_config():
 
 def main():
     init_logging()
+    logging.info("Back Office start: %s", datetime.datetime.now().isoformat())
 
     config = get_config()
     db_url = config.get('General', 'db_url')
@@ -336,6 +337,8 @@ def main():
     finally:
         db_session.close()
         db_session.bind.dispose()
+
+    logging.info("Back Office end: %s", datetime.datetime.now().isoformat())
 
 if __name__ == '__main__':
     main()
