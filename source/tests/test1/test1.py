@@ -1,6 +1,6 @@
 """
 This test uses 3 components (metabase, back_office and mis_translator).
-It creates a database, retrieve stops from 2 stub MISes and launch the
+It creates a database, retrieve stops from 2 stub MIS and launch the
 back_office several times, each time with a different maximum distance between
 stops (to calculate transfers). For each different setting, we generate a dump
 of the resulting database and compare it to a reference dump. If they don't match,
