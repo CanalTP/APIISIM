@@ -4,7 +4,7 @@ from base import MisApiBase, Stop, AlgorithmEnum, TransportModeEnum, \
                  SiteTypeEnum, MisApiException, SelfDriveModeEnum, \
                  MisApiDateOutOfScopeException, MisApiBadRequestException, \
                  MisApiInternalErrorException, PublicTransportModeEnum, \
-                 TripPartEnum
+                 TripPartEnum, MisApiUnauthorizedException
 import json, httplib2, logging, urllib
 # TODO  do not use import *
 from sim_plan_trip import *
