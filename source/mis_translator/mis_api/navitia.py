@@ -80,7 +80,7 @@ PUBLIC_TRANSPORT_MODE_MAPPING = {
 
 
 TRANSPORT_MODE_MAPPING = {
-    # 'TransportModeEnum : [Navitia physical and/or commercial modes]}
+    # TransportModeEnum : [Navitia physical and/or commercial modes]}
     TransportModeEnum.BUS : ["physical_mode:Bus",
                              "commercial_mode:BHNS", 
                              "commercial_mode:busway"],
@@ -110,11 +110,18 @@ TRANSPORT_MODE_MAPPING = {
 }
 
 SELF_DRIVE_MODE_MAPPING = {
-    # Navitia mode : [SelfDriveModeEnum]
+    # SelfDriveModeEnum : [Navitia modes]
     SelfDriveModeEnum.WALK : ["walking"],
     SelfDriveModeEnum.CAR : ["car"],
     SelfDriveModeEnum.BIKE : ["bike", "bss"],
 }
+
+# Navitia mode : SelfDriveModeEnum
+INVERSE_SELF_DRIVE_MODE_MAPPING = {}
+for k, v in SELF_DRIVE_MODE_MAPPING.items():
+    for x in v:
+        INVERSE_SELF_DRIVE_MODE_MAPPING[x] = k
+
 
 def parse_end_point(point):
     site = SiteTypeType()
@@ -273,6 +280,8 @@ def parse_journey(journey):
             leg.Departure.Site.Parent.Time = datetime.strptime(s["departure_date_time"], DATE_FORMAT)
             leg.Arrival.Site.Parent.Time = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
             leg.Duration = s["duration"]
+            leg.SelfDriveMode = INVERSE_SELF_DRIVE_MODE_MAPPING.get(
+                                    s["transfer_type"], SelfDriveModeEnum.WALK)
             section.Leg = leg
 
         trip.sections.append(section)
@@ -288,7 +297,75 @@ def parse_journey(journey):
     return trip
 
 
-# TODO if several possible choices, choose one with type "best"
+def algo_classic(journeys, departure_at=False):
+    if departure_at:
+        # Get journey with minimum arrival time
+        l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT)) \
+                    for x in journeys], 
+                    key=itemgetter(1))
+    else:
+        # Get journey with maximum departure time
+        l = sorted([(x, datetime.strptime(x["departure_date_time"], DATE_FORMAT)) \
+                    for x in journeys], 
+                    key=itemgetter(1), reverse=True)
+
+    # Find all journeys that match given criteria. If there is only one, this is 
+    # the best journey, if there are multiple ones, we'll have to filter results a 
+    # bit further.
+    l = [x[0] for x in l if x[1] == l[0][1]]
+    logging.debug("LEN L: %s", len(l))
+    if len(l) <= 1:
+        return l[0]
+    
+    # We have several journeys to choose from, so get journey of type "best"
+    # (which is according to Navitia, the best journey).
+    l = [x for x in l if x["type"] == "best"]
+    logging.debug("LEN L: %s", len(l))
+    if len(l) <= 1:
+        return l[0]
+
+    # If we still haven't found a unique best journey (remember this is possible 
+    # as these journeys come from different Navitia requests, so we can have 
+    # multiple journeys with type "best"), look for the journey with maximum 
+    # departure_time or with minimum arrival_time, depending on the departure_at 
+    # parameter.
+    if departure_at:
+        l = sorted([(x, datetime.strptime(x["departure_date_time"], DATE_FORMAT)) \
+                    for x in l], 
+                    key=itemgetter(1), reverse=True)
+    else:
+        l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT)) \
+                    for x in l], 
+                    key=itemgetter(1))
+    logging.debug("LEN L: %s", len(l))
+
+    return l[0][0]
+
+
+def algo_shortest(journeys):
+    # Get journey with minimum number of transfers
+    l = sorted([(x, x["nb_transfers"]) for x in journeys], key=itemgetter(1))
+    return l[0][0]
+
+
+def algo_fastest(journeys):
+    # Get journey with minimum duration
+    l = sorted([(x, x["duration"]) for x in journeys], key=itemgetter(1))
+    return l[0][0]
+
+
+def algo_minchanges(journeys):
+    # Get journey with minimum transfer duration
+    transfer_durations = [] # [(journey, transfer_duration)]
+    for j in journeys:
+        transfer_durations.append( \
+                (j, sum([x["duration"] for x in j["sections"] \
+                         if x["type"] != SectionTypeEnum.PUBLIC_TRANSPORT])))
+    l = sorted(transfer_durations, key=itemgetter(1))
+    logging.debug("transfer_durations: Best %s from %s", l[0][1], [x[1] for x in transfer_durations])
+    return l[0][0]
+
+
 def choose_best_journey(journeys, algo, departure_at=True):
     logging.debug("Number of journeys: %s\n"
                   "Algorithm: %s\n"
@@ -297,39 +374,17 @@ def choose_best_journey(journeys, algo, departure_at=True):
         return None
 
     best = None
-    if algo == AlgorithmEnum.CLASSIC and departure_at:
-        # Get journey with minimum arrival time
-        l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT)) \
-                    for x in journeys], 
-                    key=itemgetter(1))
-        best = l[0][0]
-    elif algo == AlgorithmEnum.CLASSIC and not departure_at:
-        # Get journey with maximum departure time
-        l = sorted([(x, datetime.strptime(x["departure_date_time"], DATE_FORMAT)) \
-                    for x in journeys], 
-                    key=itemgetter(1), reverse=True)
-        best = l[0][0]
+    if algo == AlgorithmEnum.CLASSIC:
+        best = algo_classic(journeys, departure_at)
     elif algo == AlgorithmEnum.SHORTEST:
-        # Get journey with minimum number of transfers
-        l = sorted([(x, x["nb_transfers"]) for x in journeys], key=itemgetter(1))
-        best = l[0][0]
+        best = algo_shortest(journeys)
     elif algo == AlgorithmEnum.FASTEST:
-        # Get journey with minimum duration
-        l = sorted([(x, x["duration"]) for x in journeys], key=itemgetter(1))
-        best = l[0][0]
+        best = algo_fastest(journeys)
     elif algo == AlgorithmEnum.MINCHANGES:
-        # Get journey with minimum transfer duration
-        transfer_durations = [] # [(journey, transfer_duration)]
-        for j in journeys:
-            transfer_durations.append( \
-                    (j, sum([x["duration"] for x in j["sections"] \
-                             if x["type"] != SectionTypeEnum.PUBLIC_TRANSPORT])))
-        l = sorted(transfer_durations, key=itemgetter(1))
-        best = l[0][0]
-        logging.debug("transfer_durations: Best %s from %s", l[0][1], [x[1] for x in transfer_durations])
+        best = algo_minchanges(journeys)
 
     logging.debug("BEST: %s \nFROM %s", journey_to_str(best), 
-                                        [journey_to_str(x[0]) for x in l])
+                                        [journey_to_str(x) for x in journeys])
     return best
 
 
@@ -546,8 +601,6 @@ class MisApi(MisApiBase):
             for a in arrivals:
                 params['from'] = d.QuayId
                 params['to'] = a.QuayId
-
-                # TODO optional parameters
                 for j in self._journeys_request(params):
                     journeys.append((d, a, j))
 

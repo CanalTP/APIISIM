@@ -160,7 +160,7 @@ class Itineraries(Resource):
             abort(400)
 
         logging.debug("MIS NAME %s", mis_name)
-        logging.debug("request.json: %s", request.json)
+        logging.debug("Itineraries request.json: %s", request.json)
 
         if (DEPARTURE_TIME not in request.json and ARRIVAL_TIME not in request.json) \
             or (MULTI_DEPARTURES not in request.json and MULTI_ARRIVALS not in request.json) \
@@ -268,7 +268,7 @@ class SumedUpItineraries(Resource):
             abort(400)
 
         logging.debug("MIS NAME %s", mis_name)
-        logging.debug("request.json: %s", request.json)
+        logging.debug("SumedUpItineraries request.json: %s", request.json)
 
         if (DEPARTURE_TIME not in request.json and ARRIVAL_TIME not in request.json):
             abort(400)

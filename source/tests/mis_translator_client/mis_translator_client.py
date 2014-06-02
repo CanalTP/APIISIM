@@ -190,14 +190,14 @@ data14 = {MULTI_DEPARTURES : {DEPARTURE : [d3, d4, d5],
          "modes" : [TransportModeEnum.METRO]}
 
 # send_request(data5)
-# send_request(data6)
-# send_request(data7)
+send_request(data6)
+send_request(data7)
 # send_request(data8)
 # send_request(data9)
-# send_request(data10)
+send_request(data10)
 # send_request(data11)
-send_request(data12)
-send_request(data13)
+# send_request(data12)
+# send_request(data13)
 send_request(data14)
 
 

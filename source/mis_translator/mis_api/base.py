@@ -82,7 +82,6 @@ class PublicTransportModeEnum:
     UNKNOWN = "UNKNOWN"
 
 
-# TODO use it
 class PlanSearchOptions:
     DEPARTURE_ARRIVAL_OPTIMIZED = "DEPARTURE_ARRIVAL_OPTIMIZED"
 
