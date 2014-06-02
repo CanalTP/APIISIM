@@ -308,15 +308,23 @@ def algo_classic(journeys, departure_at=False):
     # Find all journeys that match given criteria. If there is only one, this is 
     # the best journey, if there are multiple ones, we'll have to filter results a 
     # bit further.
-    l = [x[0] for x in l if x[1] == l[0][1]]
-    if len(l) <= 1:
-        return l[0]
+    first_selection = [x[0] for x in l if x[1] == l[0][1]]
+    if len(first_selection) <= 1:
+        return first_selection[0]
     
     # We have several journeys to choose from, so get journey of type "best"
     # (which is according to Navitia, the best journey).
-    l = [x for x in l if x["type"] == "best"]
-    if len(l) <= 1:
+    l = [x for x in first_selection if x["type"] == "best"]
+    if len(l) == 0:
+        # If there is no journey of type "best", just go to the next step.
+        second_selection = first_selection
+    elif len(l) == 1:
+        # We found the best one, return it.
         return l[0]
+    else:
+        # If there are multiple journeys of type "best", go to the next step but 
+        # only keep journeys of type "best".
+        second_selection = l
 
     # If we still haven't found a unique best journey (remember this is possible 
     # as these journeys come from different Navitia requests, so we can have 
@@ -325,11 +333,11 @@ def algo_classic(journeys, departure_at=False):
     # parameter.
     if departure_at:
         l = sorted([(x, datetime.strptime(x["departure_date_time"], DATE_FORMAT)) \
-                    for x in l], 
+                    for x in second_selection], 
                     key=itemgetter(1), reverse=True)
     else:
         l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT)) \
-                    for x in l], 
+                    for x in second_selection], 
                     key=itemgetter(1))
 
     return l[0][0]
@@ -360,8 +368,8 @@ def algo_minchanges(journeys):
 
 
 def choose_best_journey(journeys, algo, departure_at=True):
-    logging.debug("Number of journeys: %s\n"
-                  "Algorithm: %s\n"
+    logging.debug("Algorithm: %s\n"
+                  "Number of journeys: %s\n"
                   "Departure at: %s", len(journeys), algo, departure_at)
     if not journeys:
         return None
