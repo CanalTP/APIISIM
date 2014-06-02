@@ -15,7 +15,7 @@ def init_logging():
 
 init_logging()
 
-mis_translator.load_mis_apis()
+resources.load_mis_apis()
 
 app = Flask(__name__)
 api = flask_restful.Api(app)

@@ -16,7 +16,8 @@ def send_request(data):
 h = httplib2.Http(".cache")
 base_url = "http://127.0.0.1:5000/navitia/v0/"
 
-headers = {'Content-type': 'application/json'}
+headers = {'Content-type': 'application/json',
+           'Authorization' : '77bca947-ca67-4f17-92a3-92b716fc3d82'}
 
 # Paris region
 d1 = {ACCESS_DURATION : "10",

@@ -1,5 +1,4 @@
 from flask_restful import fields, marshal, abort, Resource
-import mis_translator
 import logging, datetime, json
 from flask import request, Response
 from fields import *
@@ -13,11 +12,38 @@ from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
                          SelfDriveModeEnum, TransportModeEnum
 from traceback import format_exc
 
+
+# List of enabled Mis APIs modules
+MIS_APIS_AVAILABLE = frozenset(["dummy", "navitia", "test1", "test2"])
+mis_api_mapping = {} # Mis name : MisApi Class
+
+"""
+Load all available Mis APIs modules and populate mis_api_mapping dict so that
+we can easily instanciate a MisApi object based on the Mis name.
+"""
+def load_mis_apis():
+    for m in MIS_APIS_AVAILABLE:
+        mis_module = "%s_module" % m
+        exec ("import mis_api.%s as %s" % (m, mis_module))
+        mis_name = eval("%s.NAME" % mis_module)
+        mis_api_mapping[mis_name] = eval("%s.MisApi" % mis_module)
+
+"""
+Return new MisApi object based on given mis_name.
+"""
+def get_mis_api(mis_name, api_key=""):
+    if mis_api_mapping.has_key(mis_name):
+        return mis_api_mapping[mis_name](api_key)
+    else:
+        return None
+
+
 class NonNullNested(fields.Nested):
 
     def __init__(self, *args, **kwargs):
         super(NonNullNested, self).__init__(*args, **kwargs)
         self.display_null = False
+
 
 class NonNullList(fields.List):
 
@@ -129,8 +155,8 @@ def string_to_bool(string):
     else:
         return False
 
-def get_mis_or_abort(mis_name):
-    mis = mis_translator.get_mis_api(mis_name)
+def get_mis_or_abort(mis_name, api_key=""):
+    mis = get_mis_api(mis_name, api_key)
     if not mis:
         abort(404, message="Mis <%s> not supported" % mis_name)
 
@@ -139,7 +165,7 @@ def get_mis_or_abort(mis_name):
 class Stops(Resource):
 
     def get(self, mis_name=""):
-        mis = get_mis_or_abort(mis_name)
+        mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
 
         stops = []
         for s in mis.get_stops():
@@ -155,7 +181,7 @@ class Itineraries(Resource):
     def post(self, mis_name=""):
         request_start_date = datetime.datetime.now()
 
-        mis = get_mis_or_abort(mis_name)
+        mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
         if not request.json:
             abort(400)
 
@@ -263,7 +289,7 @@ class SumedUpItineraries(Resource):
     def post(self, mis_name=""):
         request_start_date = datetime.datetime.now()
 
-        mis = get_mis_or_abort(mis_name)
+        mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
         if not request.json:
             abort(400)
 

@@ -174,10 +174,6 @@ def parse_stop_times(stop_times):
 
     return steps
 
-def get_stop_area_data(id):
-    url = self._api_url + "/coverage/paris/stop_areas/" + id
-    resp, content = self._send_request(url)
-
 
 def journey_to_sumed_up_trip(journey):
     if not journey:
@@ -412,10 +408,10 @@ def enabled_modes_to_forbidden_uris(enabled_modes):
 
 class MisApi(MisApiBase):
 
-    def __init__(self):
+    def __init__(self, api_key=""):
         # self._api_url = "http://api.navitia.io/v1"
         self._api_url = "http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/"
-        self._api_key = "77bca947-ca67-4f17-92a3-92b716fc3d82"
+        self._api_key = api_key
         self._http = None
 
     def _journeys_request(self, params=[]):
