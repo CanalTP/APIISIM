@@ -370,7 +370,7 @@ def algo_minchanges(journeys):
 def choose_best_journey(journeys, algo, departure_at=True):
     logging.debug("Algorithm: %s\n"
                   "Number of journeys: %s\n"
-                  "Departure at: %s", len(journeys), algo, departure_at)
+                  "Departure at: %s", algo, len(journeys), departure_at)
     if not journeys:
         return None
 
@@ -565,6 +565,7 @@ class MisApi(MisApiBase):
                                  language="", options=[]):
         params = get_params(departure_time, arrival_time, 
                             modes, self_drive_conditions)
+        ret = SumedUpItinerariesResponseType()
 
         # Request itinerary for every departure/arrival pair and then
         # choose best.
@@ -575,6 +576,11 @@ class MisApi(MisApiBase):
                 params['to'] = a.QuayId
                 for j in self._journeys_request(params):
                     journeys.append((d, a, j))
+
+        if not journeys:
+            # No journey found, no need to go further, just return empty list.
+            ret.sumedUpTrips = []
+            return ret
 
         best_journeys = []
         if departure_time:
@@ -589,9 +595,7 @@ class MisApi(MisApiBase):
                         choose_best_journey(journeys_from_departure, algorithm,
                                             departure_at=False))
 
-        ret = SumedUpItinerariesResponseType()
         ret.sumedUpTrips = [journey_to_sumed_up_trip(x) for x in best_journeys]
-
         logging.debug("Sumed up trips (%s) : %s", len(ret.sumedUpTrips), ret.sumedUpTrips)
 
         return ret
