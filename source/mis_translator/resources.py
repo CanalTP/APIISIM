@@ -1,7 +1,6 @@
 from flask_restful import fields, marshal, abort, Resource
 import logging, datetime, json
 from flask import request, Response
-from fields import *
 from mis_api.sim_plan_trip import LocationContextType, PositionType, \
                                   ItineraryResponseType, ResponseStatusType, \
                                   SelfDriveConditionType
@@ -16,6 +15,8 @@ from traceback import format_exc
 # List of enabled Mis APIs modules
 MIS_APIS_AVAILABLE = frozenset(["dummy", "navitia", "test1", "test2"])
 mis_api_mapping = {} # Mis name : MisApi Class
+
+DATE_FORMAT="%Y-%m-%dT%H:%M:%S"
 
 """
 Load all available Mis APIs modules and populate mis_api_mapping dict so that
@@ -190,61 +191,61 @@ def get_params(request, sumed_up_itineraries=False):
     params = _ItineraryRequestParams()
 
     # Required
-    departure_time = request.json.get(DEPARTURE_TIME, "")
-    arrival_time = request.json.get(ARRIVAL_TIME, "")
+    departure_time = request.json.get("DepartureTime", "")
+    arrival_time = request.json.get("ArrivalTime", "")
     if departure_time:
-        params.departure_time = datetime.datetime.strptime(departure_time, TIME_FORMAT)
+        params.departure_time = datetime.datetime.strptime(departure_time, DATE_FORMAT)
     if arrival_time:
-        params.arrival_time = datetime.datetime.strptime(arrival_time, TIME_FORMAT)
+        params.arrival_time = datetime.datetime.strptime(arrival_time, DATE_FORMAT)
     departures = []
     arrivals = []
     if sumed_up_itineraries:
-        for d in request.json[DEPARTURES][DEPARTURE]:
+        for d in request.json["Departures"]["departure"]:
             departures.append(LocationContextType(
                                     Position=PositionType(
-                                    Lat=d[POSITION][LAT],
-                                    Long=d[POSITION][LONG]),
-                                    AccessDuration=d[ACCESS_DURATION],
-                                    QuayId=d[QUAY_ID]))
-        for a in request.json[ARRIVALS][ARRIVAL]:
+                                    Lat=d["Position"]["Lat"],
+                                    Long=d["Position"]["Long"]),
+                                    AccessDuration=d["accessDuration"],
+                                    QuayId=d["QuayId"]))
+        for a in request.json["Arrivals"]["arrival"]:
             arrivals.append(LocationContextType(
                                     Position=PositionType(
-                                    Lat=a[POSITION][LAT],
-                                    Long=a[POSITION][LONG]),
-                                    AccessDuration=a[ACCESS_DURATION],
-                                    QuayId=a[QUAY_ID]))
+                                    Lat=a["Position"]["Lat"],
+                                    Long=a["Position"]["Long"]),
+                                    AccessDuration=a["accessDuration"],
+                                    QuayId=a["QuayId"]))
     else:
-        if MULTI_DEPARTURES in request.json:
-            for d in request.json[MULTI_DEPARTURES][DEPARTURE]:
+        if "multiDepartures" in request.json:
+            for d in request.json["multiDepartures"]["departure"]:
                 departures.append(LocationContextType(
                                         Position=PositionType(
-                                        Lat=d[POSITION][LAT],
-                                        Long=d[POSITION][LONG]),
-                                        AccessDuration=d[ACCESS_DURATION],
-                                        QuayId=d[QUAY_ID]))
-            a = request.json[MULTI_DEPARTURES][ARRIVAL]
+                                        Lat=d["Position"]["Lat"],
+                                        Long=d["Position"]["Long"]),
+                                        AccessDuration=d["accessDuration"],
+                                        QuayId=d["QuayId"]))
+            a = request.json["multiDepartures"]["arrival"]
             arrivals.append(LocationContextType(
                                     Position=PositionType(
-                                    Lat=a[POSITION][LAT],
-                                    Long=a[POSITION][LONG]),
-                                    AccessDuration=a[ACCESS_DURATION],
-                                    QuayId=a[QUAY_ID]))
+                                    Lat=a["Position"]["Lat"],
+                                    Long=a["Position"]["Long"]),
+                                    AccessDuration=a["accessDuration"],
+                                    QuayId=a["QuayId"]))
 
-        if MULTI_ARRIVALS in request.json:
-            for a in request.json[MULTI_ARRIVALS][ARRIVAL]:
+        if "multiArrivals" in request.json:
+            for a in request.json["multiArrivals"]["arrival"]:
                 arrivals.append(LocationContextType(
                                     Position=PositionType(
-                                    Lat=a[POSITION][LAT],
-                                    Long=a[POSITION][LONG]),
-                                    AccessDuration=a[ACCESS_DURATION],
-                                    QuayId=a[QUAY_ID]))
-            d = request.json[MULTI_ARRIVALS][DEPARTURE]
+                                    Lat=a["Position"]["Lat"],
+                                    Long=a["Position"]["Long"]),
+                                    AccessDuration=a["accessDuration"],
+                                    QuayId=a["QuayId"]))
+            d = request.json["multiArrivals"]["departure"]
             departures.append(LocationContextType(
                                     Position=PositionType(
-                                    Lat=d[POSITION][LAT],
-                                    Long=d[POSITION][LONG]),
-                                    AccessDuration=d[ACCESS_DURATION],
-                                    QuayId=d[QUAY_ID]))
+                                    Lat=d["Position"]["Lat"],
+                                    Long=d["Position"]["Long"]),
+                                    AccessDuration=d["accessDuration"],
+                                    QuayId=d["QuayId"]))
     params.departures = departures
     params.arrivals = arrivals
 
@@ -286,12 +287,12 @@ def _itinerary_request(mis_name, request, sumed_up_itineraries=False):
     logging.debug("URL: %s\nREQUEST.JSON: %s", request.url, request.json)
 
     if sumed_up_itineraries:
-        if (DEPARTURE_TIME not in request.json and ARRIVAL_TIME not in request.json):
+        if ("DepartureTime" not in request.json and "ArrivalTime" not in request.json):
             abort(400)
     else:
-        if (DEPARTURE_TIME not in request.json and ARRIVAL_TIME not in request.json) \
-            or (MULTI_DEPARTURES not in request.json and MULTI_ARRIVALS not in request.json) \
-            or (MULTI_DEPARTURES in request.json and MULTI_ARRIVALS in request.json):
+        if ("DepartureTime" not in request.json and "ArrivalTime" not in request.json) \
+            or ("multiDepartures" not in request.json and "multiArrivals" not in request.json) \
+            or ("multiDepartures" in request.json and "multiArrivals" in request.json):
             abort(400)
 
     params = get_params(request, sumed_up_itineraries)

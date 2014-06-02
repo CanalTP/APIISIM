@@ -187,9 +187,7 @@ def journey_to_sumed_up_trip(journey):
         return None
 
     first_section = sections[0]
-    # logging.debug("First section %s", first_section)
     last_section = sections[-1]
-    # logging.debug("Last section %s", last_section)
     trip.Departure = parse_end_point(first_section['from'])
     trip.Departure.Time = datetime.strptime(first_section['departure_date_time'], DATE_FORMAT)
     trip.Arrival = parse_end_point(last_section['to'])
@@ -246,7 +244,6 @@ def parse_journey(journey):
     trip.sections = []
     sections = clean_sections(journey['sections'])
     for s in sections:
-        # logging.debug("SECTION: %s", s)
         section = SectionType()
         section.PartialTripId = s["id"]
         if s["type"] == SectionTypeEnum.PUBLIC_TRANSPORT:
