@@ -480,6 +480,8 @@ class MisApi(MisApiBase):
                 raise MisApiDateOutOfScopeException(exc_msg)
         elif resp.status == 400:
             raise MisApiBadRequestException(exc_msg)
+        elif resp.status == 401:
+            raise MisApiUnauthorizedException(exc_msg)
         elif resp.status == 500:
             raise MisApiInternalErrorException(exc_msg)
         raise MisApiException(exc_msg)
