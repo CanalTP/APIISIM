@@ -309,14 +309,12 @@ def algo_classic(journeys, departure_at=False):
     # the best journey, if there are multiple ones, we'll have to filter results a 
     # bit further.
     l = [x[0] for x in l if x[1] == l[0][1]]
-    logging.debug("LEN L: %s", len(l))
     if len(l) <= 1:
         return l[0]
     
     # We have several journeys to choose from, so get journey of type "best"
     # (which is according to Navitia, the best journey).
     l = [x for x in l if x["type"] == "best"]
-    logging.debug("LEN L: %s", len(l))
     if len(l) <= 1:
         return l[0]
 
@@ -333,7 +331,6 @@ def algo_classic(journeys, departure_at=False):
         l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT)) \
                     for x in l], 
                     key=itemgetter(1))
-    logging.debug("LEN L: %s", len(l))
 
     return l[0][0]
 
@@ -384,7 +381,7 @@ def choose_best_journey(journeys, algo, departure_at=True):
     return best
 
 
-def enabled_modes_to_forbidden_uris(enabled_modes):
+def modes_to_forbidden_uris(enabled_modes):
     if TransportModeEnum.ALL in enabled_modes:
         return []
 
@@ -406,10 +403,44 @@ def enabled_modes_to_forbidden_uris(enabled_modes):
     return forbidden_uris
 
 
+def get_params(departure_time, arrival_time, modes, self_drive_conditions):
+    params = {}
+
+    if departure_time:
+        params['datetime'] = departure_time.strftime(DATE_FORMAT)
+        params['datetime_represents'] = 'departure'
+    else:
+        params['datetime'] = arrival_time.strftime(DATE_FORMAT)
+        params['datetime_represents'] = 'arrival'
+
+    params["forbidden_uris[]"] = modes_to_forbidden_uris(modes)
+    params["first_section_mode[]"] = list(
+                                        SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
+    params["last_section_mode[]"] = list(
+                                        SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
+
+    for c in self_drive_conditions:
+        if c.TripPart == TripPartEnum.DEPARTURE:
+            params["first_section_mode[]"].extend(
+                SELF_DRIVE_MODE_MAPPING[c.SelfDriveMode])
+        else:
+            params["last_section_mode[]"].extend(
+                SELF_DRIVE_MODE_MAPPING[c.SelfDriveMode])
+
+    # Navitia bss mode includes walking so don't use both at the same time.
+    for l in [params["last_section_mode[]"], params["first_section_mode[]"]]:
+        if "bss" in l and "walking" in l:
+            l.remove("walking")
+    # We ignore DEPARTURE_ARRIVAL_OPTIMIZED option as Navitia always does this
+    # optimization (it cannot be disabled).
+
+    return params
+
+
 class MisApi(MisApiBase):
 
     def __init__(self, api_key=""):
-        # self._api_url = "http://api.navitia.io/v1"
+        # self._api_url = "http://api.navitia.io/v1/coverage/paris"
         self._api_url = "http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/"
         self._api_key = api_key
         self._http = None
@@ -429,7 +460,7 @@ class MisApi(MisApiBase):
         if not self._http:
             self._http = httplib2.Http(".cache")
 
-        logging.debug("URL %s", url)
+        logging.debug("NAVITIA URL %s", url)
 
         headers = {'Authorization' : self._api_key}
 
@@ -437,11 +468,14 @@ class MisApi(MisApiBase):
         if resp.status == 200:
             return resp, content
 
-        content = json.loads(content)
         exc_msg = "GET <%s> FAILED: %s" % (url, resp.status)
         logging.error(exc_msg)
+        try:
+            content = json.loads(content)
+        except:
+            content = {}
         if resp.status == 404:
-            error_id = content["error"]["id"]
+            error_id = content.get("error", {}).get("id", "")
             if error_id == 'date_out_of_bounds':
                 raise MisApiDateOutOfScopeException(exc_msg)
         elif resp.status == 400:
@@ -493,39 +527,8 @@ class MisApi(MisApiBase):
                       self_drive_conditions=[],
                       accessibility_constraint=False,
                       language=""):
-        for d in departures:
-            logging.debug("departure: %s", d)
-        for a in arrivals:
-            logging.debug("arrival: %s", a)
-
-        params = {}
-
-        if departure_time:
-            params['datetime'] = departure_time.strftime(DATE_FORMAT)
-            params['datetime_represents'] = 'departure'
-        else:
-            params['datetime'] = arrival_time.strftime(DATE_FORMAT)
-            params['datetime_represents'] = 'arrival'
-
-        params["forbidden_uris"] = enabled_modes_to_forbidden_uris(modes)
-        params["first_section_mode[]"] = list(
-                                            SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
-        params["last_section_mode[]"] = list(
-                                            SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
-
-        for c in self_drive_conditions:
-            if c.TripPart == TripPartEnum.DEPARTURE:
-                params["first_section_mode[]"].extend(
-                    SELF_DRIVE_MODE_MAPPING[c.SelfDriveMode])
-            else:
-                params["last_section_mode[]"].extend(
-                    SELF_DRIVE_MODE_MAPPING[c.SelfDriveMode])
-
-        # Navitia bss mode includes walking so don't use both at the same time.
-        for l in [params["last_section_mode[]"], params["first_section_mode[]"]]:
-            if "bss" in l and "walking" in l:
-                l.remove("walking")
-
+        params = get_params(departure_time, arrival_time, 
+                            modes, self_drive_conditions)
         journeys = []
         # Request journeys for every departure/arrival pair and then
         # choose best.
@@ -550,45 +553,8 @@ class MisApi(MisApiBase):
                                  modes=[], self_drive_conditions=[],
                                  accessibility_constraint=False,
                                  language="", options=[]):
-        for d in departures:
-            logging.debug("departure: %s", d)
-        for a in arrivals:
-            logging.debug("arrival: %s", a)
-
-        base_url = self._api_url + "/journeys"
-        params = {}
-        if departure_time:
-            params['datetime'] = departure_time.strftime(DATE_FORMAT)
-            params['datetime_represents'] = 'departure'
-        else:
-            params['datetime'] = arrival_time.strftime(DATE_FORMAT)
-            params['datetime_represents'] = 'arrival'
-
-        # Ignore DEPARTURE_ARRIVAL_OPTIMIZED option as Navitia always does this
-        # optimization (it cannot be disabled).
-        # optimized = False
-        # if (PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in options) and \
-        #    (len(departures) <= 1 or len(arrivals) <= 1):
-        #    optimized = True
-
-        params["forbidden_uris"] = enabled_modes_to_forbidden_uris(modes)
-        params["first_section_mode[]"] = list(
-                                            SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
-        params["last_section_mode[]"] = list(
-                                            SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
-
-        for c in self_drive_conditions:
-            if c.TripPart == TripPartEnum.DEPARTURE:
-                params["first_section_mode[]"].extend(
-                    SELF_DRIVE_MODE_MAPPING[c.SelfDriveMode])
-            else:
-                params["last_section_mode[]"].extend(
-                    SELF_DRIVE_MODE_MAPPING[c.SelfDriveMode])
-
-        # Navitia bss mode includes walking so don't use both at the same time.
-        for l in [params["last_section_mode[]"], params["first_section_mode[]"]]:
-            if "bss" in l and "walking" in l:
-                l.remove("walking")
+        params = get_params(departure_time, arrival_time, 
+                            modes, self_drive_conditions)
 
         # Request itinerary for every departure/arrival pair and then
         # choose best.
