@@ -114,21 +114,41 @@ class MisApiBase():
     def __init__(self, api_key=""):
         self._api_key = api_key
 
-    # Return a list with all stop points from this mis
+    """
+        Return a list with all stop points from this mis
+    """
     def get_stops(self):
         return []
 
+    """
+        departures: [LocationContextType]
+        arrivals: [LocationContextType]
+        departure_time: DateTime
+        arrival_time: DateTime
+        algorithm: AlgorithmEnum
+        modes: [TransportModeEnum]
+        self_drive_conditions [SelfDriveConditionType]
+        accessibility_constraint: Boolean
+        language: String
+    """
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
-                      algorithm=AlgorithmEnum.CLASSIC, modes=[], 
-                      self_drive_conditions=[],
-                      accessibility_constraint=False,
-                      language=""):
+                      algorithm, modes, self_drive_conditions,
+                      accessibility_constraint, language):
         return ItineraryResponseType()
 
+    """
+        departures: [LocationContextType]
+        arrivals: [LocationContextType]
+        departure_time: DateTime
+        arrival_time: DateTime
+        algorithm: AlgorithmEnum
+        modes: [TransportModeEnum]
+        self_drive_conditions [SelfDriveConditionType]
+        accessibility_constraint: Boolean
+        language: String
+        options: [PlanSearchOptions]
+    """
     def get_sumed_up_itineraries(self, departures, arrivals, departure_time, arrival_time,
-                                 algorithm=AlgorithmEnum.CLASSIC, modes=[], 
-                                 self_drive_conditions=[],
-                                 accessibility_constraint=False,
-                                 language="",
-                                 options=[]):
+                                 algorithm, modes, self_drive_conditions,
+                                 accessibility_constraint, language, options):
         return SumedUpItinerariesResponseType()

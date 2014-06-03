@@ -450,7 +450,7 @@ class MisApi(MisApiBase):
         self._api_key = api_key
         self._http = None
 
-    def _journeys_request(self, params=[]):
+    def _journeys_request(self, params):
         url = self._api_url + "/journeys" + '?' + urllib.urlencode(params, True)
         resp, content = self._send_request(url)
 
@@ -530,10 +530,8 @@ class MisApi(MisApiBase):
 
 
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
-                      algorithm=AlgorithmEnum.CLASSIC, modes=[], 
-                      self_drive_conditions=[],
-                      accessibility_constraint=False,
-                      language=""):
+                      algorithm, modes, self_drive_conditions,
+                      accessibility_constraint, language):
         params = get_params(departure_time, arrival_time, 
                             modes, self_drive_conditions)
         journeys = []
@@ -556,10 +554,10 @@ class MisApi(MisApiBase):
 
 
     def get_sumed_up_itineraries(self, departures, arrivals, departure_time, 
-                                 arrival_time, algorithm=AlgorithmEnum.CLASSIC, 
-                                 modes=[], self_drive_conditions=[],
-                                 accessibility_constraint=False,
-                                 language="", options=[]):
+                                 arrival_time, algorithm, 
+                                 modes, self_drive_conditions,
+                                 accessibility_constraint,
+                                 language, options):
         params = get_params(departure_time, arrival_time, 
                             modes, self_drive_conditions)
         ret = SumedUpItinerariesResponseType()

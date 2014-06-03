@@ -253,7 +253,7 @@ def get_params(request, sumed_up_itineraries=False):
     params.algorithm = request.json.get('algorithm', AlgorithmEnum.CLASSIC)
     if not AlgorithmEnum.validate(params.algorithm):
         abort(400)
-    params.modes = request.json.get('modes', TransportModeEnum.ALL)
+    params.modes = request.json.get('modes', [TransportModeEnum.ALL])
     params.self_drive_conditions = []
     for c in request.json.get('selfDriveConditions', []):
         condition = SelfDriveConditionType(TripPart=c.get("TripPart", ""),
@@ -314,7 +314,8 @@ def _itinerary_request(mis_name, request, sumed_up_itineraries=False):
                 modes=params.modes, 
                 self_drive_conditions=params.self_drive_conditions,
                 accessibility_constraint=params.accessibility_constraint,
-                language=params.language)
+                language=params.language,
+                options=params.options)
         ret.Status = ResponseStatusType(Code=StatusCodeEnum.OK)
     except MisApiException as exc:
         resp_code = 500
