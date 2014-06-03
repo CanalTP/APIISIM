@@ -531,7 +531,7 @@ class MisApi(MisApiBase):
 
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
                       algorithm, modes, self_drive_conditions,
-                      accessibility_constraint, language):
+                      accessibility_constraint, language, options):
         params = get_params(departure_time, arrival_time, 
                             modes, self_drive_conditions)
         journeys = []
