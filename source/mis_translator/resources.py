@@ -193,10 +193,15 @@ def get_params(request, sumed_up_itineraries=False):
     # Required
     departure_time = request.json.get("DepartureTime", "")
     arrival_time = request.json.get("ArrivalTime", "")
-    if departure_time:
-        params.departure_time = datetime.datetime.strptime(departure_time, DATE_FORMAT)
-    if arrival_time:
-        params.arrival_time = datetime.datetime.strptime(arrival_time, DATE_FORMAT)
+    try:
+        if departure_time:
+            params.departure_time = datetime.datetime.strptime(departure_time, DATE_FORMAT)
+        if arrival_time:
+            params.arrival_time = datetime.datetime.strptime(arrival_time, DATE_FORMAT)
+    except ValueError as exc:
+        logging.error("DateTime format error: %s", exc)
+        abort(400)
+
     departures = []
     arrivals = []
     if sumed_up_itineraries:
@@ -253,7 +258,12 @@ def get_params(request, sumed_up_itineraries=False):
     params.algorithm = request.json.get('algorithm', AlgorithmEnum.CLASSIC)
     if not AlgorithmEnum.validate(params.algorithm):
         abort(400)
+
     params.modes = request.json.get('modes', [TransportModeEnum.ALL])
+    for m in params.modes:
+        if not TransportModeEnum.validate(m):
+            abort(400)
+
     params.self_drive_conditions = []
     for c in request.json.get('selfDriveConditions', []):
         condition = SelfDriveConditionType(TripPart=c.get("TripPart", ""),
