@@ -2,6 +2,10 @@ from sim_plan_trip import ItineraryResponseType
 from sim_plan_sumed_up_trip import SumedUpItinerariesResponseType
 
 class StringEnum:
+    """
+        Return True if given string is in given enum (cls being the enum class), 
+        False otherwise.
+    """
     @classmethod
     def validate(cls, string):
         for k, v in cls.__dict__.iteritems():
