@@ -143,3 +143,10 @@ class MisMode(Base):
     def __repr__(self):
         return ("<MisMode(id='%s', mis_id='%s', mode_id='%s')>" % \
                 (self.id, self.mis_id, self.mode_id)).encode(OUTPUT_ENCODING)
+
+class TransferMis(Base):
+    __tablename__ = 'transfer_mis'
+
+    transfer_id = Column(Integer, primary_key=True)
+    mis1_id = Column(Integer, nullable=False)
+    mis2_id = Column(Integer, nullable=False)

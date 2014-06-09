@@ -185,5 +185,13 @@ CREATE TRIGGER mis_connection_pre_insert BEFORE INSERT ON mis_connection
 FOR EACH ROW 
 EXECUTE PROCEDURE mis_connection_pre_insert_handler();
 
+
+
+-- Views
+
+CREATE VIEW transfer_mis AS 
+SELECT t.id transfer_id, m1.id mis1_id, m2.id mis2_id 
+FROM transfer t, stop s1, stop s2, mis m1, mis m2
+WHERE s1.mis_id=m1.id AND s2.mis_id=m2.id AND t.stop1_id=s1.id AND t.stop2_id=s2.id;
 COMMIT;
 \q
