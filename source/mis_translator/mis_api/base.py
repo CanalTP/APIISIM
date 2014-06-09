@@ -1,5 +1,5 @@
-from sim_plan_trip import ItineraryResponseType
-from sim_plan_sumed_up_trip import SumedUpItinerariesResponseType
+from mis_plan_trip import ItineraryResponseType
+from mis_plan_summed_up_trip import SummedUpItinerariesResponseType
 
 class StringEnum:
     """
@@ -38,7 +38,7 @@ class TripPartEnum(StringEnum):
     DEPARTURE = "DEPARTURE"
     ARRIVAL = "ARRIVAL"
 
-class SiteTypeEnum:
+class TypeOfPlaceEnum:
     LOCATION = "LOCATION"
     ADDRESS = "ADDRESS"
     BOARDING_POSITION = "BOARDING_POSITION"
@@ -153,7 +153,7 @@ class MisApiBase():
         language: String
         options: [PlanSearchOptions]
     """
-    def get_sumed_up_itineraries(self, departures, arrivals, departure_time, arrival_time,
-                                 algorithm, modes, self_drive_conditions,
-                                 accessibility_constraint, language, options):
-        return SumedUpItinerariesResponseType()
+    def get_summed_up_itineraries(self, departures, arrivals, departure_time, arrival_time,
+                                  algorithm, modes, self_drive_conditions,
+                                  accessibility_constraint, language, options):
+        return SummedUpItinerariesResponseType()

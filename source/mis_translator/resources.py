@@ -1,10 +1,10 @@
 from flask_restful import fields, marshal, abort, Resource
 import logging, datetime, json
 from flask import request, Response
-from mis_api.sim_plan_trip import LocationContextType, PositionType, \
-                                  ItineraryResponseType, ResponseStatusType, \
+from mis_api.mis_plan_trip import LocationContextType, LocationStructure, \
+                                  ItineraryResponseType, StatusType, \
                                   SelfDriveConditionType
-from mis_api.sim_plan_sumed_up_trip import SumedUpItinerariesResponseType
+from mis_api.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
                          MisApiBadRequestException, MisApiInternalErrorException, \
                          StatusCodeEnum, AlgorithmEnum, TripPartEnum, \
@@ -66,32 +66,32 @@ class NonNullList(fields.List):
 stop_fields = {'code': fields.String, 'name': fields.String,
                'lat': fields.Float, 'long': fields.Float}
 
-position_type = {
-    'Lat' : fields.Float,
-    'Long' : fields.Float
+location_structure_type = {
+    'Latitude' : fields.Float,
+    'Longitude' : fields.Float
 }
 
-site_type_type = {
+place_type = {
     'id' : fields.String,
-    'Position' : fields.Nested(position_type),
+    'Position' : fields.Nested(location_structure_type),
     'Name' : fields.String,
     'CityCode' : fields.String,
     'CityName' : fields.String,
-    'SiteType' : fields.String,
-    'Time' : fields.DateTime,
+    'TypeOfPlaceRef' : fields.String,
 }
 
-stop_place_type = {
-    'Parent' : fields.Nested(site_type_type)
+trip_stop_place_type = {
+    'Parent' : fields.Nested(place_type)
 }
 
 end_point_type = {
-    'Site' : fields.Nested(stop_place_type)
+    'TripStopPlace' : fields.Nested(trip_stop_place_type),
+    'DateTime' : fields.DateTime
 }
 
 step_end_point_type = {
-    'StopPlace' : fields.Nested(stop_place_type),
-    'Time' : fields.DateTime,
+    'TripStopPlace' : fields.Nested(trip_stop_place_type),
+    'DateTime' : fields.DateTime,
     'PassThrough' : fields.String
 }
 
@@ -128,8 +128,6 @@ section_type = {
 
 trip_type = {
     'id' : fields.Integer,
-    'DepartureTime' : fields.DateTime,
-    'ArrivalTime' : fields.DateTime,
     'Departure' : fields.Nested(end_point_type),
     'Arrival' : fields.Nested(end_point_type),
     'Duration' : fields.Integer,
@@ -138,26 +136,26 @@ trip_type = {
     'sections' : NonNullList(NonNullNested(section_type))
 }
 
-response_status_type = {
+status_type = {
     'Code' : fields.String,
     'RuntimeDuration' : fields.Float
 }
 
 itinerary_response_type = {
-    'Status' : fields.Nested(response_status_type),
+    'Status' : fields.Nested(status_type),
     'DetailedTrip' : fields.Nested(trip_type, allow_null=True)
 }
 
-sumed_up_trip_type = {
+summed_up_trip_type = {
     'Departure' : fields.Nested(end_point_type),
     'Arrival' : fields.Nested(end_point_type),
     'InterchangeCount' : fields.Integer,
     'InterchangeDuration' : fields.Integer
 }
 
-sumed_up_itineraries_response_type = {
-    'Status' : fields.Nested(response_status_type),
-    'sumedUpTrips' : NonNullList(NonNullNested(sumed_up_trip_type))
+summed_up_itineraries_response_type = {
+    'Status' : fields.Nested(status_type),
+    'summedUpTrips' : NonNullList(NonNullNested(summed_up_trip_type))
 }
 
 def string_to_bool(string):
@@ -186,7 +184,7 @@ class _ItineraryRequestParams:
         self.language = ""
 
 
-def get_params(request, sumed_up_itineraries=False):
+def get_params(request, summed_up_itineraries=False):
     # TODO do all validators
     params = _ItineraryRequestParams()
 
@@ -204,58 +202,58 @@ def get_params(request, sumed_up_itineraries=False):
 
     departures = []
     arrivals = []
-    if sumed_up_itineraries:
-        for d in request.json["Departures"]["departure"]:
+    if summed_up_itineraries:
+        for d in request.json["departures"]:
             departures.append(LocationContextType(
-                                    Position=PositionType(
-                                    Lat=d["Position"]["Lat"],
-                                    Long=d["Position"]["Long"]),
-                                    AccessDuration=d["accessDuration"],
-                                    QuayId=d["QuayId"]))
-        for a in request.json["Arrivals"]["arrival"]:
+                                    Position=LocationStructure(
+                                                Latitude=d["Position"]["Latitude"],
+                                                Longitude=d["Position"]["Longitude"]),
+                                                AccessTime=d["AccessTime"],
+                                    PlaceTypeId=d["PlaceTypeId"]))
+        for a in request.json["arrivals"]:
             arrivals.append(LocationContextType(
-                                    Position=PositionType(
-                                    Lat=a["Position"]["Lat"],
-                                    Long=a["Position"]["Long"]),
-                                    AccessDuration=a["accessDuration"],
-                                    QuayId=a["QuayId"]))
+                                    Position=LocationStructure(
+                                                Latitude=a["Position"]["Latitude"],
+                                                Longitude=a["Position"]["Longitude"]),
+                                                AccessTime=a["AccessTime"],
+                                    PlaceTypeId=a["PlaceTypeId"]))
     else:
         if "multiDepartures" in request.json:
-            for d in request.json["multiDepartures"]["departure"]:
+            for d in request.json["multiDepartures"]["Departure"]:
                 departures.append(LocationContextType(
-                                        Position=PositionType(
-                                        Lat=d["Position"]["Lat"],
-                                        Long=d["Position"]["Long"]),
-                                        AccessDuration=d["accessDuration"],
-                                        QuayId=d["QuayId"]))
-            a = request.json["multiDepartures"]["arrival"]
+                                        Position=LocationStructure(
+                                                    Latitude=d["Position"]["Latitude"],
+                                                    Longitude=d["Position"]["Longitude"]),
+                                                    AccessTime=d["AccessTime"],
+                                        PlaceTypeId=d["PlaceTypeId"]))
+            a = request.json["multiDepartures"]["Arrival"]
             arrivals.append(LocationContextType(
-                                    Position=PositionType(
-                                    Lat=a["Position"]["Lat"],
-                                    Long=a["Position"]["Long"]),
-                                    AccessDuration=a["accessDuration"],
-                                    QuayId=a["QuayId"]))
+                                    Position=LocationStructure(
+                                                Latitude=a["Position"]["Latitude"],
+                                                Longitude=a["Position"]["Longitude"]),
+                                                AccessTime=a["AccessTime"],
+                                    PlaceTypeId=a["PlaceTypeId"]))
 
         if "multiArrivals" in request.json:
-            for a in request.json["multiArrivals"]["arrival"]:
+            for a in request.json["multiArrivals"]["Arrival"]:
                 arrivals.append(LocationContextType(
-                                    Position=PositionType(
-                                    Lat=a["Position"]["Lat"],
-                                    Long=a["Position"]["Long"]),
-                                    AccessDuration=a["accessDuration"],
-                                    QuayId=a["QuayId"]))
-            d = request.json["multiArrivals"]["departure"]
+                                    Position=LocationStructure(
+                                                Latitude=a["Position"]["Latitude"],
+                                                Longitude=a["Position"]["Longitude"]),
+                                                AccessTime=a["AccessTime"],
+                                    PlaceTypeId=a["PlaceTypeId"]))
+            d = request.json["multiArrivals"]["Departure"]
             departures.append(LocationContextType(
-                                    Position=PositionType(
-                                    Lat=d["Position"]["Lat"],
-                                    Long=d["Position"]["Long"]),
-                                    AccessDuration=d["accessDuration"],
-                                    QuayId=d["QuayId"]))
+                                    Position=LocationStructure(
+                                                Latitude=d["Position"]["Latitude"],
+                                                Longitude=d["Position"]["Longitude"]),
+                                                AccessTime=d["AccessTime"],
+                                    PlaceTypeId=d["PlaceTypeId"]))
     params.departures = departures
     params.arrivals = arrivals
 
     # Optional
-    params.algorithm = request.json.get('algorithm', AlgorithmEnum.CLASSIC)
+    params.algorithm = request.json.get('Algorithm', AlgorithmEnum.CLASSIC)
     if not AlgorithmEnum.validate(params.algorithm):
         abort(400)
 
@@ -273,8 +271,8 @@ def get_params(request, sumed_up_itineraries=False):
            abort(400)
         params.self_drive_conditions.append(condition)
 
-    params.accessibility_constraint = string_to_bool(request.json.get('accessibilityConstraint', "False"))
-    params.language = request.json.get('language', "")
+    params.accessibility_constraint = string_to_bool(request.json.get('AccessibilityConstraint', "False"))
+    params.language = request.json.get('Language', "")
     params.options = request.json.get("options", [])
 
     return params
@@ -282,11 +280,11 @@ def get_params(request, sumed_up_itineraries=False):
 
 """ 
 Send itinerary request to given MIS.
-If sumed_up_itineraries is True, we'll request sumed up itineraries 
+If summed_up_itineraries is True, we'll request summed up itineraries 
 (i.e. non-detailed itineraries), otherwise we'll request "standard" 
 itineraries (i.e. more detailed itineraries).
 """
-def _itinerary_request(mis_name, request, sumed_up_itineraries=False):
+def _itinerary_request(mis_name, request, summed_up_itineraries=False):
     request_start_date = datetime.datetime.now()
 
     mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
@@ -296,7 +294,7 @@ def _itinerary_request(mis_name, request, sumed_up_itineraries=False):
     logging.debug("MIS NAME %s", mis_name)
     logging.debug("URL: %s\nREQUEST.JSON: %s", request.url, request.json)
 
-    if sumed_up_itineraries:
+    if summed_up_itineraries:
         if ("DepartureTime" not in request.json and "ArrivalTime" not in request.json):
             abort(400)
     else:
@@ -305,12 +303,12 @@ def _itinerary_request(mis_name, request, sumed_up_itineraries=False):
             or ("multiDepartures" in request.json and "multiArrivals" in request.json):
             abort(400)
 
-    params = get_params(request, sumed_up_itineraries)
+    params = get_params(request, summed_up_itineraries)
     resp_code = 200
 
-    if sumed_up_itineraries:
-        func = mis.get_sumed_up_itineraries
-        ret = SumedUpItinerariesResponseType()
+    if summed_up_itineraries:
+        func = mis.get_summed_up_itineraries
+        ret = SummedUpItinerariesResponseType()
     else:
         func = mis.get_itinerary
         ret = ItineraryResponseType()
@@ -326,20 +324,20 @@ def _itinerary_request(mis_name, request, sumed_up_itineraries=False):
                 accessibility_constraint=params.accessibility_constraint,
                 language=params.language,
                 options=params.options)
-        ret.Status = ResponseStatusType(Code=StatusCodeEnum.OK)
+        ret.Status = StatusType(Code=StatusCodeEnum.OK)
     except MisApiException as exc:
         resp_code = 500
-        ret.Status = ResponseStatusType(Code=exc.error_code)
+        ret.Status = StatusType(Code=exc.error_code)
     except:
         logging.error(format_exc())
         resp_code = 500
-        ret.Status = ResponseStatusType(Code=StatusCodeEnum.INTERNAL_ERROR)
+        ret.Status = StatusType(Code=StatusCodeEnum.INTERNAL_ERROR)
 
     request_duration = datetime.datetime.now() - request_start_date
     ret.Status.RuntimeDuration = request_duration.total_seconds()
-    if sumed_up_itineraries:
-        resp_data = {'SumedUpItinerariesResponseType' : \
-                     marshal(ret, sumed_up_itineraries_response_type)}
+    if summed_up_itineraries:
+        resp_data = {'SummedUpItinerariesResponseType' : \
+                     marshal(ret, summed_up_itineraries_response_type)}
     else:
         resp_data = {'ItineraryResponseType' : marshal(ret, itinerary_response_type)}
 
@@ -366,7 +364,7 @@ class Itineraries(Resource):
     def post(self, mis_name=""):
         return _itinerary_request(mis_name, request)
 
-class SumedUpItineraries(Resource):
+class SummedUpItineraries(Resource):
 
     def post(self, mis_name=""):
-        return _itinerary_request(mis_name, request, sumed_up_itineraries=True)
+        return _itinerary_request(mis_name, request, summed_up_itineraries=True)

@@ -1,14 +1,14 @@
 # -*- coding: utf8 -*-
 
 from base import MisApiBase, Stop, AlgorithmEnum, TransportModeEnum, \
-                 SiteTypeEnum, MisApiException, SelfDriveModeEnum, \
+                 TypeOfPlaceEnum, MisApiException, SelfDriveModeEnum, \
                  MisApiDateOutOfScopeException, MisApiBadRequestException, \
                  MisApiInternalErrorException, PublicTransportModeEnum, \
                  TripPartEnum, MisApiUnauthorizedException
 import json, httplib2, logging, urllib
 # TODO  do not use import *
-from sim_plan_trip import *
-from sim_plan_sumed_up_trip import SumedUpItinerariesResponseType, SumedUpTripType
+from mis_plan_trip import *
+from mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
 from datetime import datetime
 from random import randint
 from operator import itemgetter
@@ -49,13 +49,13 @@ class JourneyTypeEnum:
     HEALTHY = "healthy"
 
 
-SITE_TYPE_MAPPING = {
-    # Navitia 'embedded_type' : SiteTypeEnum
-    'stop_point' : SiteTypeEnum.STOP_PLACE,
-    'stop_area' : SiteTypeEnum.STOP_PLACE,
-    'address' :    SiteTypeEnum.ADDRESS,
-    'poi' :    SiteTypeEnum.POI,
-    'adminstrative_region' : SiteTypeEnum.LOCATION
+TYPE_OF_PLACE_MAPPING = {
+    # Navitia 'embedded_type' : TypeOfPlaceEnum
+    'stop_point' : TypeOfPlaceEnum.STOP_PLACE,
+    'stop_area' : TypeOfPlaceEnum.STOP_PLACE,
+    'address' :    TypeOfPlaceEnum.ADDRESS,
+    'poi' :    TypeOfPlaceEnum.POI,
+    'adminstrative_region' : TypeOfPlaceEnum.LOCATION
 }
 
 
@@ -124,34 +124,34 @@ for k, v in SELF_DRIVE_MODE_MAPPING.items():
 
 
 def parse_end_point(point):
-    site = SiteTypeType()
-    site.id = point["id"]
-    site.Name = point["name"]
+    place = PlaceType()
+    place.id = point["id"]
+    place.Name = point["name"]
     embedded_type = point["embedded_type"]
-    site.SiteType = SITE_TYPE_MAPPING.get(embedded_type, 
-                                          SiteTypeEnum.LOCATION)
+    place.TypeOfPlaceRef = TYPE_OF_PLACE_MAPPING.get(embedded_type, 
+                                                     TypeOfPlaceEnum.LOCATION)
 
     point_data = point[embedded_type]
     for r in point_data.get("administrative_regions", []):
         if r["level"] == 8: # City level
-            site.CityCode = r["id"]
-            site.CityName = r["name"]
-    site.Position = PositionType(Lat=point_data["coord"]["lat"], 
-                                 Long=point_data["coord"]["lon"])
+            place.CityCode = r["id"]
+            place.CityName = r["name"]
+    place.Position = LocationStructure(Latitude=point_data["coord"]["lat"], 
+                                       Longitude=point_data["coord"]["lon"])
 
-    return EndPointType(Site=StopPlaceType(Parent=site))
+    return EndPointType(TripStopPlace=TripStopPlaceType(Parent=place))
 
 
 def parse_stop_times(stop_times):
     def parse_step_point(point):
-        site = SiteTypeType()
-        site.id = point["id"]
-        site.Name = point["name"]
-        site.SiteType = SITE_TYPE_MAPPING["stop_point"]
-        site.Position = PositionType(Lat=point["coord"]["lat"], 
-                                     Long=point["coord"]["lon"])
+        place = PlaceType()
+        place.id = point["id"]
+        place.Name = point["name"]
+        place.TypeOfPlaceRef = TYPE_OF_PLACE_MAPPING["stop_point"]
+        place.Position = LocationStructure(Latitude=point["coord"]["lat"], 
+                                           Longitude=point["coord"]["lon"])
 
-        return StepEndPointType(StopPlace=StopPlaceType(Parent=site))
+        return StepEndPointType(TripStopPlace=TripStopPlaceType(Parent=place))
 
 
     if not stop_times or len(stop_times) < 2:
@@ -166,20 +166,20 @@ def parse_stop_times(stop_times):
         # TODO what if it is not a 'stop_point'
         step.Departure = parse_step_point(s1["stop_point"])
         step.Arrival = parse_step_point(s2["stop_point"])
-        step.Departure.Time = datetime.strptime(s1['arrival_date_time'], DATE_FORMAT)
-        step.Arrival.Time = datetime.strptime(s2['arrival_date_time'], DATE_FORMAT)
+        step.Departure.DateTime = datetime.strptime(s1['arrival_date_time'], DATE_FORMAT)
+        step.Arrival.DateTime = datetime.strptime(s2['arrival_date_time'], DATE_FORMAT)
         # Duration in minutes
-        step.Duration = (step.Arrival.Time - step.Departure.Time).total_seconds() / 60
+        step.Duration = (step.Arrival.DateTime - step.Departure.DateTime).total_seconds() / 60
         steps.append(step)
 
     return steps
 
 
-def journey_to_sumed_up_trip(journey):
+def journey_to_summed_up_trip(journey):
     if not journey:
         return None
 
-    trip = SumedUpTripType()
+    trip = SummedUpTripType()
     trip.InterchangeCount = journey["nb_transfers"]
     sections = clean_sections(journey.get('sections', []))
     if not sections:
@@ -189,9 +189,9 @@ def journey_to_sumed_up_trip(journey):
     first_section = sections[0]
     last_section = sections[-1]
     trip.Departure = parse_end_point(first_section['from'])
-    trip.Departure.Time = datetime.strptime(first_section['departure_date_time'], DATE_FORMAT)
+    trip.Departure.DateTime = datetime.strptime(first_section['departure_date_time'], DATE_FORMAT)
     trip.Arrival = parse_end_point(last_section['to'])
-    trip.Arrival.Time = datetime.strptime(last_section['arrival_date_time'], DATE_FORMAT)
+    trip.Arrival.DateTime = datetime.strptime(last_section['arrival_date_time'], DATE_FORMAT)
     trip.InterchangeDuration = 0
     for s in [x for x in sections if x["type"] != SectionTypeEnum.PUBLIC_TRANSPORT]:
         trip.InterchangeDuration += s["duration"]
@@ -232,10 +232,7 @@ def parse_journey(journey):
         return None
 
     trip = TripType()
-    trip.DepartureTime = datetime.strptime(journey["departure_date_time"], DATE_FORMAT)
-    trip.ArrivalTime = datetime.strptime(journey["arrival_date_time"], DATE_FORMAT)
     trip.Duration = journey["duration"]
-    trip.KmlOverview = ""
     trip.Distance = 0
     trip.Disrupted = False
     trip.InterchangeNumber = journey["nb_transfers"]
@@ -256,8 +253,8 @@ def parse_journey(journey):
                                             PublicTransportModeEnum.UNKNOWN)
             ptr.Departure = parse_end_point(s["from"])
             ptr.Arrival = parse_end_point(s["to"])
-            ptr.Departure.Site.Parent.Time = datetime.strptime(s["departure_date_time"], DATE_FORMAT)
-            ptr.Arrival.Site.Parent.Time = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
+            ptr.Departure.DateTime = datetime.strptime(s["departure_date_time"], DATE_FORMAT)
+            ptr.Arrival.DateTime = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
             ptr.Duration = s["duration"]
             # TODO remove that hard coded 0 index
             ptr.Distance = s["geojson"]["properties"][0]["length"]
@@ -270,8 +267,8 @@ def parse_journey(journey):
             leg = LegType()
             leg.Departure = parse_end_point(s["from"])
             leg.Arrival = parse_end_point(s["to"])
-            leg.Departure.Site.Parent.Time = datetime.strptime(s["departure_date_time"], DATE_FORMAT)
-            leg.Arrival.Site.Parent.Time = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
+            leg.Departure.DateTime = datetime.strptime(s["departure_date_time"], DATE_FORMAT)
+            leg.Arrival.DateTime = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
             leg.Duration = s["duration"]
             leg.SelfDriveMode = INVERSE_SELF_DRIVE_MODE_MAPPING.get(
                                     s["transfer_type"], SelfDriveModeEnum.WALK)
@@ -538,14 +535,14 @@ class MisApi(MisApiBase):
         # Request journeys for every departure/arrival pair and then
         # choose best.
         if len(departures) > 1:
-            params['to'] = arrivals[0].QuayId
+            params['to'] = arrivals[0].PlaceTypeId
             for d in departures:
-                params['from'] = d.QuayId
+                params['from'] = d.PlaceTypeId
                 journeys.extend(self._journeys_request(params))
         else:
-            params['from'] = departures[0].QuayId
+            params['from'] = departures[0].PlaceTypeId
             for a in arrivals:
-                params['to'] = a.QuayId
+                params['to'] = a.PlaceTypeId
                 journeys.extend(self._journeys_request(params))
 
         best_journey = choose_best_journey(journeys, algorithm)
@@ -553,28 +550,28 @@ class MisApi(MisApiBase):
         return ItineraryResponseType(DetailedTrip=parse_journey(best_journey))
 
 
-    def get_sumed_up_itineraries(self, departures, arrivals, departure_time, 
+    def get_summed_up_itineraries(self, departures, arrivals, departure_time, 
                                  arrival_time, algorithm, 
                                  modes, self_drive_conditions,
                                  accessibility_constraint,
                                  language, options):
         params = get_params(departure_time, arrival_time, 
                             modes, self_drive_conditions)
-        ret = SumedUpItinerariesResponseType()
+        ret = SummedUpItinerariesResponseType()
 
         # Request itinerary for every departure/arrival pair and then
         # choose best.
         journeys = []
         for d in departures:
             for a in arrivals:
-                params['from'] = d.QuayId
-                params['to'] = a.QuayId
+                params['from'] = d.PlaceTypeId
+                params['to'] = a.PlaceTypeId
                 for j in self._journeys_request(params):
                     journeys.append((d, a, j))
 
         if not journeys:
             # No journey found, no need to go further, just return empty list.
-            ret.sumedUpTrips = []
+            ret.summedUpTrips = []
             return ret
 
         best_journeys = []
@@ -590,7 +587,7 @@ class MisApi(MisApiBase):
                         choose_best_journey(journeys_from_departure, algorithm,
                                             departure_at=False))
 
-        ret.sumedUpTrips = [journey_to_sumed_up_trip(x) for x in best_journeys]
-        logging.debug("Sumed up trips (%s) : %s", len(ret.sumedUpTrips), ret.sumedUpTrips)
+        ret.summedUpTrips = [journey_to_summed_up_trip(x) for x in best_journeys]
+        logging.debug("Summed up trips (%s) : %s", len(ret.summedUpTrips), ret.summedUpTrips)
 
         return ret
