@@ -80,9 +80,10 @@ place_type = {
     'TypeOfPlaceRef' : fields.String,
 }
 
-trip_stop_place_type = {
-    'Parent' : fields.Nested(place_type)
-}
+trip_stop_place_type = place_type.copy()
+# Parent attribute is currently not implemented and is therefore
+# always empty, so ignore it for now.
+# trip_stop_place_type['Parent'] = NonNullNested(place_type)
 
 end_point_type = {
     'TripStopPlace' : fields.Nested(trip_stop_place_type),

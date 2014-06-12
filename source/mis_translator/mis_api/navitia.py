@@ -124,7 +124,7 @@ for k, v in SELF_DRIVE_MODE_MAPPING.items():
 
 
 def parse_end_point(point):
-    place = PlaceType()
+    place = TripStopPlaceType()
     place.id = point["id"]
     place.Name = point["name"]
     embedded_type = point["embedded_type"]
@@ -139,19 +139,19 @@ def parse_end_point(point):
     place.Position = LocationStructure(Latitude=point_data["coord"]["lat"], 
                                        Longitude=point_data["coord"]["lon"])
 
-    return EndPointType(TripStopPlace=TripStopPlaceType(Parent=place))
+    return EndPointType(TripStopPlace=place)
 
 
 def parse_stop_times(stop_times):
     def parse_step_point(point):
-        place = PlaceType()
+        place = TripStopPlaceType()
         place.id = point["id"]
         place.Name = point["name"]
         place.TypeOfPlaceRef = TYPE_OF_PLACE_MAPPING["stop_point"]
         place.Position = LocationStructure(Latitude=point["coord"]["lat"], 
                                            Longitude=point["coord"]["lon"])
 
-        return StepEndPointType(TripStopPlace=TripStopPlaceType(Parent=place))
+        return StepEndPointType(TripStopPlace=place)
 
 
     if not stop_times or len(stop_times) < 2:
