@@ -22,22 +22,22 @@ headers = {'Content-type': 'application/json',
 
 ################################################################################
 # Paris region ("http://api.navitia.io/v1/coverage/paris")
-d1 = {"AccessTime" : "10",
+d1 = {"AccessTime" : 100,
      "Position" : {"Latitude" : 48.84556,
                    "Longitude" : 2.373449},
      "PlaceTypeId" : "stop_area:RTP:SA:1955"}
 
-d2 = {"AccessTime" : "5",
+d2 = {"AccessTime" : 50,
      "Position" : {"Latitude" : 48.843414,
                    "Longitude" : 2.364188},
      "PlaceTypeId" : "stop_area:RTP:SA:1951"}
 
-a1 = {"AccessTime" : "7",
+a1 = {"AccessTime" : 70,
      "Position" : {"Latitude" : 48.883456,
                    "Longitude" : 2.327375},
      "PlaceTypeId" : "stop_area:RTP:SA:1795"}
 
-a2 = {"AccessTime" : "12",
+a2 = {"AccessTime" : 120,
       "Position" : {"Latitude" : 48.897512, "Longitude" : 2.329022},
       "PlaceTypeId" : "stop_area:RTP:SA:2426"}
 
@@ -90,49 +90,49 @@ data4 = {"Departures" : departures,
 ################################################################################
 # http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/
 # gare SNCF et routière Angers-St-Laud
-d1 = {"AccessTime" : "10",
+d1 = {"AccessTime" : 120,
       "Position" : {"Latitude" : 47.464722,
                     "Longitude" : -0.558158},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87484006"}
 
 # gare de Savenay
-d2 = {"AccessTime" : "10",
+d2 = {"AccessTime" : 300,
       "Position" : {"Latitude" : 47.358562,
                     "Longitude" : -1.951025},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87481838"}
 
 # Camping de Bouchemaine
-d3 = {"AccessTime" : "10",
+d3 = {"AccessTime" : 90,
       "Position" : {"Latitude" : 47.419306,
                     "Longitude" : -0.611521},
       "PlaceTypeId" : "stop_area:ANG:SA:1306"}
 
 # Gare de rennes
-a1 = {"AccessTime" : "7",
+a1 = {"AccessTime" : 700,
       "Position" : {"Latitude" : 48.103516,
                     "Longitude" : -1.67232},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87471003"}
 
 # Parking Des Ecoles
-a2 = {"AccessTime" : "7",
+a2 = {"AccessTime" : 600,
       "Position" : {"Latitude" : 47.081555,
                     "Longitude" : -1.337921},
       "PlaceTypeId" : "stop_area:C44:SA:333"}
 
 # gare de Bourgneuf-en-Retz
-a3 = {"AccessTime" : "7",
+a3 = {"AccessTime" : 240,
       "Position" : {"Latitude" : 47.046857,
                     "Longitude" : -1.955269},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87481242"}
 
 # gare de Nancy-Ville
-a4 = {"AccessTime" : "7",
+a4 = {"AccessTime" : 320,
       "Position" : {"Latitude" : 48.689786,
                     "Longitude" : 6.174279},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87141002"}
 
 # gare de Metz-Ville
-a5 = {"AccessTime" : "7",
+a5 = {"AccessTime" : 10,
       "Position" : {"Latitude" : 49.109789,
                     "Longitude" : 6.177203},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87192039"}

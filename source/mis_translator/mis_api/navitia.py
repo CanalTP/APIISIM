@@ -9,7 +9,7 @@ import json, httplib2, logging, urllib
 # TODO  do not use import *
 from mis_plan_trip import *
 from mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
-from datetime import datetime
+from datetime import datetime, timedelta
 from random import randint
 from operator import itemgetter
 
@@ -405,15 +405,21 @@ def modes_to_forbidden_uris(enabled_modes):
     return forbidden_uris
 
 
-def get_params(departure_time, arrival_time, modes, self_drive_conditions):
-    params = {}
-
+def params_set_datetime(params, departure_time, arrival_time, departure, arrival):
     if departure_time:
-        params['datetime'] = departure_time.strftime(DATE_FORMAT)
         params['datetime_represents'] = 'departure'
+        params['datetime'] = \
+                (departure_time + timedelta(seconds=departure.AccessTime)).strftime(DATE_FORMAT)
     else:
-        params['datetime'] = arrival_time.strftime(DATE_FORMAT)
         params['datetime_represents'] = 'arrival'
+        params['datetime'] = \
+                (arrival_time + timedelta(seconds=arrival.AccessTime)).strftime(DATE_FORMAT)
+
+    return params
+
+
+def get_params(modes, self_drive_conditions):
+    params = {}
 
     params["forbidden_uris[]"] = modes_to_forbidden_uris(modes)
     params["first_section_mode[]"] = list(
@@ -529,8 +535,7 @@ class MisApi(MisApiBase):
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
                       algorithm, modes, self_drive_conditions,
                       accessibility_constraint, language, options):
-        params = get_params(departure_time, arrival_time, 
-                            modes, self_drive_conditions)
+        params = get_params(modes, self_drive_conditions)
         journeys = []
         # Request journeys for every departure/arrival pair and then
         # choose best.
@@ -538,11 +543,13 @@ class MisApi(MisApiBase):
             params['to'] = arrivals[0].PlaceTypeId
             for d in departures:
                 params['from'] = d.PlaceTypeId
+                params_set_datetime(params, departure_time, arrival_time, d, arrivals[0])
                 journeys.extend(self._journeys_request(params))
         else:
             params['from'] = departures[0].PlaceTypeId
             for a in arrivals:
                 params['to'] = a.PlaceTypeId
+                params_set_datetime(params, departure_time, arrival_time, departures[0], a)
                 journeys.extend(self._journeys_request(params))
 
         best_journey = choose_best_journey(journeys, algorithm)
@@ -555,8 +562,7 @@ class MisApi(MisApiBase):
                                  modes, self_drive_conditions,
                                  accessibility_constraint,
                                  language, options):
-        params = get_params(departure_time, arrival_time, 
-                            modes, self_drive_conditions)
+        params = get_params(modes, self_drive_conditions)
         ret = SummedUpItinerariesResponseType()
 
         # Request itinerary for every departure/arrival pair and then
@@ -566,6 +572,7 @@ class MisApi(MisApiBase):
             for a in arrivals:
                 params['from'] = d.PlaceTypeId
                 params['to'] = a.PlaceTypeId
+                params_set_datetime(params, departure_time, arrival_time, d, a)
                 for j in self._journeys_request(params):
                     journeys.append((d, a, j))
 
