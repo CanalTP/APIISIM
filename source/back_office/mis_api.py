@@ -21,6 +21,7 @@ class MisApi():
     # Return a list with all stop points from this mis
     def get_stops(self):
         h = httplib2.Http(".cache")
+        headers = {'Authorization' : self._api_key}
         base_url = self._api_url + "stops/"
         params = ""
         stops = []
@@ -29,7 +30,7 @@ class MisApi():
         else:
             url = base_url
         logging.debug(url)
-        resp, content = h.request(url, "GET")
+        resp, content = h.request(url, "GET", headers=headers)
         if resp.status != HTTP_OK:
             raise Exception("[FAIL]: GET %s: %s" % (url, resp.status))
 
