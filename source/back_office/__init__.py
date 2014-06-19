@@ -79,7 +79,9 @@ def retrieve_all_stops(db_session):
     all_stops = {} # {mis_id : [list of stops]}
     for mis in db_session.query(metabase.Mis).all():
         try:
+            logging.info("From <%s>...", mis.name)
             all_stops[mis.id] = MisApi(mis.api_url, mis.api_key).get_stops()
+            logging.info("OK")
         except Exception as e:
             logging.error("get_stops request to <%s> failed: %s", mis.api_url, e)
             # TODO: do we delete all stops from this MIS?
@@ -102,6 +104,9 @@ def retrieve_all_stops(db_session):
 
         stop_codes = []
         for s in all_stops[mis_id]:
+            # Ignore stops with no coordinates
+            if s.lat == 0 and s.long == 0:
+                continue
             stop_codes.append(s.code)
 
         db_stop_codes = set(db_stop_codes)
