@@ -27,6 +27,7 @@ def load_mis_apis():
         exec ("import mis_api.%s as %s" % (m, mis_module))
         mis_name = eval("%s.NAME" % mis_module)
         mis_api_mapping[mis_name] = eval("%s.MisApi" % mis_module)
+        logging.info("Loaded Mis API <%s> ", m)
 
 """
 Return new MisApi object based on given mis_name.
@@ -128,11 +129,13 @@ def get_params(request, summed_up_itineraries=False):
     # Optional
     params.algorithm = request.json.get('Algorithm', AlgorithmEnum.CLASSIC)
     if not AlgorithmEnum.validate(params.algorithm):
+        logging.error("Invalid algorithm")
         abort(400)
 
     params.modes = request.json.get('modes', [TransportModeEnum.ALL])
     for m in params.modes:
         if not TransportModeEnum.validate(m):
+            logging.error("Invalid transport mode")
             abort(400)
 
     params.self_drive_conditions = []
@@ -141,6 +144,7 @@ def get_params(request, summed_up_itineraries=False):
                                 SelfDriveMode=c.get("SelfDriveMode", ""))
         if not TripPartEnum.validate(condition.TripPart) or \
            not SelfDriveModeEnum.validate(condition.SelfDriveMode):
+           logging.error("Invalid self drive condition")
            abort(400)
         params.self_drive_conditions.append(condition)
 
@@ -160,20 +164,25 @@ itineraries (i.e. more detailed itineraries).
 def _itinerary_request(mis_name, request, summed_up_itineraries=False):
     request_start_date = datetime.datetime.now()
 
-    mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
     if not request.json:
+        logging.error("No JSON in request")
         abort(400)
+
+
+    mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
 
     logging.debug("MIS NAME %s", mis_name)
     logging.debug("URL: %s\nREQUEST.JSON: %s", request.url, request.json)
 
     if summed_up_itineraries:
-        if ("DepartureTime" not in request.json and "ArrivalTime" not in request.json):
+        if ("DepartureTime" not in request.json) and ("ArrivalTime" not in request.json):
+            logging.error("No departure/arrival time given")
             abort(400)
     else:
         if ("DepartureTime" not in request.json and "ArrivalTime" not in request.json) \
             or ("multiDepartures" not in request.json and "multiArrivals" not in request.json) \
             or ("multiDepartures" in request.json and "multiArrivals" in request.json):
+            logging.error("Invalid itinerary request")
             abort(400)
 
     params = get_params(request, summed_up_itineraries)

@@ -9,6 +9,8 @@ import mis_translator
 def init_logging():
     # TODO add possibility to read logging config from a file/variable
     handler = logging.StreamHandler(stream=sys.stdout)
+    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+    handler.setFormatter(formatter)
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
     root_logger.addHandler(handler)
