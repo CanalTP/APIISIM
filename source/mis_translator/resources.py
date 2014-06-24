@@ -58,9 +58,10 @@ class _ItineraryRequestParams:
         self.self_drive_conditions = []
         self.accessibility_constraint = False
         self.language = ""
+        self.options = []
 
 
-def get_params(request, summed_up_itineraries=False):
+def parse_request(request, summed_up_itineraries=False):
     # TODO do all validators
     params = _ItineraryRequestParams()
 
@@ -193,7 +194,8 @@ def _itinerary_request(mis_name, request, summed_up_itineraries=False):
             logging.error("Invalid itinerary request")
             abort(400)
 
-    params = get_params(request, summed_up_itineraries)
+    params = parse_request(request, summed_up_itineraries)
+
     resp_code = 200
 
     if summed_up_itineraries:
