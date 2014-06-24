@@ -14,7 +14,7 @@ from random import randint
 from operator import itemgetter
 
 NAME = "navitia"
-ITEMS_PER_PAGE = 100
+ITEMS_PER_PAGE = 1000
 DATE_FORMAT = "%Y%m%dT%H%M%S"
 
 
@@ -500,7 +500,7 @@ class MisApi(MisApiBase):
         params = {"count" : ITEMS_PER_PAGE}
         stops = []
         # TODO delete that, just here for testing purposes
-        max_pages = 10
+        max_pages = 0
         pages_read = 0
         while True:
             url = base_url + ("&" if "?" in base_url else "?") + urllib.urlencode(params)
@@ -525,9 +525,10 @@ class MisApi(MisApiBase):
                 base_url = next_base_url
 
             # TODO delete that, just here for testing purposes
-            pages_read = pages_read  + 1
-            if pages_read > max_pages:
-                break
+            if max_pages > 0:
+                pages_read = pages_read  + 1
+                if pages_read > max_pages:
+                    break
 
         return stops
 
