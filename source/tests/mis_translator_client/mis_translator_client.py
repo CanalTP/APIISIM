@@ -1,10 +1,9 @@
 # -*- coding: utf8 -*-
 
 import json, httplib2, datetime
-from mis_translator.mis_api.base import TransportModeEnum, AlgorithmEnum
 from datetime import timedelta
-
-DATE_FORMAT="%Y-%m-%dT%H:%M:%S"
+from common import AlgorithmEnum, TransportModeEnum
+from common.marshalling import DATE_FORMAT
 
 def send_request(data):
     resp, content = h.request(url, "POST", headers=headers, body=json.dumps(data))

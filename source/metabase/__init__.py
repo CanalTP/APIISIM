@@ -4,14 +4,11 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Enum, TIMESTAMP, Boolean, Float, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship, backref, Session
-from flask_restful import fields, marshal_with, marshal, reqparse, types
+from common import OUTPUT_ENCODING
 import datetime
 from geoalchemy2 import Geography
 
 ###############################################################################
-
-# Encoding used when converting objects to strings
-OUTPUT_ENCODING = "utf-8"
 
 Base = declarative_base()
 

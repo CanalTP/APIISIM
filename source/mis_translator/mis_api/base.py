@@ -1,93 +1,6 @@
-from mis_plan_trip import ItineraryResponseType
-from mis_plan_summed_up_trip import SummedUpItinerariesResponseType
-
-class StringEnum:
-    """
-        Return True if given string is in given enum (cls being the enum class), 
-        False otherwise.
-    """
-    @classmethod
-    def validate(cls, string):
-        for k, v in cls.__dict__.iteritems():
-            if not k.startswith('__') and string == v:
-                return True
-        return False
-
-class AlgorithmEnum(StringEnum):
-    CLASSIC  = 'CLASSIC'
-    SHORTEST = 'SHORTEST'
-    FASTEST = 'FASTEST'
-    MINCHANGES = 'MINCHANGES'
-
-class StatusCodeEnum:
-    OK = "OK"
-    UNKNOWN_END_POINT = "UNKNOWN_END_POINT"
-    TOO_MANY_END_POINT = "TOO_MANY_END_POINT"
-    TOO_FAR_POSITION = "TOO_FAR_POSITION"
-    DATE_OUT_OF_SCOPE = "DATE_OUT_OF_SCOPE"
-    BAD_REQUEST = "BAD_REQUEST"
-    INTERNAL_ERROR = "INTERNAL_ERROR"
-
-
-class SelfDriveModeEnum(StringEnum):
-    CAR = "CAR"
-    BIKE = "BIKE"
-    WALK = "WALK"
-
-class TripPartEnum(StringEnum):
-    DEPARTURE = "DEPARTURE"
-    ARRIVAL = "ARRIVAL"
-
-class TypeOfPlaceEnum:
-    LOCATION = "LOCATION"
-    ADDRESS = "ADDRESS"
-    BOARDING_POSITION = "BOARDING_POSITION"
-    QUAY = "QUAY"
-    COMMERCIAL_STOP_POINT = "COMMERCIAL_STOP_POINT"
-    STOP_PLACE = "STOP_PLACE"
-    POI = "POI"
-    ROAD_LINK = "ROAD_LINK"
-    CITY = "CITY"
-
-
-class TransportModeEnum(StringEnum):
-    ALL = 'ALL'
-    BUS = 'BUS'
-    TROLLEYBUS = 'TROLLEYBUS'
-    TRAM = 'TRAM'
-    COACH = 'COACH'
-    RAIL = 'RAIL'
-    INTERCITYRAIL = 'INTERCITYRAIL'
-    URBANRAIL = 'URBANRAIL'
-    METRO = 'METRO'
-    AIR = 'AIR'
-    WATER = 'WATER'
-    CABLE = 'CABLE'
-    FUNICULAR = 'FUNICULAR'
-    TAXI = 'TAXI'
-    BIKE = 'BIKE'
-    CAR = 'CAR'
-
-
-class PublicTransportModeEnum:
-    BUS = 'BUS'
-    TROLLEYBUS = 'TROLLEYBUS'
-    TRAM = 'TRAM'
-    COACH = 'COACH'
-    RAIL = 'RAIL'
-    URBANRAIL = 'URBANRAIL'
-    INTERCITYRAIL = 'INTERCITYRAIL'
-    METRO = 'METRO'
-    AIR = 'AIR'
-    WATER = 'WATER'
-    CABLE = 'CABLE'
-    FUNICULAR = 'FUNICULAR'
-    TAXI = 'TAXI'
-    UNKNOWN = "UNKNOWN"
-
-
-class PlanSearchOptions:
-    DEPARTURE_ARRIVAL_OPTIMIZED = "DEPARTURE_ARRIVAL_OPTIMIZED"
+from common.mis_plan_trip import ItineraryResponseType
+from common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
+from common import StatusCodeEnum
 
 class MisApiException(Exception):
     error_code = StatusCodeEnum.INTERNAL_ERROR
@@ -113,7 +26,7 @@ class Stop():
                (self.code, self.name , self.lat , self.long)).encode("utf-8")
 
 
-class MisApiBase():
+class MisApiBase(object):
 
     def __init__(self, api_key=""):
         self._api_key = api_key

@@ -1,22 +1,21 @@
-from flask_restful import fields, marshal, abort, Resource
+from flask_restful import abort, Resource
 import logging, datetime, json
 from flask import request, Response
-from mis_api.mis_plan_trip import LocationContextType, LocationStructure, \
+from common.mis_plan_trip import LocationContextType, LocationStructure, \
                                   ItineraryResponseType, StatusType, \
                                   SelfDriveConditionType
-from mis_api.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
+from common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
+from common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, TripPartEnum, \
+                   TransportModeEnum, PlanSearchOptions, string_to_bool
+from common.marshalling import *
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
-                         MisApiBadRequestException, MisApiInternalErrorException, \
-                         StatusCodeEnum, AlgorithmEnum, TripPartEnum, \
-                         SelfDriveModeEnum, TransportModeEnum
+                         MisApiBadRequestException, MisApiInternalErrorException
 from traceback import format_exc
 
 
 # List of enabled Mis APIs modules
 MIS_APIS_AVAILABLE = frozenset(["dummy", "navitia", "test1", "test2"])
 mis_api_mapping = {} # Mis name : MisApi Class
-
-DATE_FORMAT="%Y-%m-%dT%H:%M:%S"
 
 """
 Load all available Mis APIs modules and populate mis_api_mapping dict so that
@@ -37,133 +36,6 @@ def get_mis_api(mis_name, api_key=""):
         return mis_api_mapping[mis_name](api_key)
     else:
         return None
-
-"""
-Ignore null elements when marshalling.
-Note that it only works when using our customized flask library. When using stock
-flask library, this is equivalent to fields.Nested (null elements will 
-therefore still be there after marshalling).
-"""
-class NonNullNested(fields.Nested):
-
-    def __init__(self, *args, **kwargs):
-        super(NonNullNested, self).__init__(*args, **kwargs)
-        self.display_null = False
-
-"""
-Ignore null elements when marshalling.
-Note that it only works when using our customized flask library. When using stock
-flask library, this is equivalent to fields.List (null elements will 
-therefore still be there after marshalling).
-"""
-class NonNullList(fields.List):
-
-    def __init__(self, *args, **kwargs):
-        super(NonNullList, self).__init__(*args, **kwargs)
-        self.display_empty = False
-
-
-stop_fields = {'code': fields.String, 'name': fields.String,
-               'lat': fields.Float, 'long': fields.Float}
-
-location_structure_type = {
-    'Latitude' : fields.Float,
-    'Longitude' : fields.Float
-}
-
-place_type = {
-    'id' : fields.String,
-    'Position' : fields.Nested(location_structure_type),
-    'Name' : fields.String,
-    'CityCode' : fields.String,
-    'CityName' : fields.String,
-    'TypeOfPlaceRef' : fields.String,
-}
-
-trip_stop_place_type = place_type.copy()
-# Parent attribute is currently not implemented and is therefore
-# always empty, so ignore it for now.
-# trip_stop_place_type['Parent'] = NonNullNested(place_type)
-
-end_point_type = {
-    'TripStopPlace' : fields.Nested(trip_stop_place_type),
-    'DateTime' : fields.DateTime
-}
-
-step_end_point_type = {
-    'TripStopPlace' : fields.Nested(trip_stop_place_type),
-    'DateTime' : fields.DateTime,
-    'PassThrough' : fields.String
-}
-
-step_type = {
-    'id' : fields.String,
-    'Departure' : fields.Nested(step_end_point_type),
-    'Arrival' : fields.Nested(step_end_point_type),
-    'Duration' : fields.Integer
-}
-
-pt_ride_type = {
-    'ptNetworkRef' : fields.String,
-    'lineRef' : fields.String,
-    'PublicTransportMode' : fields.String,
-    'Departure' :  fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
-    'Duration' : fields.Integer,
-    'Distance' : fields.Integer,
-    'steps' : NonNullList(NonNullNested(step_type))
-}
-
-leg_type = {
-    'SelfDriveMode' : fields.String,
-    'Departure' : fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
-    'Duration' : fields.Integer
-}
-
-section_type = {
-    'PartialTripId' : fields.String,
-    'PTRide' : fields.Nested(pt_ride_type, allow_null=True),
-    'Leg' : fields.Nested(leg_type, allow_null=True)
-}
-
-trip_type = {
-    'id' : fields.Integer,
-    'Departure' : fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
-    'Duration' : fields.Integer,
-    'Distance' : fields.Integer,
-    'InterchangeNumber' : fields.Integer,
-    'sections' : NonNullList(NonNullNested(section_type))
-}
-
-status_type = {
-    'Code' : fields.String,
-    'RuntimeDuration' : fields.Float
-}
-
-itinerary_response_type = {
-    'Status' : fields.Nested(status_type),
-    'DetailedTrip' : fields.Nested(trip_type, allow_null=True)
-}
-
-summed_up_trip_type = {
-    'Departure' : fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
-    'InterchangeCount' : fields.Integer,
-    'InterchangeDuration' : fields.Integer
-}
-
-summed_up_itineraries_response_type = {
-    'Status' : fields.Nested(status_type),
-    'summedUpTrips' : NonNullList(NonNullNested(summed_up_trip_type))
-}
-
-def string_to_bool(string):
-    if string in ["True", "true", "TRUE"]:
-        return True
-    else:
-        return False
 
 def get_mis_or_abort(mis_name, api_key=""):
     mis = get_mis_api(mis_name, api_key)
