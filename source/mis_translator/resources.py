@@ -14,7 +14,9 @@ from traceback import format_exc
 
 
 # List of enabled Mis APIs modules
-MIS_APIS_AVAILABLE = frozenset(["dummy", "navitia", "test1", "test2"])
+MIS_APIS_AVAILABLE = frozenset(["dummy", "navitia", "test1", "test2", 
+                                "pays_de_la_loire", "bretagne", "bourgogne",
+                                "transilien"])
 mis_api_mapping = {} # Mis name : MisApi Class
 
 """
