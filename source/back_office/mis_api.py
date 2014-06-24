@@ -22,7 +22,7 @@ class MisApi():
     def get_stops(self):
         h = httplib2.Http(".cache")
         headers = {'Authorization' : self._api_key}
-        base_url = self._api_url + "stops/"
+        base_url = self._api_url + "stops"
         params = ""
         stops = []
         if params:
