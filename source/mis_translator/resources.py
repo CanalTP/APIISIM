@@ -65,6 +65,8 @@ def get_params(request, summed_up_itineraries=False):
     params = _ItineraryRequestParams()
 
     # Required
+    # TODO send error if no ID given
+    params.id = request.json.get("id", "default_id")
     departure_time = request.json.get("DepartureTime", "")
     arrival_time = request.json.get("ArrivalTime", "")
     try:
@@ -223,6 +225,7 @@ def _itinerary_request(mis_name, request, summed_up_itineraries=False):
 
     request_duration = datetime.datetime.now() - request_start_date
     ret.Status.RuntimeDuration = request_duration.total_seconds()
+    ret.RequestId = params.id
     if summed_up_itineraries:
         resp_data = {'SummedUpItinerariesResponseType' : \
                      marshal(ret, summed_up_itineraries_response_type)}
