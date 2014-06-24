@@ -241,9 +241,16 @@ data16 = {"departures" : [d1, d2, d3],
           "DepartureTime" : departure_time, 
           "modes" : [TransportModeEnum.BUS]}
 
+data17 = {"departures" : [d1, d2, d3],
+          "arrivals" :   [a2],
+          "DepartureTime" : departure_time, 
+          "options" : ["DEPARTURE_ARRIVAL_OPTIMIZED"]
+          }
+
 send_request(data11)
 send_request(data12)
 send_request(data13)
 send_request(data14)
 send_request(data15)
 send_request(data16)
+send_request(data17)
