@@ -422,6 +422,11 @@ def get_params(modes, self_drive_conditions):
 
     return params
 
+# location is a LocationContextType object
+def get_location_id(location):
+    return location.PlaceTypeId \
+        or "%s;%s" % (location.Position.Longitude, location.Position.Latitude)
+
 
 class MisApi(MisApiBase):
 
@@ -519,15 +524,15 @@ class MisApi(MisApiBase):
         # Request journeys for every departure/arrival pair and then
         # choose best.
         if len(departures) > 1:
-            params['to'] = arrivals[0].PlaceTypeId
+            params['to'] = get_location_id(arrivals[0])
             for d in departures:
-                params['from'] = d.PlaceTypeId
+                params['from'] = get_location_id(d)
                 params_set_datetime(params, departure_time, arrival_time, d, arrivals[0])
                 journeys.extend(self._journeys_request(params))
         else:
-            params['from'] = departures[0].PlaceTypeId
+            params['from'] = get_location_id(departures[0])
             for a in arrivals:
-                params['to'] = a.PlaceTypeId
+                params['to'] = get_location_id(a)
                 params_set_datetime(params, departure_time, arrival_time, departures[0], a)
                 journeys.extend(self._journeys_request(params))
 
@@ -549,8 +554,8 @@ class MisApi(MisApiBase):
         journeys = []
         for d in departures:
             for a in arrivals:
-                params['from'] = d.PlaceTypeId
-                params['to'] = a.PlaceTypeId
+                params['from'] = get_location_id(d)
+                params['to'] = get_location_id(a)
                 params_set_datetime(params, departure_time, arrival_time, d, a)
                 for j in self._journeys_request(params):
                     journeys.append((d, a, j))
