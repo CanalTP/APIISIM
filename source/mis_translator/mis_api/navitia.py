@@ -181,7 +181,7 @@ def journey_to_summed_up_trip(journey):
 
     trip = SummedUpTripType()
     trip.InterchangeCount = journey["nb_transfers"]
-    sections = clean_sections(journey.get('sections', []))
+    sections = journey.get('sections', [])
     if not sections:
         logging.debug("No section found")
         return None
@@ -197,28 +197,6 @@ def journey_to_summed_up_trip(journey):
         trip.InterchangeDuration += s["duration"]
 
     return trip
-
-
-# TODO maybe delete it, not useful anymore
-# Remove some unnecessary sections.
-def clean_sections(sections):
-    # We ignore all sections before the first section 
-    # of type PUBLIC_TRANSPORT or after the last section of type 
-    # PUBLIC_TRANSPORT.
-    first = 0
-    last = 0
-    for i in range(0, len(sections)):
-        if sections[i]["type"] == SectionTypeEnum.PUBLIC_TRANSPORT:
-            first = i
-            break
-
-    for i in reversed(range(0, len(sections))):
-        if sections[i]["type"] == SectionTypeEnum.PUBLIC_TRANSPORT:
-            last = i
-            break
-
-    sections = sections[first:last+1]
-    return sections
 
 
 def journey_to_str(journey):
@@ -239,7 +217,7 @@ def parse_journey(journey):
     trip.CarFootprint = None
 
     trip.sections = []
-    sections = clean_sections(journey['sections'])
+    sections = journey['sections']
     for s in sections:
         section = SectionType()
         section.PartialTripId = s["id"]
@@ -305,7 +283,7 @@ def algo_classic(journeys, departure_at=False):
     first_selection = [x[0] for x in l if x[1] == l[0][1]]
     if len(first_selection) <= 1:
         return first_selection[0]
-    
+
     # We have several journeys to choose from, so get journey of type "best"
     # (which is according to Navitia, the best journey).
     l = [x for x in first_selection if x["type"] == "best"]
