@@ -566,17 +566,30 @@ class MisApi(MisApiBase):
             return ret
 
         best_journeys = []
-        if departure_time:
-            for a in arrivals:
-                journeys_to_arrival = [x[2] for x in journeys if x[1] == a]
-                best_journeys.append(
-                        choose_best_journey(journeys_to_arrival, algorithm))
-        else:
+        if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in options:
             for d in departures:
-                journeys_from_departure = [x[2] for x in journeys if x[0] == d]
-                best_journeys.append(
-                        choose_best_journey(journeys_from_departure, algorithm,
-                                            departure_at=False))
+                for a in arrivals:
+                    j = [x[2] for x in journeys if x[0] == d and x[1] == a]
+                    if not j:
+                        continue
+                    best_journeys.append(
+                        choose_best_journey(j, algorithm, bool(departure_time)))
+        else:
+            if departure_time:
+                for a in arrivals:
+                    journeys_to_arrival = [x[2] for x in journeys if x[1] == a]
+                    if not j:
+                        continue
+                    best_journeys.append(
+                            choose_best_journey(journeys_to_arrival, algorithm))
+            else:
+                for d in departures:
+                    journeys_from_departure = [x[2] for x in journeys if x[0] == d]
+                    if not j:
+                        continue
+                    best_journeys.append(
+                            choose_best_journey(journeys_from_departure, algorithm,
+                                                departure_at=False))
 
         ret.summedUpTrips = [journey_to_summed_up_trip(x) for x in best_journeys]
         logging.debug("Summed up trips (%s) : %s", len(ret.summedUpTrips), ret.summedUpTrips)

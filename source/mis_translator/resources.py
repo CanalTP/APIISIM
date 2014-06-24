@@ -151,6 +151,10 @@ def get_params(request, summed_up_itineraries=False):
     params.accessibility_constraint = string_to_bool(request.json.get('AccessibilityConstraint', "False"))
     params.language = request.json.get('Language', "")
     params.options = request.json.get("options", [])
+    if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in params.options \
+        and len(departures) > 1 and len(arrivals) > 1:
+        logging.error("DEPARTURE_ARRIVAL_OPTIMIZED option only available with 1-n itineraries")
+        abort(400)
 
     return params
 
