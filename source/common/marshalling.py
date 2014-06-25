@@ -42,6 +42,9 @@ class NonNullList(fields.List):
 
 # Ignore None attributes
 def marshal(obj, fields):
+    if isinstance(obj, list):
+        return [marshal(x, fields) for x in obj]
+
     ret = flask_marshal(obj, fields)
     items = ret.iteritems()
     for k, v in items:
