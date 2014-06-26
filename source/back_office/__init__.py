@@ -124,11 +124,11 @@ def retrieve_all_stops(db_session):
             add_stop(db_session, mis_id, stop)
         for stop in [s for s in all_stops[mis_id] if s.code in common_stop_codes]:
             if update_stop(db_session, mis_id, stop):
-                nb_updated_stops = nb_updated_stops + 1
+                nb_updated_stops += 1
 
-        nb_stops = nb_stops + len(stop_codes)
-        nb_new_stops = nb_new_stops + len(new_stop_codes)
-        nb_extra_stops = nb_extra_stops + len(extra_stop_codes)
+        nb_stops += len(stop_codes)
+        nb_new_stops += len(new_stop_codes)
+        nb_extra_stops += len(extra_stop_codes)
 
     logging.info("%s stops", nb_stops)
     logging.info("%s new stops", nb_new_stops)
@@ -221,10 +221,10 @@ def compute_transfers(db_session, transfer_max_distance):
 
         if _new_transfer:
             db_session.add(transfer)
-            nb_new = nb_new + 1
+            nb_new += 1
             logging.debug("New Transfer: %s", transfer)
         else:
-            nb_updated = nb_updated + 1
+            nb_updated += 1
             logging.debug("Transfer udpated: %s", transfer)
 
     # Remove obsolete transfers
@@ -237,7 +237,7 @@ def compute_transfers(db_session, transfer_max_distance):
     for t in db_transfers:
         if set([t[1], t[2]]) not in transfers:
             db_session.query(metabase.Transfer).filter_by(id=t[0]).delete()
-            nb_deleted = nb_deleted + 1
+            nb_deleted += 1
 
     logging.info("%s transfers", len(transfers))
     logging.info("%s new transfers", nb_new)
@@ -271,7 +271,7 @@ def compute_mis_connections(db_session):
                      .first() is not None:
             continue
 
-        nb_new = nb_new + 1
+        nb_new += 1
         new_mis_connection = metabase.MisConnection()
         new_mis_connection.mis1_id = mis1_id
         new_mis_connection.mis2_id = mis2_id
@@ -291,7 +291,7 @@ def compute_mis_connections(db_session):
     for m in db_mis_connections:
         if set([m[1], m[2]]) not in mis_connections:
             db_session.query(metabase.MisConnection).filter_by(id=m[0]).delete()
-            nb_deleted = nb_deleted + 1
+            nb_deleted += 1
 
     logging.info("%s mis_connections", len(mis_connections))
     logging.info("%s new mis_connections", nb_new)
