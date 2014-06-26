@@ -244,9 +244,7 @@ class Stops(Resource):
     def get(self, mis_name=""):
         mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
 
-        stops = []
-        for s in mis.get_stops():
-            stops.append(s)
+        stops = mis.get_stops()
 
         resp_data = {"stops" : marshal(stops, stop_fields)}
         return Response(json.dumps(resp_data),
