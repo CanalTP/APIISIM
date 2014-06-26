@@ -1,7 +1,13 @@
 """
 Test suite for metabase and back_office components
 """
-import os, tests, unittest, logging, datetime
+import os, sys
+TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
+# A bit dirty but we need this to ensure that when importing "tests", we import
+# our "tests" module, not "tests" module from another package.
+sys.path = [TEST_DIR + "../../"] + sys.path
+
+import tests, unittest, logging, datetime
 from random import randint
 import metabase
 from geoalchemy2.functions import ST_AsText
@@ -9,7 +15,6 @@ from sqlalchemy.exc import IntegrityError
 from back_office import compute_transfers, compute_mis_connections
 from sqlalchemy import or_
 
-TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
 
 def new_stop(code ="stop_code", name="stop_name", mis_id=1):
     stop = metabase.Stop()

@@ -6,9 +6,14 @@ stops (to calculate transfers). For each different setting, we generate a dump
 of the resulting database and compare it to a reference dump. If they don't match,
 we exit the test and consider it as failed.
 """
-import os, tests, unittest
-
+import sys, os, unittest
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
+# A bit dirty but we need this to ensure that when importing "tests", we import
+# our "tests" module, not "tests" module from another package.
+sys.path = [TEST_DIR + "../../"] + sys.path
+
+import tests
+
 
 class TestChangeTransferMaxDistance(unittest.TestCase):
 
