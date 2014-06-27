@@ -75,6 +75,7 @@ def create_db(db_name):
     conn.execute("COMMIT")
     conn.execute("CREATE DATABASE %s" % db_name)
     conn.close()
+    engine.dispose()
 
     engine = create_engine("postgresql+psycopg2://postgres:postgres@localhost/%s" % db_name, echo=False)
     conn = engine.connect()
@@ -84,6 +85,7 @@ def create_db(db_name):
 
     conn.execute(DB_TRIGGER)
     conn.close()
+    engine.dispose()
 
 
 def connect_db(db_name):
@@ -94,18 +96,22 @@ def connect_db(db_name):
 def populate_db(db_name, stops_file):
     db_session = connect_db(db_name)
 
-    with open(stops_file, 'r') as f:
-        content = f.read()
-        content = json.loads(content[content.find('{"stop_areas"'):])
+    try:
+        with open(stops_file, 'r') as f:
+            content = f.read()
+            content = json.loads(content[content.find('{"stop_areas"'):])
 
-    for s in  content["stop_areas"]:
-        new_stop = DbStop()
-        new_stop.code = s["id"]
-        new_stop.name = s["name"]
-        new_stop.lat = s["coord"]["lat"]
-        new_stop.long = s["coord"]["lon"]
-        db_session.add(new_stop)
-    db_session.commit()
+        for s in  content["stop_areas"]:
+            new_stop = DbStop()
+            new_stop.code = s["id"]
+            new_stop.name = s["name"]
+            new_stop.lat = s["coord"]["lat"]
+            new_stop.long = s["coord"]["lon"]
+            db_session.add(new_stop)
+        db_session.commit()
+    finally:
+        db_session.close()
+        db_session.bind.dispose()
 
 
 # location is a LocationContextType object
@@ -232,3 +238,8 @@ class MisApi(MisApiBase):
         logging.debug("Summed up trips (%s) : %s", len(ret.summedUpTrips), ret.summedUpTrips)
 
         return ret
+
+    def __del__(self):
+        if self._db_session:
+            self._db_session.close()
+            self._db_session.bind.dispose()
