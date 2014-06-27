@@ -205,7 +205,8 @@ def journey_to_str(journey):
             journey["arrival_date_time"], journey["duration"],
             journey["nb_transfers"], journey["type"]))
 
-def parse_journey(journey):
+
+def journey_to_detailed_trip(journey):
     if not journey:
         return None
 
@@ -393,12 +394,8 @@ def params_set_datetime(params, departure_time, arrival_time, departure, arrival
         params['datetime'] = \
                 (arrival_time + timedelta(seconds=arrival.AccessTime)).strftime(DATE_FORMAT)
 
-    return params
 
-
-def get_params(modes, self_drive_conditions):
-    params = {}
-
+def params_set_modes(params, modes, self_drive_conditions):
     params["forbidden_uris[]"] = modes_to_forbidden_uris(modes)
     params["first_section_mode[]"] = list(
                                         SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
@@ -420,7 +417,6 @@ def get_params(modes, self_drive_conditions):
     # We ignore DEPARTURE_ARRIVAL_OPTIMIZED option as Navitia always does this
     # optimization (it cannot be disabled).
 
-    return params
 
 # location is a LocationContextType object
 def get_location_id(location):
@@ -509,7 +505,7 @@ class MisApi(MisApiBase):
 
             # TODO delete that, just here for testing purposes
             if max_pages > 0:
-                pages_read = pages_read  + 1
+                pages_read += 1
                 if pages_read > max_pages:
                     break
 
@@ -519,7 +515,8 @@ class MisApi(MisApiBase):
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
                       algorithm, modes, self_drive_conditions,
                       accessibility_constraint, language, options):
-        params = get_params(modes, self_drive_conditions)
+        params = {}
+        params_set_modes(params, modes, self_drive_conditions)
         journeys = []
         # Request journeys for every departure/arrival pair and then
         # choose best.
@@ -538,15 +535,16 @@ class MisApi(MisApiBase):
 
         best_journey = choose_best_journey(journeys, algorithm)
         # If no journey found, DetailedTrip is None
-        return ItineraryResponseType(DetailedTrip=parse_journey(best_journey))
+        return ItineraryResponseType(DetailedTrip=journey_to_detailed_trip(best_journey))
 
 
     def get_summed_up_itineraries(self, departures, arrivals, departure_time, 
-                                 arrival_time, algorithm, 
-                                 modes, self_drive_conditions,
-                                 accessibility_constraint,
-                                 language, options):
-        params = get_params(modes, self_drive_conditions)
+                                  arrival_time, algorithm, 
+                                  modes, self_drive_conditions,
+                                  accessibility_constraint,
+                                  language, options):
+        params = {}
+        params_set_modes(params, modes, self_drive_conditions)
         ret = SummedUpItinerariesResponseType()
 
         # Request itinerary for every departure/arrival pair and then
