@@ -40,7 +40,11 @@ class NonNullList(fields.List):
         self.display_empty = False
 
 
-# Ignore None attributes
+"""
+    Ignore None attributes. Note that this is not recursive, only top-level
+    attributes will be filtered, attributes in nested objects won't. 
+    Use NonNullNested class to filter nested objects.
+"""
 def marshal(obj, fields):
     if isinstance(obj, list):
         return [marshal(x, fields) for x in obj]
@@ -73,13 +77,13 @@ self_drive_condition_type = {
 }
 
 multi_departures_type = {
-    'Departure' : NonNullList(NonNullNested(location_context_type)),
+    'Departure' : fields.List(NonNullNested(location_context_type)),
     'Arrival' : NonNullNested(location_context_type),
 }
 
 multi_arrivals_type = {
     'Departure' : NonNullNested(location_context_type),
-    'Arrival' : NonNullList(NonNullNested(location_context_type)),
+    'Arrival' : fields.List(NonNullNested(location_context_type)),
 }
 
 itinerary_request_type = {
@@ -89,8 +93,8 @@ itinerary_request_type = {
     'DepartureTime' : _DateTime,
     'ArrivalTime' : _DateTime,
     'Algorithm' : fields.String,
-    'modes' : NonNullList(fields.String),
-    'selfDriveConditions' : NonNullList(NonNullNested(self_drive_condition_type)),
+    'modes' : fields.List(fields.String),
+    'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
     # 'selfDriveConditions' : fields.List(fields.Nested(self_drive_condition_type, allow_null=True)),
     'AccessibilityConstraint' : fields.Boolean,
     'Language' : fields.String,
@@ -98,16 +102,16 @@ itinerary_request_type = {
 
 summed_up_itineraries_request_type = {
     'id' : fields.String,
-    'departures' : NonNullList(NonNullNested(location_context_type)),
-    'arrivals' : NonNullList(NonNullNested(location_context_type)),
+    'departures' : fields.List(NonNullNested(location_context_type)),
+    'arrivals' : fields.List(NonNullNested(location_context_type)),
     'DepartureTime' : _DateTime,
     'ArrivalTime' : _DateTime,
     'Algorithm' : fields.String,
-    'modes' : NonNullList(fields.String),
-    'selfDriveConditions' : NonNullList(NonNullNested(self_drive_condition_type)),
+    'modes' : fields.List(fields.String),
+    'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
     'AccessibilityConstraint' : fields.Boolean,
     'Language' : fields.String,
-    'options' : NonNullList(fields.String),
+    'options' : fields.List(fields.String),
 }
 
 location_point_type = {
@@ -117,7 +121,7 @@ location_point_type = {
 
 place_type = {
     'id' : fields.String,
-    'Position' : fields.Nested(location_structure_type, allow_null=True),
+    'Position' : NonNullNested(location_structure_type, allow_null=True),
     'Name' : fields.String,
     'CityCode' : fields.String,
     'CityName' : fields.String,
@@ -130,7 +134,7 @@ trip_stop_place_type = place_type.copy()
 # trip_stop_place_type['Parent'] = NonNullNested(place_type)
 
 end_point_type = {
-    'TripStopPlace' : fields.Nested(trip_stop_place_type),
+    'TripStopPlace' : NonNullNested(trip_stop_place_type),
     'DateTime' : _DateTime
 }
 
@@ -146,16 +150,7 @@ plan_trip_existence_notification_response_type = {
     'Duration' : fields.String,
     'Departure' : NonNullNested(location_point_type),
     'Arrival' : NonNullNested(location_point_type),
-    'providers' : NonNullList(NonNullNested(provider_type)),
-}
-
-plan_trip_notification_status_type = {
-    'PlanTripNotificationStatusCode' : fields.String,
-    'isLastNotification' : fields.Boolean,
-    'Comment' : fields.String,
-    'NotificationIndex' : fields.Integer,
-    'NotificationCount' : fields.Integer,
-    'RuntimeDuration' : fields.Integer,
+    'providers' : fields.List(NonNullNested(provider_type)),
 }
 
 step_end_point_type = {
@@ -179,7 +174,7 @@ pt_ride_type = {
     'Arrival' : fields.Nested(end_point_type),
     'Duration' : fields.Integer,
     'Distance' : fields.Integer,
-    'steps' : NonNullList(NonNullNested(step_type))
+    'steps' : fields.List(NonNullNested(step_type))
 }
 
 leg_type = {
@@ -202,7 +197,7 @@ trip_type = {
     'Duration' : fields.Integer,
     'Distance' : fields.Integer,
     'InterchangeNumber' : fields.Integer,
-    'sections' : NonNullList(NonNullNested(section_type))
+    'sections' : fields.List(NonNullNested(section_type))
 }
 
 partial_trip_type = {
@@ -221,14 +216,14 @@ composed_trip_type = {
     'Duration' : fields.Integer,
     'Distance' : fields.Integer,
     'InterchangeNumber' : fields.Integer,
-    'sections' : NonNullList(NonNullNested(section_type)),
-    'partialTrips' : NonNullList(NonNullNested(partial_trip_type)),
+    'sections' : fields.List(NonNullNested(section_type)),
+    'partialTrips' : fields.List(NonNullNested(partial_trip_type)),
 }
 
 plan_trip_notification_response_type = {
     'RequestId' : fields.String,
-    'PlanTripNotificationStatus' : NonNullNested(plan_trip_notification_status_type),
-    'ComposedTrip' : NonNullList(NonNullNested(composed_trip_type)),
+    'RuntimeDuration' : fields.Integer,
+    'ComposedTrip' : fields.List(NonNullNested(composed_trip_type)),
 }
 
 plan_trip_cancellation_response_type = {
@@ -247,7 +242,7 @@ status_type = {
 itinerary_response_type = {
     'RequestId' : fields.String,
     'Status' : fields.Nested(status_type),
-    'DetailedTrip' : fields.Nested(trip_type, allow_null=True)
+    'DetailedTrip' : NonNullNested(trip_type, allow_null=True)
 }
 
 summed_up_trip_type = {
@@ -260,7 +255,7 @@ summed_up_trip_type = {
 summed_up_itineraries_response_type = {
     'RequestId' : fields.String,
     'Status' : fields.Nested(status_type),
-    'summedUpTrips' : NonNullList(NonNullNested(summed_up_trip_type))
+    'summedUpTrips' : fields.List(NonNullNested(summed_up_trip_type))
 }
 
 plan_trip_request_type = {
@@ -271,8 +266,8 @@ plan_trip_request_type = {
     'ArrivalTime' : _DateTime,
     'MaxTrips' : fields.Integer,
     'Algorithm' : fields.String,
-    'modes' : NonNullList(fields.String),
-    'selfDriveConditions' : NonNullList(NonNullNested(self_drive_condition_type)),
+    'modes' : fields.List(fields.String),
+    'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
     'AccessibilityConstraint' : fields.Boolean,
     'Language' : fields.String,
 }
@@ -285,7 +280,7 @@ error_type = {
 plan_trip_response_type = {
     'RequestId' : fields.String,
     'Status' : fields.String,
-    'errors' : NonNullList(NonNullNested(error_type)),
+    'errors' : fields.List(NonNullNested(error_type)),
 }
 
 ending_search_type = {
