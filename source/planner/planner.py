@@ -592,27 +592,11 @@ class PlanTripCalculator(object):
                 break
             logging.debug("CHUNK: %s", chunk)
 
-            trace_departure = None
-            if i == 0:
-                trace_departure = self._params.Departure
-
-            mis1_id = 0
-            mis2_id = 0
-            mis3_id = 0
-            try:
-                mis1_id = chunk[0]
-            except IndexError:
-                pass
-            try:
-                mis2_id = chunk[1]
-            except IndexError:
-                pass
-            try:
-                mis3_id = chunk[2]
-            except IndexError:
-                pass
-
-            # logging.debug("mis1_id: %s, mis2_id: %s, mis3_id: %s", mis1_id, mis2_id, mis3_id)
+            trace_departure = self._params.Departure if i == 0 else None
+            trace_arrival = self._params.Arrival if len(mis_trace) <= (i + 3) else None
+            mis1_id = chunk[0]
+            mis2_id = chunk[1] if len(chunk) > 1 else 0
+            mis3_id = chunk[2] if len(chunk) > 2 else 0
             mis1_api = MisApi(mis1_id) if mis1_id else None
             mis2_api = MisApi(mis2_id) if mis2_id else None
             mis3_api = MisApi(mis3_id) if mis3_id else None
@@ -620,12 +604,7 @@ class PlanTripCalculator(object):
                                mis2_id : {mis1_id : [], mis3_id : []},
                                mis3_id : {mis1_id : [], mis2_id : []}}
 
-            trace_arrival = None
-            try:
-                mis_trace[i+3]
-            except IndexError:
-                trace_arrival = self._params.Arrival
-
+            # logging.debug("mis1_id: %s, mis2_id: %s, mis3_id: %s", mis1_id, mis2_id, mis3_id)
             # logging.debug("trace_arrival: %s", trace_arrival)
             for x, y in [(mis1_id, mis2_id), (mis2_id, mis3_id)]:
                 if not x or not y:
