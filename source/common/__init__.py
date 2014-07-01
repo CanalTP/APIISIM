@@ -1,5 +1,34 @@
+import re
+from datetime import timedelta
+
+
 # Encoding used when converting objects to strings
 OUTPUT_ENCODING = "utf-8"
+
+def timedelta_to_xsd_duration(delta):
+    # TODO handle days, months and years
+    ret = "PT"
+    total = int(delta.total_seconds())
+    hours = total / 3600
+    minutes = total / 60 - (hours * 60)
+    seconds = total - (hours * 3600) - (minutes * 60)
+    ret += (unicode(hours) + "H") if hours else ""
+    ret += (unicode(minutes) + "M") if minutes else ""
+    ret += unicode(seconds) + "S"
+    return ret
+
+def xsd_duration_to_timedelta(duration):
+    regex  = re.compile('P(?:(?P<years>\d+)Y)?(?:(?P<months>\d+)M)?'
+                        '(?:(?P<days>\d+)D)?(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?'
+                        '(?:(?P<seconds>\d+)S)?)?')
+    duration = regex.match(duration).groupdict(0)
+    delta = timedelta(days=int(duration['days']) + (int(duration['months']) * 30) \
+                           + (int(duration['years']) * 365),
+                      hours=int(duration['hours']),
+                      minutes=int(duration['minutes']),
+                      seconds=int(duration['seconds']))
+
+    return delta
 
 def string_to_bool(string):
     if string in ["True", "true", "TRUE"]:

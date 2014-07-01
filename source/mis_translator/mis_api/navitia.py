@@ -168,8 +168,7 @@ def parse_stop_times(stop_times):
         step.Arrival = parse_step_point(s2["stop_point"])
         step.Departure.DateTime = datetime.strptime(s1['arrival_date_time'], DATE_FORMAT)
         step.Arrival.DateTime = datetime.strptime(s2['arrival_date_time'], DATE_FORMAT)
-        # Duration in minutes
-        step.Duration = (step.Arrival.DateTime - step.Departure.DateTime).total_seconds() / 60
+        step.Duration = step.Arrival.DateTime - step.Departure.DateTime
         steps.append(step)
 
     return steps
@@ -211,7 +210,7 @@ def journey_to_detailed_trip(journey):
         return None
 
     trip = TripType()
-    trip.Duration = journey["duration"]
+    trip.Duration = timedelta(seconds=journey["duration"])
     trip.Distance = 0
     trip.Disrupted = False
     trip.InterchangeNumber = journey["nb_transfers"]
@@ -234,7 +233,7 @@ def journey_to_detailed_trip(journey):
             ptr.Arrival = parse_end_point(s["to"])
             ptr.Departure.DateTime = datetime.strptime(s["departure_date_time"], DATE_FORMAT)
             ptr.Arrival.DateTime = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
-            ptr.Duration = s["duration"]
+            ptr.Duration = timedelta(seconds=s["duration"])
             # TODO remove that hard coded 0 index
             ptr.Distance = s["geojson"]["properties"][0]["length"]
             ptr.steps = parse_stop_times(s.get("stop_date_times", None))
@@ -248,7 +247,7 @@ def journey_to_detailed_trip(journey):
             leg.Arrival = parse_end_point(s["to"])
             leg.Departure.DateTime = datetime.strptime(s["departure_date_time"], DATE_FORMAT)
             leg.Arrival.DateTime = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
-            leg.Duration = s["duration"]
+            leg.Duration = timedelta(seconds=s["duration"])
             leg.SelfDriveMode = INVERSE_SELF_DRIVE_MODE_MAPPING.get(
                                     s["transfer_type"], SelfDriveModeEnum.WALK)
             section.Leg = leg
@@ -388,11 +387,11 @@ def params_set_datetime(params, departure_time, arrival_time, departure, arrival
     if departure_time:
         params['datetime_represents'] = 'departure'
         params['datetime'] = \
-                (departure_time + timedelta(seconds=departure.AccessTime)).strftime(DATE_FORMAT)
+                (departure_time + departure.AccessTime).strftime(DATE_FORMAT)
     else:
         params['datetime_represents'] = 'arrival'
         params['datetime'] = \
-                (arrival_time + timedelta(seconds=arrival.AccessTime)).strftime(DATE_FORMAT)
+                (arrival_time + arrival.AccessTime).strftime(DATE_FORMAT)
 
 
 def params_set_modes(params, modes, self_drive_conditions):

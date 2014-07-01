@@ -1,8 +1,19 @@
 from flask_restful import fields, marshal as flask_marshal
 import datetime
+from common import timedelta_to_xsd_duration
 
 DATE_FORMAT="%Y-%m-%dT%H:%M:%S"
 
+
+"""
+    Custom marshaller that converts Timedelta object to XSD duration string.
+"""
+class _Duration(fields.String):
+    def format(self, value):
+        try:
+            return timedelta_to_xsd_duration(value)
+        except Exception as e:
+            raise fields.MarshallingException(e)
 
 """
     Custom DateTime marshaller that converts DateTime object to a DATE_FORMAT 
@@ -68,7 +79,7 @@ location_structure_type = {
 location_context_type = {
     'PlaceTypeId' : fields.String,
     'Position' : NonNullNested(location_structure_type, allow_null=True),
-    'AccessTime' : fields.Integer,
+    'AccessTime' : _Duration,
 }
 
 self_drive_condition_type = {
@@ -147,7 +158,7 @@ plan_trip_existence_notification_response_type = {
     'RequestId' : fields.String,
     'DepartureTime' : _DateTime,
     'ArrivalTime' : _DateTime,
-    'Duration' : fields.String,
+    'Duration' : _Duration,
     'Departure' : NonNullNested(location_point_type),
     'Arrival' : NonNullNested(location_point_type),
     'providers' : fields.List(NonNullNested(provider_type)),
@@ -163,7 +174,7 @@ step_type = {
     'id' : fields.String,
     'Departure' : fields.Nested(step_end_point_type),
     'Arrival' : fields.Nested(step_end_point_type),
-    'Duration' : fields.Integer
+    'Duration' : _Duration
 }
 
 pt_ride_type = {
@@ -172,7 +183,7 @@ pt_ride_type = {
     'PublicTransportMode' : fields.String,
     'Departure' :  fields.Nested(end_point_type),
     'Arrival' : fields.Nested(end_point_type),
-    'Duration' : fields.Integer,
+    'Duration' : _Duration,
     'Distance' : fields.Integer,
     'steps' : fields.List(NonNullNested(step_type))
 }
@@ -181,7 +192,7 @@ leg_type = {
     'SelfDriveMode' : fields.String,
     'Departure' : fields.Nested(end_point_type),
     'Arrival' : fields.Nested(end_point_type),
-    'Duration' : fields.Integer
+    'Duration' : _Duration
 }
 
 section_type = {
@@ -194,7 +205,7 @@ trip_type = {
     'id' : fields.Integer,
     'Departure' : fields.Nested(end_point_type),
     'Arrival' : fields.Nested(end_point_type),
-    'Duration' : fields.Integer,
+    'Duration' : _Duration,
     'Distance' : fields.Integer,
     'InterchangeNumber' : fields.Integer,
     'sections' : fields.List(NonNullNested(section_type))
@@ -206,14 +217,14 @@ partial_trip_type = {
     'Distance' : fields.Integer,
     'Departure' : fields.Nested(end_point_type),
     'Arrival' : fields.Nested(end_point_type),
-    'Duration' : fields.Integer,
+    'Duration' : _Duration,
 }
 
 composed_trip_type = {
     'id' : fields.String,
     'Departure' : fields.Nested(end_point_type),
     'Arrival' : fields.Nested(end_point_type),
-    'Duration' : fields.Integer,
+    'Duration' : _Duration,
     'Distance' : fields.Integer,
     'InterchangeNumber' : fields.Integer,
     'sections' : fields.List(NonNullNested(section_type)),
@@ -222,7 +233,7 @@ composed_trip_type = {
 
 plan_trip_notification_response_type = {
     'RequestId' : fields.String,
-    'RuntimeDuration' : fields.Integer,
+    'RuntimeDuration' : _Duration,
     'ComposedTrip' : fields.List(NonNullNested(composed_trip_type)),
 }
 
@@ -236,7 +247,7 @@ plan_trip_cancellation_request_type = {
 
 status_type = {
     'Code' : fields.String,
-    'RuntimeDuration' : fields.Float
+    'RuntimeDuration' : _Duration
 }
 
 itinerary_response_type = {
@@ -289,7 +300,7 @@ ending_search_type = {
     'MaxComposedTripSearched' : fields.Integer,
     'ExistenceNotificationsSent' : fields.Integer,
     'NotificationsSent' : fields.Integer,
-    'Runtime' : fields.Integer,
+    'Runtime' : _Duration,
 }
 
 

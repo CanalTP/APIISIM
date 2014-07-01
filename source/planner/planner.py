@@ -1,5 +1,14 @@
-import Queue, logging, datetime
+import Queue, logging
 import json, traceback, httplib2
+from datetime import datetime, timedelta
+import threading
+from sqlalchemy import create_engine, or_, and_
+from sqlalchemy.orm import sessionmaker, scoped_session, aliased
+import metabase
+from geoalchemy2 import Geography
+from geoalchemy2.functions import GenericFunction, ST_DWithin
+from mod_pywebsocket import msgutil
+import os
 from common.plan_trip import *
 from common.mis_plan_summed_up_trip import LocationContextType, \
                                            SummedUpItinerariesRequestType, \
@@ -9,16 +18,16 @@ from common.mis_plan_trip import ItineraryRequestType, multiDeparturesType, \
                                  multiArrivalsType, ItineraryResponseType
 from common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
                    TransportModeEnum, PlanSearchOptions, PlanTripStatusEnum, \
-                   PlanTripErrorEnum, OUTPUT_ENCODING, StatusCodeEnum
-from common.marshalling import *
-import threading
-from sqlalchemy import create_engine, or_, and_
-from sqlalchemy.orm import sessionmaker, scoped_session, aliased
-import metabase
-from geoalchemy2 import Geography
-from geoalchemy2.functions import GenericFunction, ST_DWithin
-from mod_pywebsocket import msgutil
-import os
+                   PlanTripErrorEnum, OUTPUT_ENCODING, StatusCodeEnum, \
+                   xsd_duration_to_timedelta
+from common.marshalling import marshal, itinerary_request_type, \
+                               summed_up_itineraries_request_type, \
+                               summed_up_trip_type, \
+                               plan_trip_existence_notification_response_type, \
+                               plan_trip_notification_response_type, \
+                               plan_trip_response_type, ending_search_type, \
+                               starting_search_type, \
+                               plan_trip_cancellation_response_type, DATE_FORMAT
 
 
 MAX_TRACE_LENGTH = 3
@@ -60,12 +69,12 @@ def log_error(func):
 
 def benchmark(func):
     def decorator(*args, **kwargs):
-        start_date = datetime.datetime.now()
+        start_date = datetime.now()
         logging.debug("%s(%s %s)|START: %s", func.__name__, args, kwargs, start_date)
 
         result = func(*args, **kwargs)
 
-        end_date = datetime.datetime.now()
+        end_date = datetime.now()
         logging.debug("%s(%s %s)|END: %s|DURATION: %ss",
             func.__name__, args, kwargs, end_date,
             (end_date - start_date).total_seconds())
@@ -94,7 +103,7 @@ def parse_end_point(point, step_end_point=False):
                             Longitude=p["Position"]["Longitude"])
 
     ret.TripStopPlace = place
-    ret.DateTime = datetime.datetime.strptime(point["DateTime"], DATE_FORMAT)
+    ret.DateTime = datetime.strptime(point["DateTime"], DATE_FORMAT)
     return ret
 
 
@@ -250,7 +259,6 @@ class MisApi(object):
     def get_itinerary(self, request):
         ret = ItineraryResponseType()
 
-        # data = {"ItineraryRequestType": request.marshal()}
         data = request.marshal()
         resp, content = self._send_request("itineraries", data)
         # TODO error handling
@@ -297,18 +305,16 @@ class WorkerThread(threading.Thread):
         trace = self._job_queue.get()
         trip_calculator = PlanTripCalculator(self._params, self._notif_queue)
         try:
-            trips = trip_calculator.compute_trip(trace)
-            # logging.debug("compute_trip(%s): %s", trace, trips)
+            trip_calculator.compute_trip(trace)
             self.exit_code = 0
         except Exception as e:
             logging.error("compute_trip(%s): %s\n%s", trace, e, traceback.format_exc())
         logging.debug("Worker Thread finished")
-        # self._job_queue.task_done()
 
 
 def parse_location_context(location_context):
     ret = LocationContextType()
-    ret.AccessTime = location_context["AccessTime"]
+    ret.AccessTime = xsd_duration_to_timedelta(location_context["AccessTime"])
     ret.PlaceTypeId = location_context.get("PlaceTypeId", "")
     l = LocationStructure()
     l.Longitude = location_context["Position"]["Longitude"]
@@ -341,9 +347,9 @@ def parse_request(request):
         return None
     try:
         if departure_time:
-            ret.DepartureTime = datetime.datetime.strptime(departure_time, DATE_FORMAT)
+            ret.DepartureTime = datetime.strptime(departure_time, DATE_FORMAT)
         if arrival_time:
-            ret.ArrivalTime = datetime.datetime.strptime(arrival_time, DATE_FORMAT)
+            ret.ArrivalTime = datetime.strptime(arrival_time, DATE_FORMAT)
     except ValueError as exc:
         logging.error("DateTime format error: %s", exc)
         return None
@@ -386,7 +392,7 @@ def parse_request(request):
 def stop_to_trace_stop(stop):
     ret = TraceStop()
 
-    ret.AccessTime = 0
+    ret.AccessTime = timedelta()
     ret.PlaceTypeId = stop.code
     l = LocationStructure()
     l.Longitude = stop.lat
@@ -397,8 +403,7 @@ def stop_to_trace_stop(stop):
 
 
 # trips is [(MisApi, DetailedTrip)]
-def create_full_notification(request_id, trips):
-    # TODO RuntimeDuration
+def create_full_notification(request_id, trips, runtime_duration):
     composed_trip = None
     if trips:
         composed_trip = ComposedTripType()
@@ -406,7 +411,7 @@ def create_full_notification(request_id, trips):
         composed_trip.id = request_id + "_"
         composed_trip.Departure = trips[0][1].Departure
         composed_trip.Arrival = trips[-1][1].Arrival
-        composed_trip.Duration = sum([x[1].Duration for x in trips])
+        composed_trip.Duration = sum([xsd_duration_to_timedelta(x[1].Duration) for x in trips], timedelta())
         composed_trip.InterchangeNumber = sum([x[1].InterchangeNumber for x in trips])
         # TODO set partial ids in sections
         composed_trip.sections = []
@@ -422,12 +427,12 @@ def create_full_notification(request_id, trips):
                                         Url=mis_api.get_api_url())
             partial_trip.Departure = trip.Departure
             partial_trip.Arrival = trip.Arrival
-            partial_trip.Duration = trip.Duration
+            partial_trip.Duration = xsd_duration_to_timedelta(trip.Duration)
             composed_trip.partialTrips.append(partial_trip)
 
     return PlanTripNotificationResponseType(
                 RequestId=request_id,
-                RuntimeDuration=0,
+                RuntimeDuration=runtime_duration,
                 ComposedTrip=[composed_trip] if composed_trip else [])
 
 
@@ -582,7 +587,7 @@ class PlanTripCalculator(object):
         #     [TraceStop], # departures
         #     [TraceStop], # arrivals
         #     [TraceStop], # linked_stops (stops linked to arrivals via a transfer)
-        #     [datetime.timedelta]   # transfer_durations
+        #     [timedelta]   # transfer_durations
         #   )
         # ]
         while True:
@@ -618,7 +623,7 @@ class PlanTripCalculator(object):
                         [trace_departure],
                         [x[1] for x in chunk_transfers[mis1_id][mis2_id]],
                         [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
-                        [datetime.timedelta(seconds=x[0].duration) for x in chunk_transfers[mis1_id][mis2_id]])]
+                        [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis1_id][mis2_id]])]
 
             if mis3_id:
                 ret.append(
@@ -626,7 +631,7 @@ class PlanTripCalculator(object):
                      [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
                      [x[1] for x in chunk_transfers[mis2_id][mis3_id]],
                      [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
-                     [datetime.timedelta(seconds=x[0].duration) for x in chunk_transfers[mis2_id][mis3_id]]))
+                     [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis2_id][mis3_id]]))
 
                 if trace_arrival:
                     ret.append(
@@ -652,6 +657,7 @@ class PlanTripCalculator(object):
 
     @benchmark
     def compute_trip(self, mis_trace):
+        start_date = datetime.now()
         # TODO do it for arrival_at trip
 
         # Return best trip, which is a list of partial trips.
@@ -686,7 +692,7 @@ class PlanTripCalculator(object):
             mis_api = MisApi(mis_trace[0])
             resp = mis_api.get_itinerary(detailed_request)
             ret.append((mis_api, resp.DetailedTrip))
-            notif = create_full_notification(self._params.id, ret)
+            notif = create_full_notification(self._params.id, ret, datetime.now() - start_date)
             self._notif_queue.put(notif)
             return ret
 
@@ -713,11 +719,10 @@ class PlanTripCalculator(object):
             else:
                 summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
                 for d in departures:
-                    d.AccessTime = (d.arrival_time - summed_up_request.DepartureTime).total_seconds()
+                    d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
             summed_up_request.ArrivalTime = None
             summed_up_request.options = []
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
-            # TODO what if we have only geographic coordinates and no id
             for trip in resp.summedUpTrips:
                 # logging.debug("TRIP: %s", trip)
                 for stop in arrivals:
@@ -734,7 +739,7 @@ class PlanTripCalculator(object):
         summed_up_request.arrivals = arrivals
         summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
         for d in departures:
-            d.AccessTime = (d.arrival_time - summed_up_request.DepartureTime).total_seconds()
+            d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
         summed_up_request.ArrivalTime = None
         summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
@@ -762,7 +767,7 @@ class PlanTripCalculator(object):
             summed_up_request.DepartureTime = None
             summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
             for a in arrivals:
-                a.AccessTime = (a.departure_time - summed_up_request.ArrivalTime).total_seconds()
+                a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
             summed_up_request.options = []
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
 
@@ -786,11 +791,10 @@ class PlanTripCalculator(object):
             if not prev_stop:
                 # At first, do an arrival_at request.
                 prev_stop = departures[0]
-                prev_stop.AccessTime = 0
                 detailed_request.DepartureTime = None
                 detailed_request.ArrivalTime = min([x.departure_time for x in arrivals])
                 for a in arrivals:
-                   a.AccessTime = (a.departure_time - detailed_request.ArrivalTime).total_seconds()
+                   a.AccessTime = a.departure_time - detailed_request.ArrivalTime
             else:
                 # All other requests are departure_at requests.
                 detailed_request.DepartureTime = prev_stop.departure_time
@@ -817,7 +821,7 @@ class PlanTripCalculator(object):
             best_stops.sort(key=lambda x: x.departure_time)
             prev_stop = best_stops[0]
 
-        notif = create_full_notification(self._params.id, ret)
+        notif = create_full_notification(self._params.id, ret, datetime.now() - start_date)
         self._notif_queue.put(notif)
 
         return ret
@@ -893,7 +897,7 @@ class NotificationThread(threading.Thread):
 
     @log_error
     def run(self):
-        runtime = 0 # TODO
+        start_date = datetime.now()
         existence_notifications_sent = 0
         notifications_sent = 0
         while True:
@@ -906,7 +910,7 @@ class NotificationThread(threading.Thread):
             if isinstance(notif, EndingSearch):
                 notif.ExistenceNotificationsSent = existence_notifications_sent
                 notif.NotificationsSent = notifications_sent
-                notif.Runtime = runtime
+                notif.Runtime = datetime.now() - start_date
             elif isinstance(notif, PlanTripNotificationResponseType):
                 notifications_sent += 1
             elif isinstance(notif, PlanTripExistenceNotificationResponseType):

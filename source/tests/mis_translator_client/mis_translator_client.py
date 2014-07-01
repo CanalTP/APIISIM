@@ -21,22 +21,22 @@ headers = {'Content-type': 'application/json',
 
 ################################################################################
 # Paris region ("http://api.navitia.io/v1/coverage/paris")
-d1 = {"AccessTime" : 100,
+d1 = {"AccessTime" : "PT1M40S",
      "Position" : {"Latitude" : 48.84556,
                    "Longitude" : 2.373449},
      "PlaceTypeId" : "stop_area:RTP:SA:1955"}
 
-d2 = {"AccessTime" : 50,
+d2 = {"AccessTime" : "PT50S",
      "Position" : {"Latitude" : 48.843414,
                    "Longitude" : 2.364188},
      "PlaceTypeId" : "stop_area:RTP:SA:1951"}
 
-a1 = {"AccessTime" : 70,
+a1 = {"AccessTime" : "PT1M10S",
      "Position" : {"Latitude" : 48.883456,
                    "Longitude" : 2.327375},
      "PlaceTypeId" : "stop_area:RTP:SA:1795"}
 
-a2 = {"AccessTime" : 120,
+a2 = {"AccessTime" : "PT2M",
       "Position" : {"Latitude" : 48.897512, "Longitude" : 2.329022},
       "PlaceTypeId" : "stop_area:RTP:SA:2426"}
 
@@ -54,7 +54,7 @@ arrival_time_out_of_scope = (datetime.datetime.now() + timedelta(days=20000)).st
 url = base_url + "/itineraries"
 data1 = {"multiDepartures" : {"Departure" : departures,
                               "Arrival"   : a1},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "modes" : [TransportModeEnum.ALL]}
 
 data2 = {"multiArrivals" : {"Departure" : d1,
@@ -89,49 +89,49 @@ data4 = {"Departures" : departures,
 ################################################################################
 # http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/
 # gare SNCF et routière Angers-St-Laud
-d1 = {"AccessTime" : 120,
+d1 = {"AccessTime" : "PT2M",
       "Position" : {"Latitude" : 47.464722,
                     "Longitude" : -0.558158},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87484006"}
 
 # gare de Savenay
-d2 = {"AccessTime" : 300,
+d2 = {"AccessTime" : "PT5M",
       "Position" : {"Latitude" : 47.358562,
                     "Longitude" : -1.951025},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87481838"}
 
 # Camping de Bouchemaine
-d3 = {"AccessTime" : 90,
+d3 = {"AccessTime" : "PT1M30S",
       "Position" : {"Latitude" : 47.419306,
                     "Longitude" : -0.611521},
       "PlaceTypeId" : "stop_area:ANG:SA:1306"}
 
 # Gare de rennes
-a1 = {"AccessTime" : 700,
+a1 = {"AccessTime" : "PT6M40S",
       "Position" : {"Latitude" : 48.103516,
                     "Longitude" : -1.67232},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87471003"}
 
 # Parking Des Ecoles
-a2 = {"AccessTime" : 600,
+a2 = {"AccessTime" : "PT10M",
       "Position" : {"Latitude" : 47.081555,
                     "Longitude" : -1.337921},
       "PlaceTypeId" : "stop_area:C44:SA:333"}
 
 # gare de Bourgneuf-en-Retz
-a3 = {"AccessTime" : 240,
+a3 = {"AccessTime" : "PT4M",
       "Position" : {"Latitude" : 47.046857,
                     "Longitude" : -1.955269},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87481242"}
 
 # gare de Nancy-Ville
-a4 = {"AccessTime" : 320,
+a4 = {"AccessTime" : "PT5M20S",
       "Position" : {"Latitude" : 48.689786,
                     "Longitude" : 6.174279},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87141002"}
 
 # gare de Metz-Ville
-a5 = {"AccessTime" : 10,
+a5 = {"AccessTime" : "PT10S",
       "Position" : {"Latitude" : 49.109789,
                     "Longitude" : 6.177203},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87192039"}
@@ -142,58 +142,58 @@ a5 = {"AccessTime" : 10,
 url = base_url + "/itineraries"
 data1 = {"multiDepartures" : {"Departure" : [d1],
                               "Arrival"   : a1},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "modes" : [TransportModeEnum.ALL]}
 
 data2 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "modes" : [TransportModeEnum.ALL],
          "Algorithm" : AlgorithmEnum.FASTEST}
 
 data3 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "modes" : [TransportModeEnum.ALL],
          "Algorithm" : AlgorithmEnum.SHORTEST}
 
 data4 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
-         "ArrivalTime" : arrival_time, 
+         "ArrivalTime" : arrival_time,
          "modes" : [TransportModeEnum.ALL]}
 
 data5 = {"multiArrivals" : {"Departure" : d2,
                             "Arrival"   : [a1, a2, a3]},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "modes" : [TransportModeEnum.ALL]}
 
 data6 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "Algorithm" : AlgorithmEnum.MINCHANGES}
 
 data7 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a1},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "selfDriveConditions" : [{"TripPart" : "DEPARTURE", "SelfDriveMode" : "BIKE"},
                                   {"TripPart" : "ARRIVAL", "SelfDriveMode" : "BIKE"}]
          }
 
 data8 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "modes" : [TransportModeEnum.BUS]}
 
 
 data9 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "modes" : [TransportModeEnum.BUS, TransportModeEnum.TRAM]}
 
 
 data10 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                                "Arrival"   : a2},
-         "DepartureTime" : departure_time, 
+         "DepartureTime" : departure_time,
          "modes" : [TransportModeEnum.METRO]}
 
 send_request(data1)
@@ -233,17 +233,17 @@ data14 = {"departures" : [d1, d2, d3],
 
 data15 = {"departures" : [d1, d2, d3],
           "arrivals" :   [a2],
-          "DepartureTime" : departure_time, 
+          "DepartureTime" : departure_time,
           "modes" : [TransportModeEnum.BUS]}
 
 data16 = {"departures" : [d1, d2, d3],
           "arrivals" :   [a2, a3],
-          "DepartureTime" : departure_time, 
+          "DepartureTime" : departure_time,
           "modes" : [TransportModeEnum.BUS]}
 
 data17 = {"departures" : [d1, d2, d3],
           "arrivals" :   [a2],
-          "DepartureTime" : departure_time, 
+          "DepartureTime" : departure_time,
           "options" : ["DEPARTURE_ARRIVAL_OPTIMIZED"]
           }
 

@@ -136,7 +136,7 @@ def generate_detailed_trip(departures, arrivals, departure_time, arrival_time):
         raise Exception("<generate_detailed_trip> only supports 1-n requests")
 
     ret = TripType()
-    ret.Duration = randint(0, 36000)
+    ret.Duration = timedelta(seconds=randint(0, 36000))
     ret.Distance = randint(0, 10000)
     ret.Disrupted = False
     ret.InterchangeNumber = randint(0, 10)

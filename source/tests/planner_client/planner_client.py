@@ -18,7 +18,7 @@ def init_logging():
 
 def new_location(place_id, longitude, latitude):
     ret = LocationPointType()
-    ret.AccessTime = 10
+    ret.AccessTime = timedelta(seconds=100)
     ret.PlaceTypeId = place_id
     l = LocationStructure()
     l.Longitude = longitude
