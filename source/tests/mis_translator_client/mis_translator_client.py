@@ -14,7 +14,7 @@ def send_request(data):
     print content
 
 h = httplib2.Http(".cache")
-base_url = "http://127.0.0.1:5000/navitia/v0/"
+base_url = "http://127.0.0.1:5000/navitia/v0"
 
 headers = {'Content-type': 'application/json',
            'Authorization' : '77bca947-ca67-4f17-92a3-92b716fc3d82'}
@@ -51,7 +51,7 @@ departure_time = datetime.datetime.now().strftime(DATE_FORMAT)
 arrival_time = (datetime.datetime.now() + timedelta(hours=24)).strftime(DATE_FORMAT)
 arrival_time_out_of_scope = (datetime.datetime.now() + timedelta(days=20000)).strftime(DATE_FORMAT)
 
-url = base_url + "itineraries/"
+url = base_url + "/itineraries"
 data1 = {"multiDepartures" : {"Departure" : departures,
                               "Arrival"   : a1},
          "DepartureTime" : departure_time, 
@@ -71,7 +71,7 @@ data2_error = {"multiArrivals" : {"Departure" : d1,
 # send_request(data2)
 # send_request(data2_error)
 
-url = base_url + "summed_up_itineraries/"
+url = base_url + "/summed_up_itineraries"
 data3 = {"Departures" : departures,
          "Arrivals" : arrivals,
          "DepartureTime" : departure_time,
@@ -139,7 +139,7 @@ a5 = {"AccessTime" : 10,
 # http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/
 # journeys?from=stop_area:SNC:SA:SAOCE87484006&to=stop_area:SNC:SA:SAOCE87471003
 # &datetime=...
-url = base_url + "itineraries/"
+url = base_url + "/itineraries"
 data1 = {"multiDepartures" : {"Departure" : [d1],
                               "Arrival"   : a1},
          "DepartureTime" : departure_time, 
@@ -208,7 +208,7 @@ send_request(data9)
 send_request(data10)
 
 
-url = base_url + "summed_up_itineraries/"
+url = base_url + "/summed_up_itineraries"
 data11 = {"departures" : [d1, d2, d3],
           "arrivals" : [a1, a4, a3],
           "DepartureTime" : departure_time,
