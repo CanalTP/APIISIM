@@ -1,9 +1,26 @@
 import re
 from datetime import timedelta
+from mis_plan_trip import LocationContextType, LocationStructure
 
 
 # Encoding used when converting objects to strings
 OUTPUT_ENCODING = "utf-8"
+
+def parse_location_context(location):
+    ret = LocationContextType()
+
+    if "Position" in location:
+        ret.Position = LocationStructure(
+                            Latitude=location["Position"]["Latitude"],
+                            Longitude=location["Position"]["Longitude"])
+    ret.AccessTime = xsd_duration_to_timedelta(location["AccessTime"])
+    ret.PlaceTypeId = location.get("PlaceTypeId", None)
+
+    if not ret.PlaceTypeId and not ret.Position:
+        raise Exception("Location has no Position or PlaceTypeId")
+
+    return ret
+
 
 def timedelta_to_xsd_duration(delta):
     # TODO handle days, months and years
@@ -16,6 +33,7 @@ def timedelta_to_xsd_duration(delta):
     ret += (unicode(minutes) + "M") if minutes else ""
     ret += unicode(seconds) + "S"
     return ret
+
 
 def xsd_duration_to_timedelta(duration):
     regex  = re.compile('P(?:(?P<years>\d+)Y)?(?:(?P<months>\d+)M)?'
@@ -30,11 +48,13 @@ def xsd_duration_to_timedelta(duration):
 
     return delta
 
+
 def string_to_bool(string):
     if string in ["True", "true", "TRUE"]:
         return True
     else:
         return False
+
 
 class StringEnum:
     """

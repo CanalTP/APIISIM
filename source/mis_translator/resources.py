@@ -7,7 +7,7 @@ from common.mis_plan_trip import LocationContextType, LocationStructure, \
 from common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
 from common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, TripPartEnum, \
                    TransportModeEnum, PlanSearchOptions, string_to_bool, \
-                   xsd_duration_to_timedelta
+                   xsd_duration_to_timedelta, parse_location_context
 from common.marshalling import *
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
                          MisApiBadRequestException, MisApiInternalErrorException
@@ -85,51 +85,20 @@ def parse_request(request, summed_up_itineraries=False):
     arrivals = []
     if summed_up_itineraries:
         for d in request.json["departures"]:
-            departures.append(LocationContextType(
-                                    Position=LocationStructure(
-                                                Latitude=d["Position"]["Latitude"],
-                                                Longitude=d["Position"]["Longitude"]),
-                                                AccessTime=xsd_duration_to_timedelta(d["AccessTime"]),
-                                    PlaceTypeId=d["PlaceTypeId"]))
+            departures.append(parse_location_context(d))
         for a in request.json["arrivals"]:
-            arrivals.append(LocationContextType(
-                                    Position=LocationStructure(
-                                                Latitude=a["Position"]["Latitude"],
-                                                Longitude=a["Position"]["Longitude"]),
-                                                AccessTime=xsd_duration_to_timedelta(a["AccessTime"]),
-                                    PlaceTypeId=a["PlaceTypeId"]))
+            arrivals.append(parse_location_context(a))
     else:
         if "multiDepartures" in request.json:
             for d in request.json["multiDepartures"]["Departure"]:
-                departures.append(LocationContextType(
-                                        Position=LocationStructure(
-                                                    Latitude=d["Position"]["Latitude"],
-                                                    Longitude=d["Position"]["Longitude"]),
-                                                    AccessTime=xsd_duration_to_timedelta(d["AccessTime"]),
-                                        PlaceTypeId=d["PlaceTypeId"]))
+                departures.append(parse_location_context(d))
             a = request.json["multiDepartures"]["Arrival"]
-            arrivals.append(LocationContextType(
-                                    Position=LocationStructure(
-                                                Latitude=a["Position"]["Latitude"],
-                                                Longitude=a["Position"]["Longitude"]),
-                                                AccessTime=xsd_duration_to_timedelta(a["AccessTime"]),
-                                    PlaceTypeId=a["PlaceTypeId"]))
-
+            arrivals.append(parse_location_context(a))
         if "multiArrivals" in request.json:
             for a in request.json["multiArrivals"]["Arrival"]:
-                arrivals.append(LocationContextType(
-                                    Position=LocationStructure(
-                                                Latitude=a["Position"]["Latitude"],
-                                                Longitude=a["Position"]["Longitude"]),
-                                                AccessTime=xsd_duration_to_timedelta(a["AccessTime"]),
-                                    PlaceTypeId=a["PlaceTypeId"]))
+                arrivals.append(parse_location_context(a))
             d = request.json["multiArrivals"]["Departure"]
-            departures.append(LocationContextType(
-                                    Position=LocationStructure(
-                                                Latitude=d["Position"]["Latitude"],
-                                                Longitude=d["Position"]["Longitude"]),
-                                                AccessTime=xsd_duration_to_timedelta(d["AccessTime"]),
-                                    PlaceTypeId=d["PlaceTypeId"]))
+            departures.append(parse_location_context(d))
     params.departures = departures
     params.arrivals = arrivals
 

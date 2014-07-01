@@ -19,7 +19,7 @@ from common.mis_plan_trip import ItineraryRequestType, multiDeparturesType, \
 from common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
                    TransportModeEnum, PlanSearchOptions, PlanTripStatusEnum, \
                    PlanTripErrorEnum, OUTPUT_ENCODING, StatusCodeEnum, \
-                   xsd_duration_to_timedelta
+                   xsd_duration_to_timedelta, parse_location_context
 from common.marshalling import marshal, itinerary_request_type, \
                                summed_up_itineraries_request_type, \
                                summed_up_trip_type, \
@@ -310,18 +310,6 @@ class WorkerThread(threading.Thread):
         except Exception as e:
             logging.error("compute_trip(%s): %s\n%s", trace, e, traceback.format_exc())
         logging.debug("Worker Thread finished")
-
-
-def parse_location_context(location_context):
-    ret = LocationContextType()
-    ret.AccessTime = xsd_duration_to_timedelta(location_context["AccessTime"])
-    ret.PlaceTypeId = location_context.get("PlaceTypeId", "")
-    l = LocationStructure()
-    l.Longitude = location_context["Position"]["Longitude"]
-    l.Latitude  = location_context["Position"]["Latitude"]
-    ret.Position = l
-
-    return ret
 
 
 """
