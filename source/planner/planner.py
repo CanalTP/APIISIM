@@ -33,15 +33,22 @@ from common.marshalling import marshal, itinerary_request_type, \
 MAX_TRACE_LENGTH = 3
 SURROUNDING_MISES_MAX_DISTANCE = 400 # In meters
 
+
 class TraceStop(LocationContextType):
     def __init__(self, *args, **kwargs):
-        super(TraceStop, self).__init__(self, *args, **kwargs)
+        super(TraceStop, self).__init__(*args, **kwargs)
         self.departure_time = None
         self.arrival_time = None
 
+    def __repr__(self):
+        return ("<TraceStop(PlaceTypeId='%s')>" % \
+                (self.PlaceTypeId)) \
+                .encode(OUTPUT_ENCODING)
+
 
 def init_logging():
-    handler = logging.FileHandler("/tmp/meta_planner.log")
+    handler = logging.FileHandler(
+                    os.environ.get("PLANNER_LOG_FILE", "") or "/tmp/meta_planner.log")
     formatter = logging.Formatter('%(asctime)s <%(thread)d> [%(levelname)s] %(message)s')
     handler.setFormatter(formatter)
     root_logger = logging.getLogger()
@@ -60,7 +67,7 @@ def log_error(func):
             result = func(self, *args, **kwargs)
             return result
         except Exception as e:
-            logging.error("Thread <%s>: %s\n%s", self.__class__.__name__,
+            logging.error("Class <%s>: %s\n%s", self.__class__.__name__,
                           e, traceback.format_exc())
             raise
 
@@ -226,12 +233,15 @@ SummedUpTripType.__repr__ = _repr
 
 class MisApi(object):
     def __init__(self, id):
-        mis = Session().query(metabase.Mis).filter_by(id=id).one()
+        db_session = Session()
+        mis = db_session.query(metabase.Mis).filter_by(id=id).one()
         self._api_url = mis.api_url
         self._api_key = mis.api_key
         self._name = mis.name
         self._http = httplib2.Http("/tmp/.planner_cache")
         Session.remove()
+        db_session.close()
+        db_session.bind.dispose()
 
     def get_name(self):
         return self._name
@@ -289,6 +299,11 @@ class MisApi(object):
         ret.summedUpTrips = parse_summed_up_trips(content.get("summedUpTrips", []))
 
         return ret
+
+    def __repr__(self):
+        return ("<MisApi(name='%s')>" % \
+                (self._name)) \
+                .encode(OUTPUT_ENCODING)
 
 
 class WorkerThread(threading.Thread):
@@ -822,6 +837,8 @@ class PlanTripCalculator(object):
         logging.debug("Deleting PlanTripCalculator instance")
         if self._db_session:
             Session.remove()
+            self._db_session.close()
+            self._db_session.bind.dispose()
 
 
 # Check if we've received a cancellation request
@@ -1002,7 +1019,8 @@ def web_socket_transfer_data(connection):
 init_logging()
 # Create engine used to connect to database
 # db_url = "postgresql+psycopg2://postgres:postgres@localhost/afimb_db3"
-db_url = "postgresql+psycopg2://postgres:postgres@localhost/afimb_stubs_db"
+db_url = os.environ.get("PLANNER_DB_URL", "") or \
+                "postgresql+psycopg2://postgres:postgres@localhost/afimb_stubs_db"
 db_engine = create_engine(db_url, echo=False)
 # Class that will be instantiated by every thread to create their own thread-local sessions
 Session = scoped_session(sessionmaker(bind=db_engine, expire_on_commit=False))
