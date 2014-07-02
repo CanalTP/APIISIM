@@ -40,6 +40,9 @@ class TraceStop(LocationContextType):
         self.departure_time = None
         self.arrival_time = None
 
+    def __eq__(self, other):
+        return self.PlaceTypeId == other.PlaceTypeId
+
     def __repr__(self):
         return ("<TraceStop(PlaceTypeId='%s')>" % \
                 (self.PlaceTypeId)) \
@@ -408,7 +411,6 @@ def stop_to_trace_stop(stop):
 
     return ret
 
-
 # trips is [(MisApi, DetailedTrip)]
 def create_full_notification(request_id, trips, runtime_duration):
     composed_trip = None
@@ -718,9 +720,8 @@ class PlanTripCalculator(object):
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
-            # TODO remove duplicates
-            summed_up_request.departures = departures
-            summed_up_request.arrivals = arrivals
+            summed_up_request.departures = list(set(departures))
+            summed_up_request.arrivals = list(set(arrivals))
             if not summed_up_request.DepartureTime:
                 summed_up_request.DepartureTime = self._params.DepartureTime
             else:
@@ -742,8 +743,8 @@ class PlanTripCalculator(object):
 
         # Do non-detailed optimized request (only one, always)
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-1]
-        summed_up_request.departures = departures
-        summed_up_request.arrivals = arrivals
+        summed_up_request.departures = list(set(departures))
+        summed_up_request.arrivals = list(set(arrivals))
         summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
         for d in departures:
             d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
@@ -769,8 +770,8 @@ class PlanTripCalculator(object):
 
         # Do arrival_at non-detailed request
         if len(detailed_trace) > 2:
-            summed_up_request.departures = departures
-            summed_up_request.arrivals = arrivals
+            summed_up_request.departures = list(set(departures))
+            summed_up_request.arrivals = list(set(arrivals))
             summed_up_request.DepartureTime = None
             summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
             for a in arrivals:
@@ -808,7 +809,7 @@ class PlanTripCalculator(object):
                 detailed_request.ArrivalTime = None
             detailed_request.multiArrivals = multiArrivalsType()
             detailed_request.multiArrivals.Departure = prev_stop
-            detailed_request.multiArrivals.Arrival = arrivals
+            detailed_request.multiArrivals.Arrival = list(set(arrivals))
             resp = mis_api.get_itinerary(detailed_request)
             ret.append((mis_api, resp.DetailedTrip))
 

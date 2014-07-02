@@ -32,7 +32,10 @@ INSERT INTO stop (code, mis_id, name, lat, long) VALUES
 INSERT INTO transfer (stop1_id, stop2_id, distance, duration, status) VALUES
     (1, 2, 100, 10, 'auto'),
     (6, 3, 100, 10, 'auto'),
-    (7, 4, 100, 10, 'auto');
+    (10, 3, 100, 10, 'auto'),
+    (14, 3, 100, 10, 'auto'),
+    (7, 4, 100, 10, 'auto'),
+    (11, 4, 100, 10, 'auto');
 
 COMMIT;
 \q
