@@ -342,8 +342,12 @@ def parse_request(request):
         logging.error("DateTime format error: %s", exc)
         return None
 
-    ret.Departure = parse_location_context(request["Departure"])
-    ret.Arrival = parse_location_context(request["Arrival"])
+    try:
+        ret.Departure = parse_location_context(request["Departure"])
+        ret.Arrival = parse_location_context(request["Arrival"])
+    except Exception as e:
+        logging.error(e)
+        return None
     if not ret.Departure or not ret.Arrival:
         logging.error("Missing departure or arrival")
         return None
@@ -912,22 +916,6 @@ class NotificationThread(threading.Thread):
         self._queue.put(None)
 
 
-def error_handler(func):
-    def decorator(self, *args, **kwargs):
-        try:
-            result = func(self, *args, **kwargs)
-            return result
-        except (KeyError, ValueError) as e:
-            logging.error("Error handler: %s\n%s", e, traceback.format_exc())
-            self._send_status(PlanTripStatusEnum.BAD_REQUEST)
-        except Exception as e:
-            logging.error("Unknown error: %s\n"
-                          "%s", e, traceback.format_exc())
-            raise
-
-    return decorator
-
-
 class ConnectionHandler(object):
     def __init__(self, connection):
         self._connection = connection
@@ -946,7 +934,7 @@ class ConnectionHandler(object):
             notif.errors = [error]
         self._notif_queue.put(notif)
 
-    @error_handler
+    @log_error
     def process(self):
         termination_queue = Queue.Queue()
         notif_queue = Queue.Queue()
