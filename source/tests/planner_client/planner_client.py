@@ -31,7 +31,7 @@ def new_location(place_id, longitude, latitude):
 def new_request(departure, arrival):
     ret = PlanTripRequestType()
 
-    ret.id = "request_" + str(randint(0, 60000))
+    ret.clientRequestId = "request_" + str(randint(0, 60000))
     ret.DepartureTime = datetime.datetime.now()
     ret.ArrivalTime = None
     ret.Departure = departure

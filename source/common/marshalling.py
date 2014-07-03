@@ -270,7 +270,7 @@ summed_up_itineraries_response_type = {
 }
 
 plan_trip_request_type = {
-    'id' : fields.String,
+    'clientRequestId' : fields.String,
     'Departure' : NonNullNested(location_context_type),
     'Arrival' : NonNullNested(location_context_type),
     'DepartureTime' : _DateTime,

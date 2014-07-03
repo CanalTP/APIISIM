@@ -342,7 +342,7 @@ def parse_request(request):
         return None
 
     # Required
-    ret.id = request["id"]
+    ret.clientRequestId = request["clientRequestId"]
     departure_time = request.get("DepartureTime", "")
     arrival_time = request.get("ArrivalTime", "")
     if departure_time and arrival_time:
@@ -701,7 +701,7 @@ class PlanTripCalculator(object):
             mis_api = MisApi(mis_trace[0])
             resp = mis_api.get_itinerary(detailed_request)
             ret.append((mis_api, resp.DetailedTrip))
-            notif = create_full_notification(self._params.id, ret, datetime.now() - start_date)
+            notif = create_full_notification(self._params.clientRequestId, ret, datetime.now() - start_date)
             self._notif_queue.put(notif)
             return ret
 
@@ -763,7 +763,7 @@ class PlanTripCalculator(object):
         for a, l, t in zip(arrivals, linked_stops, transfer_durations):
             a.departure_time = l.departure_time - t
         notif = PlanTripExistenceNotificationResponseType(
-                    RequestId=self._params.id, DepartureTime=self._params.DepartureTime,
+                    RequestId=self._params.clientRequestId, DepartureTime=self._params.DepartureTime,
                     ArrivalTime=best_arrival_time,
                     Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
@@ -829,7 +829,7 @@ class PlanTripCalculator(object):
             best_stops.sort(key=lambda x: x.departure_time)
             prev_stop = best_stops[0]
 
-        notif = create_full_notification(self._params.id, ret, datetime.now() - start_date)
+        notif = create_full_notification(self._params.clientRequestId, ret, datetime.now() - start_date)
         self._notif_queue.put(notif)
 
         return ret
@@ -862,7 +862,7 @@ class CancellationListener(threading.Thread):
             try:
                 msg = json.loads(msg)
                 if "PlanTripCancellationRequest" in msg \
-                    and msg["PlanTripCancellationRequest"]["RequestId"] == self._params.id:
+                    and msg["PlanTripCancellationRequest"]["RequestId"] == self._params.clientRequestId:
                     self._queue.put("CANCEL")
                     break
             except:
@@ -968,7 +968,7 @@ class ConnectionHandler(object):
         if not params:
             self._send_status(PlanTripStatusEnum.BAD_REQUEST)
             return
-        self._request_id = params.id
+        self._request_id = params.clientRequestId
 
         try:
             trip_calculator = PlanTripCalculator(params, notif_queue)
