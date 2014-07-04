@@ -21,7 +21,7 @@ class TestPlanner(unittest.TestCase):
             tests.drop_db()
         except:
             pass
-        tests.create_db(populate_script=TEST_DIR + "test_planner_populate.sql")
+        tests.create_db(populate_script=TEST_DIR + "test_planner.sql")
 
     def testDetailedTrace(self):
         request = PlanTripRequestType()

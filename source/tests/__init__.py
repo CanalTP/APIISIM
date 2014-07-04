@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import logging, sys, argparse, ConfigParser
 
 CREATE_DB_SCRIPT = os.path.dirname(os.path.realpath(__file__)) + "/../metabase/sql_scripts/create_db.sh"
-MIS_TRANSLATOR = os.path.dirname(os.path.realpath(__file__)) + "/../mis_translator/__init__.py"
+MIS_TRANSLATOR = os.path.dirname(os.path.realpath(__file__)) + "/../mis_translator/run.py"
 BACK_OFFICE = os.path.dirname(os.path.realpath(__file__)) + "/../back_office/__init__.py"
 
 DB_NAME = "test_db"
@@ -70,18 +70,23 @@ def launch_mis_translator():
     time.sleep(3)
     return process
 
-
+# !!! IMPORTANT !!!
+# This doesn't work if mis_transaltor is launched in debug mode as Flask
+# forks when running in debug mode.
 def terminate_mis_translator(process):
     process.terminate()
     process.wait()
 
+
+def launch_back_office(conf_file):
+    return subprocess.call(['python', BACK_OFFICE, "--config_file", conf_file])
 
 """
 Launch back_office with given configuration and compare resulting database to given
 reference dump file. If database matches, return True, if it doesn't match, return False.
 """
 def calculate_and_check(conf_file, ref_dump_file, db_name=DB_NAME, admin_name=ADMIN_NAME):
-    subprocess.call(['python', BACK_OFFICE, "--config_file", conf_file])
+    launch_back_office(conf_file)
 
     _, dump_file = tempfile.mkstemp(text=True, prefix="test1", suffix=".dump")
     subprocess.call(['pg_dump', '-U', admin_name, '-h', 'localhost', '-f',
