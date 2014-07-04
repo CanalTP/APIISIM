@@ -4,6 +4,17 @@ from common import timedelta_to_xsd_duration
 
 DATE_FORMAT="%Y-%m-%dT%H:%M:%S"
 
+"""
+    Custom float marshaller as stock Flask float marshaller is buggy, it outputs
+    float numbers as quoted strings (ex: "1.321" instead of 1.321).
+    See https://github.com/twilio/flask-restful/pull/219.
+"""
+class _Float(fields.Raw):
+    def format(self, value):
+        try:
+            return float(value)
+        except ValueError as ve:
+            raise MarshallingException(ve)
 
 """
     Custom marshaller that converts Timedelta object to XSD duration string.
@@ -69,11 +80,11 @@ def marshal(obj, fields):
 
 
 stop_fields = {'code': fields.String, 'name': fields.String,
-               'lat': fields.Float, 'long': fields.Float}
+               'lat': _Float, 'long': _Float}
 
 location_structure_type = {
-    'Latitude' : fields.Float,
-    'Longitude' : fields.Float
+    'Latitude' : _Float,
+    'Longitude' : _Float
 }
 
 location_context_type = {
