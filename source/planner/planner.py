@@ -411,23 +411,24 @@ def stop_to_trace_stop(stop):
 
     return ret
 
-# trips is [(MisApi, DetailedTrip)]
-def create_full_notification(request_id, trips, runtime_duration):
+# full_trip is [(MisApi, DetailedTrip)]
+def create_full_notification(request_id, full_trip, runtime_duration):
     composed_trip = None
-    if trips:
+    if full_trip:
         composed_trip = ComposedTripType()
         # TODO
         composed_trip.id = request_id + "_"
-        composed_trip.Departure = trips[0][1].Departure
-        composed_trip.Arrival = trips[-1][1].Arrival
-        composed_trip.Duration = sum([xsd_duration_to_timedelta(x[1].Duration) for x in trips], timedelta())
-        composed_trip.InterchangeNumber = sum([x[1].InterchangeNumber for x in trips])
+        composed_trip.Departure = full_trip[0][1].Departure
+        composed_trip.Arrival = full_trip[-1][1].Arrival
+        composed_trip.Duration = sum([xsd_duration_to_timedelta(x[1].Duration) for x in full_trip], timedelta())
+        composed_trip.InterchangeNumber = sum([x[1].InterchangeNumber for x in full_trip])
+        composed_trip.Distance = sum([x[1].Distance for x in full_trip])
         # TODO set partial ids in sections
         composed_trip.sections = []
-        for s in [x[1].sections for x in trips]:
+        for s in [x[1].sections for x in full_trip]:
             composed_trip.sections.extend(s)
         composed_trip.partialTrips = []
-        for mis_api, trip in trips:
+        for mis_api, trip in full_trip:
             partial_trip = PartialTripType()
             # TODO
             partial_trip.id = 0
@@ -437,6 +438,7 @@ def create_full_notification(request_id, trips, runtime_duration):
             partial_trip.Departure = trip.Departure
             partial_trip.Arrival = trip.Arrival
             partial_trip.Duration = xsd_duration_to_timedelta(trip.Duration)
+            partial_trip.Distance = trip.Distance
             composed_trip.partialTrips.append(partial_trip)
 
     return PlanTripNotificationResponseType(
