@@ -93,14 +93,11 @@ class TestPlannerMisStubs(unittest.TestCase):
                                                metabase.Transfer.stop2_id == s1.c.id))) \
                               .count() > 0)
 
-            # Check that distance is valid.
-            for _, trip in full_trip:
-                self.assertTrue(trip.Distance > 0)
-
-            # Basic consistency checks regarding dates/durations
+            # Basic consistency checks.
             for _, trip in full_trip:
                 self.assertTrue(trip.Departure.DateTime < trip.Arrival.DateTime)
                 self.assertTrue(trip.Duration > 0)
+                self.assertTrue(trip.Distance > 0)
 
 
     def tearDown(self):

@@ -80,12 +80,12 @@ def log_error(func):
 def benchmark(func):
     def decorator(*args, **kwargs):
         start_date = datetime.now()
-        logging.debug("%s(%s %s)|START: %s", func.__name__, args, kwargs, start_date)
+        logging.debug("%s(%s %s) | START: %s", func.__name__, args, kwargs, start_date)
 
         result = func(*args, **kwargs)
 
         end_date = datetime.now()
-        logging.debug("%s(%s %s)|END: %s|DURATION: %ss",
+        logging.debug("%s(%s %s) | END: %s | DURATION: %ss",
             func.__name__, args, kwargs, end_date,
             (end_date - start_date).total_seconds())
         return result
@@ -718,7 +718,6 @@ class PlanTripCalculator(object):
         best_arrival_time = None
 
         detailed_trace = self._get_detailed_trace(mis_trace)
-        # logging.debug("DETAILED_TRACE %s", detailed_trace)
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
@@ -734,10 +733,8 @@ class PlanTripCalculator(object):
             summed_up_request.options = []
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
             for trip in resp.summedUpTrips:
-                # logging.debug("TRIP: %s", trip)
                 for stop in arrivals:
                     if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
-                        # logging.debug("MATCH: %s", stop.PlaceTypeId)
                         stop.arrival_time = trip.Arrival.DateTime
             # To have linked_stops arrival_time, just add transfer time to request results
             for a, l, t in zip(arrivals, linked_stops, transfer_durations):
@@ -796,7 +793,6 @@ class PlanTripCalculator(object):
         # point of the next request.
         prev_stop = None
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace:
-            # Arrival times are embedded in departures/arrivals objects
             detailed_request.ArrivalTime = None
             if not prev_stop:
                 # At first, do an arrival_at request.

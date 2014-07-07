@@ -199,8 +199,8 @@ def journey_to_summed_up_trip(journey):
 
 
 def journey_to_str(journey):
-    return ("<Journey> Departure: %s|Arrival: %s|Duration: %s|"
-            "Nb_transfers: %s|Type: %s" % (journey["departure_date_time"],
+    return ("<Journey> Departure: %s | Arrival: %s | Duration: %s | "
+            "Nb_transfers: %s | Type: %s" % (journey["departure_date_time"],
             journey["arrival_date_time"], journey["duration"],
             journey["nb_transfers"], journey["type"]))
 
