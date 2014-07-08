@@ -29,28 +29,17 @@ class TestPlannerMisStubs(unittest.TestCase):
         tests.create_db(populate_script=TEST_DIR + "test_planner_mis_stubs.sql")
         self._mis_translator_process = tests.launch_mis_translator()
         tests.launch_back_office(TEST_DIR + "test_planner_mis_stubs.conf")
-        return
 
 
-    def test(self):
-        # "stop_area:DUA:SA:8754528"
-        departure_position = LocationStructure(Latitude=48.765177, Longitude=2.410013)
-        # "stop_area:SCF:SA:SAOCE87753731"
-        arrival_position = LocationStructure(Latitude=43.699998, Longitude=5.09131)
-        request = PlanTripRequestType(clientRequestId="test_id")
-        request.Departure = TraceStop(Position=departure_position,
-                                      AccessTime=timedelta(seconds=60))
-        request.Arrival = TraceStop(Position=arrival_position,
-                                    AccessTime=timedelta(seconds=60))
-        request.DepartureTime = datetime.now()
+    def _check_trip(self, request):
         calculator = PlanTripCalculator(request, Queue.Queue())
         traces = calculator.compute_traces()
         logging.debug("TRACES: %s", traces)
         self.assertEquals(traces, [[1, 3], [1, 2, 3], [2, 3], [2, 1, 3]])
         departure_mises = [MisApi(x).get_name() for x in \
-                           calculator._get_surrounding_mises(departure_position, datetime.now())]
+                           calculator._get_surrounding_mises(request.Departure.Position, datetime.now())]
         arrival_mises = [MisApi(x).get_name() for x in \
-                         calculator._get_surrounding_mises(arrival_position, datetime.now())]
+                         calculator._get_surrounding_mises(request.Arrival.Position, datetime.now())]
         for t in traces:
             full_trip = calculator.compute_trip(t)
             notif = create_full_notification("test_id", full_trip, timedelta())
@@ -59,13 +48,13 @@ class TestPlannerMisStubs(unittest.TestCase):
             # Check that returned departure/arrival points are the same as those
             # requested.
             self.assertEquals(full_trip[0][1].Departure.TripStopPlace.Position.Longitude, \
-                              departure_position.Longitude)
+                              request.Departure.Position.Longitude)
             self.assertEquals(full_trip[0][1].Departure.TripStopPlace.Position.Latitude, \
-                              departure_position.Latitude)
+                              request.Departure.Position.Latitude)
             self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Longitude, \
-                              arrival_position.Longitude)
+                              request.Arrival.Position.Longitude)
             self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Latitude, \
-                              arrival_position.Latitude)
+                              request.Arrival.Position.Latitude)
 
             # Check that departure/arrival MISes are correct.
             self.assertTrue(full_trip[0][0].get_name() in departure_mises)
@@ -100,10 +89,42 @@ class TestPlannerMisStubs(unittest.TestCase):
                 self.assertTrue(trip.Distance > 0)
 
 
+    def _new_request(self):
+        request = PlanTripRequestType(clientRequestId="test_id")
+        # "stop_area:DUA:SA:8754528"
+        request.Departure = TraceStop(Position=LocationStructure(Latitude=48.765177,
+                                                                 Longitude=2.410013),
+                                      AccessTime=timedelta(seconds=60))
+        # "stop_area:SCF:SA:SAOCE87753731"
+        request.Arrival = TraceStop(Position=LocationStructure(Latitude=43.699998,
+                                                               Longitude=5.09131),
+                                    AccessTime=timedelta(seconds=60))
+
+        return request
+
+
+    def testDepartureAt(self):
+        request = self._new_request()
+        request.DepartureTime = datetime.now()
+
+        self._check_trip(request)
+
+
+    def testArrivalAt(self):
+        request = self._new_request()
+        request.ArrivalTime = datetime.now() + timedelta(hours=10)
+
+        self._check_trip(request)
+
+
     def tearDown(self):
         tests.terminate_mis_translator(self._mis_translator_process)
+        from planner.planner import clean_db_engine
+        # Reset SQLAlchemy connection pool. Otherwise, some connections can stay
+        # open, which will prevent us from deleting the database.
+        clean_db_engine()
         tests.drop_db()
-        return
+
 
 if __name__ == '__main__':
     unittest.main()

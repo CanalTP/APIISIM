@@ -23,33 +23,73 @@ class TestPlanner(unittest.TestCase):
             pass
         tests.create_db(populate_script=TEST_DIR + "test_planner.sql")
 
-    def testDetailedTrace(self):
+
+    def testDepartureAtDetailedTrace(self):
         request = PlanTripRequestType()
         request.Departure = TraceStop(PlaceTypeId="departure")
         request.Arrival = TraceStop(PlaceTypeId="arrival")
         calculator = PlanTripCalculator(request, Queue.Queue())
 
         for i in [2, 3, 4]:
-            res = calculator._get_detailed_trace(range(1, i + 1))
+            res = calculator._departure_at_detailed_trace(range(1, i + 1))
             logging.debug(res)
-            for j in range(1, i + 1):
-                k = j - 1
-                self.assertEquals(res[k][0].get_name(), "mis%s" % j)
-                if j == 1:
-                    self.assertEquals(res[k][1][0].PlaceTypeId, "departure")
-                    self.assertEquals(res[k][2][0].PlaceTypeId, "stop_code%s0" % j)
-                    self.assertEquals(res[k][3][0].PlaceTypeId, "stop_code%s0" % (j + 1))
-                elif j == i:
-                    self.assertEquals(res[k][1][0].PlaceTypeId, "stop_code%s0" % j)
-                    self.assertEquals(res[k][2][0].PlaceTypeId, "arrival")
-                    self.assertEquals(res[k][3], None)
+            for j in range(0, i):
+                k = j + 1
+                self.assertEquals(res[j][0].get_name(), "mis%s" % k)
+                if j == 0:
+                    self.assertEquals(res[j][1][0].PlaceTypeId, "departure")
+                    self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s0" % k)
+                    self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k + 1))
+                elif j == (i - 1):
+                    self.assertEquals(res[j][1][0].PlaceTypeId, "stop_code%s0" % k)
+                    self.assertEquals(res[j][2][0].PlaceTypeId, "arrival")
+                    self.assertEquals(res[j][3], None)
                 else:
-                    self.assertEquals(res[k][1][0].PlaceTypeId, "stop_code%s0" % j)
-                    self.assertEquals(res[k][2][0].PlaceTypeId, "stop_code%s1" % j)
-                    self.assertEquals(res[k][3][0].PlaceTypeId, "stop_code%s0" % (j + 1))
+                    self.assertEquals(res[j][1][0].PlaceTypeId, "stop_code%s0" % k)
+                    self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s1" % k)
+                    self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k + 1))
+
+
+    def testArrivalAtDetailedTrace(self):
+        request = PlanTripRequestType()
+        request.Departure = TraceStop(PlaceTypeId="departure")
+        request.Arrival = TraceStop(PlaceTypeId="arrival")
+        calculator = PlanTripCalculator(request, Queue.Queue())
+
+        for i in [2, 3, 4]:
+            res = calculator._arrival_at_detailed_trace(range(1, i + 1))
+            logging.debug(res)
+            k = i
+            for j in range(0, i):
+                self.assertEquals(res[j][0].get_name(), "mis%s" % k)
+                if j == (i - 1):
+                    self.assertEquals(res[j][1][0].PlaceTypeId, "departure")
+                    self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s0" % k)
+                    self.assertEquals(res[j][3], None)
+                elif j == 0:
+                    self.assertEquals(res[j][1][0].PlaceTypeId, "stop_code%s0" % k)
+                    self.assertEquals(res[j][2][0].PlaceTypeId, "arrival")
+                    if k <= 2:
+                        self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k - 1))
+                    else:
+                        self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s1" % (k - 1))
+                else:
+                    self.assertEquals(res[j][1][0].PlaceTypeId, "stop_code%s0" % k)
+                    self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s1" % k)
+                    if k <= 2:
+                        self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k - 1))
+                    else:
+                        self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s1" % (k - 1))
+                k -= 1
+
 
     def tearDown(self):
+        from planner.planner import clean_db_engine
+        # Reset SQLAlchemy connection pool. Otherwise, some connections can stay
+        # open, which will prevent us from deleting the database.
+        clean_db_engine()
         tests.drop_db()
+
 
 if __name__ == '__main__':
     unittest.main()

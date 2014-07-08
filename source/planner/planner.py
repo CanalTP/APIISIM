@@ -7,7 +7,6 @@ from sqlalchemy.orm import sessionmaker, scoped_session, aliased
 import metabase
 from geoalchemy2 import Geography
 from geoalchemy2.functions import GenericFunction, ST_DWithin
-from mod_pywebsocket import msgutil
 import os
 from common.plan_trip import *
 from common.mis_plan_summed_up_trip import LocationContextType, \
@@ -242,9 +241,8 @@ class MisApi(object):
         self._api_key = mis.api_key
         self._name = mis.name
         self._http = httplib2.Http("/tmp/.planner_cache")
-        Session.remove()
         db_session.close()
-        db_session.bind.dispose()
+        Session.remove()
 
     def get_name(self):
         return self._name
@@ -457,6 +455,7 @@ class PlanTripCalculator(object):
         self._params = params
         self._notif_queue = notif_queue
 
+
     @benchmark
     def _get_transfers(self, mis1_id, mis2_id):
         # {mis1_id : [(transfer, stop_mis1, stop_mis2)],
@@ -588,8 +587,9 @@ class PlanTripCalculator(object):
 
         return self._get_mis_traces(departure_mises, arrival_mises, MAX_TRACE_LENGTH)
 
+
     @benchmark
-    def _get_detailed_trace(self, mis_trace):
+    def _departure_at_detailed_trace(self, mis_trace):
         i = 0
         ret = []
         # [
@@ -598,9 +598,13 @@ class PlanTripCalculator(object):
         #     [TraceStop], # departures
         #     [TraceStop], # arrivals
         #     [TraceStop], # linked_stops (stops linked to arrivals via a transfer)
-        #     [timedelta]   # transfer_durations
+        #     [timedelta]  # transfer_durations
         #   )
         # ]
+
+        if len(mis_trace) < 2:
+            raise Exception("mis_trace length must be > 1")
+
         while True:
             # Divide trace in chunks of 3 MIS
             chunk = mis_trace[i:i+3]
@@ -608,8 +612,8 @@ class PlanTripCalculator(object):
                 break
             logging.debug("CHUNK: %s", chunk)
 
-            trace_departure = self._params.Departure if i == 0 else None
-            trace_arrival = self._params.Arrival if len(mis_trace) <= (i + 3) else None
+            trace_start = self._params.Departure if i == 0 else None
+            trace_end = self._params.Arrival if len(mis_trace) <= (i + 3) else None
             mis1_id = chunk[0]
             mis2_id = chunk[1] if len(chunk) > 1 else 0
             mis3_id = chunk[2] if len(chunk) > 2 else 0
@@ -620,8 +624,6 @@ class PlanTripCalculator(object):
                                mis2_id : {mis1_id : [], mis3_id : []},
                                mis3_id : {mis1_id : [], mis2_id : []}}
 
-            # logging.debug("mis1_id: %s, mis2_id: %s, mis3_id: %s", mis1_id, mis2_id, mis3_id)
-            # logging.debug("trace_arrival: %s", trace_arrival)
             for x, y in [(mis1_id, mis2_id), (mis2_id, mis3_id)]:
                 if not x or not y:
                     continue
@@ -629,9 +631,9 @@ class PlanTripCalculator(object):
                 chunk_transfers[x][y] = t[x]
                 chunk_transfers[y][x] = t[y]
 
-            if trace_departure:
+            if trace_start:
                 ret = [(mis1_api,
-                        [trace_departure],
+                        [trace_start],
                         [x[1] for x in chunk_transfers[mis1_id][mis2_id]],
                         [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
                         [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis1_id][mis2_id]])]
@@ -644,20 +646,20 @@ class PlanTripCalculator(object):
                      [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
                      [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis2_id][mis3_id]]))
 
-                if trace_arrival:
+                if trace_end:
                     ret.append(
                         (mis3_api,
                          [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
-                         [trace_arrival],
+                         [trace_end],
                          None,
                          None))
                     break
             else:
-                if trace_arrival:
+                if trace_end:
                     ret.append(
                         (mis2_api,
                          [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
-                         [trace_arrival],
+                         [trace_end],
                          None,
                          None))
                     break
@@ -667,57 +669,120 @@ class PlanTripCalculator(object):
 
 
     @benchmark
-    def compute_trip(self, mis_trace):
-        start_date = datetime.now()
-        # TODO do it for arrival_at trip
+    def _arrival_at_detailed_trace(self, mis_trace):
+        i = 0
+        ret = []
+        # [
+        #   (
+        #     MisApi,
+        #     [TraceStop], # departures
+        #     [TraceStop], # arrivals
+        #     [TraceStop], # linked_stops (stops linked to departures via a transfer)
+        #     [timedelta]  # transfer_durations
+        #   )
+        # ]
+
+        if len(mis_trace) < 2:
+            raise Exception("mis_trace length must be > 1")
+
+        # Since we process an arrival_at request, we'll do the trip backwards,
+        # starting from the arrival MIS, heading to the departure MIS.
+        mis_trace = list(mis_trace)
+        mis_trace.reverse()
+
+        while True:
+            # Divide trace in chunks of 3 MIS
+            chunk = mis_trace[i:i+3]
+            if not chunk:
+                break
+            logging.debug("CHUNK: %s", chunk)
+
+            # Again, this is an arrival_at request, so we start from the arrival
+            # point and finish in the departure point.
+            trace_start = self._params.Arrival if i == 0 else None
+            trace_end = self._params.Departure if len(mis_trace) <= (i + 3) else None
+            mis1_id = chunk[0]
+            mis2_id = chunk[1] if len(chunk) > 1 else 0
+            mis3_id = chunk[2] if len(chunk) > 2 else 0
+            mis1_api = MisApi(mis1_id) if mis1_id else None
+            mis2_api = MisApi(mis2_id) if mis2_id else None
+            mis3_api = MisApi(mis3_id) if mis3_id else None
+            chunk_transfers = {mis1_id : {mis2_id : [], mis3_id : []},
+                               mis2_id : {mis1_id : [], mis3_id : []},
+                               mis3_id : {mis1_id : [], mis2_id : []}}
+
+            for x, y in [(mis1_id, mis2_id), (mis2_id, mis3_id)]:
+                if not x or not y:
+                    continue
+                t = self._get_transfers(x, y)
+                chunk_transfers[x][y] = t[x]
+                chunk_transfers[y][x] = t[y]
+
+            if trace_start:
+                ret = [(mis1_api,
+                        [x[1] for x in chunk_transfers[mis1_id][mis2_id]],
+                        [trace_start],
+                        [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
+                        [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis1_id][mis2_id]])]
+
+            if mis3_id:
+                ret.append(
+                    (mis2_api,
+                     [x[1] for x in chunk_transfers[mis2_id][mis3_id]],
+                     [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
+                     [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
+                     [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis2_id][mis3_id]]))
+
+                if trace_end:
+                    ret.append(
+                        (mis3_api,
+                         [trace_end],
+                         [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
+                         None,
+                         None))
+                    break
+            else:
+                if trace_end:
+                    ret.append(
+                        (mis2_api,
+                         [trace_end],
+                         [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
+                         None,
+                         None))
+                    break
+            i += 1
+
+        return ret
+
+
+    def _single_mis_trip(self, mis_id):
+        # Return best trip, which is a list of partial trips.
+        ret = [] #  [DetailedTrip]
+
+        detailed_request = ItineraryRequestType()
+        self._init_request(detailed_request)
+        detailed_request.multiDepartures = multiDeparturesType()
+        detailed_request.multiDepartures.Departure = [self._params.Departure]
+        detailed_request.multiDepartures.Arrival = self._params.Arrival
+        detailed_request.DepartureTime = self._params.DepartureTime
+        detailed_request.ArrivalTime = self._params.ArrivalTime
+        mis_api = MisApi(mis_id)
+        resp = mis_api.get_itinerary(detailed_request)
+        ret.append((mis_api, resp.DetailedTrip))
+        return ret
+
+
+    def _departure_at_trip(self, detailed_trace):
+        # Minimum arrival_time to arrival
+        best_arrival_time = None
 
         # Return best trip, which is a list of partial trips.
         ret = [] #  [DetailedTrip]
 
-        if not mis_trace:
-            raise Exception("Empty mis_trace")
-
-        # Check that first and last MIS support departure/arrival points with
-        # geographic coordinates.
-        for mis_id in [mis_trace[0], mis_trace[-1]]:
-            if not self._db_session.query(metabase.Mis.geographic_position_compliant) \
-                                   .filter_by(id=mis_id) \
-                                   .one()[0]:
-                raise Exception("First or last Mis is not geographic_position_compliant")
-
-        detailed_request = ItineraryRequestType()
-        detailed_request.Algorithm = self._params.Algorithm
-        detailed_request.modes = self._params.modes
-        detailed_request.selfDriveConditions = self._params.selfDriveConditions
-        detailed_request.AccessibilityConstraint = self._params.AccessibilityConstraint
-        detailed_request.Language = self._params.Language
-
-        # If there is only one MIS in the trace, just do a detailed request on the
-        # given MIS.
-        if len(mis_trace) == 1:
-            detailed_request.multiDepartures = multiDeparturesType()
-            detailed_request.multiDepartures.Departure = [self._params.Departure]
-            detailed_request.multiDepartures.Arrival = self._params.Arrival
-            detailed_request.DepartureTime = self._params.DepartureTime
-            detailed_request.ArrivalTime = self._params.ArrivalTime
-            mis_api = MisApi(mis_trace[0])
-            resp = mis_api.get_itinerary(detailed_request)
-            ret.append((mis_api, resp.DetailedTrip))
-            notif = create_full_notification(self._params.clientRequestId, ret, datetime.now() - start_date)
-            self._notif_queue.put(notif)
-            return ret
-
         summed_up_request = SummedUpItinerariesRequestType()
-        summed_up_request.Algorithm = self._params.Algorithm
-        summed_up_request.modes = self._params.modes
-        summed_up_request.selfDriveConditions = self._params.selfDriveConditions
-        summed_up_request.AccessibilityConstraint = self._params.AccessibilityConstraint
-        summed_up_request.Language = self._params.Language
-
-        # Minimum arrival_time to arrival
-        best_arrival_time = None
-
-        detailed_trace = self._get_detailed_trace(mis_trace)
+        self._init_request(summed_up_request)
+        detailed_request = ItineraryRequestType()
+        self._init_request(detailed_request)
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
@@ -769,6 +834,7 @@ class PlanTripCalculator(object):
 
         # Do arrival_at non-detailed request
         if len(detailed_trace) > 2:
+            # TODO do more requests if len(mis_trace) > 3
             summed_up_request.departures = list(set(departures))
             summed_up_request.arrivals = list(set(arrivals))
             summed_up_request.DepartureTime = None
@@ -827,17 +893,180 @@ class PlanTripCalculator(object):
             best_stops.sort(key=lambda x: x.departure_time)
             prev_stop = best_stops[0]
 
+        return ret
+
+
+    def _arrival_at_trip(self, detailed_trace):
+        # Maximum departure_time drom departure
+        best_departure_time = None
+
+        # Return best trip, which is a list of partial trips.
+        ret = [] #  [DetailedTrip]
+
+        summed_up_request = SummedUpItinerariesRequestType()
+        self._init_request(summed_up_request)
+        detailed_request = ItineraryRequestType()
+        self._init_request(detailed_request)
+
+        # Do all non detailed requests
+        for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
+            summed_up_request.departures = list(set(departures))
+            summed_up_request.arrivals = list(set(arrivals))
+            if not summed_up_request.ArrivalTime:
+                summed_up_request.ArrivalTime = self._params.ArrivalTime
+            else:
+                summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
+                for a in arrivals:
+                    a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
+            summed_up_request.DepartureTime = None
+            summed_up_request.options = []
+            resp = mis_api.get_summed_up_itineraries(summed_up_request)
+            for trip in resp.summedUpTrips:
+                for stop in departures:
+                    if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
+                        stop.departure_time = trip.Departure.DateTime
+            # To have linked_stops departure_time, just substract transfer time 
+            # from request results.
+            for d, l, t in zip(departures, linked_stops, transfer_durations):
+                l.departure_time = d.departure_time - t
+
+        # Do non-detailed optimized request (only one, always)
+        mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-1]
+        summed_up_request.departures = list(set(departures))
+        summed_up_request.arrivals = list(set(arrivals))
+        summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
+        for a in arrivals:
+            a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
+        summed_up_request.DepartureTime = None
+        summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
+        resp = mis_api.get_summed_up_itineraries(summed_up_request)
+
+        best_departure_time = resp.summedUpTrips[0].Departure.DateTime
+        for trip in resp.summedUpTrips:
+            for stop in arrivals:
+                if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
+                    stop.arrival_time = trip.Arrival.DateTime
+
+        # Add transfer time from previous request results
+        mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
+        for d, l, t in zip(departures, linked_stops, transfer_durations):
+            d.arrival_time = l.arrival_time + t
+        notif = PlanTripExistenceNotificationResponseType(
+                    RequestId=self._params.clientRequestId, DepartureTime=best_departure_time,
+                    ArrivalTime=self._params.ArrivalTime,
+                    Departure=self._params.Departure, Arrival=self._params.Arrival)
+        self._notif_queue.put(notif)
+
+        # Do departure_at non-detailed request
+        if len(detailed_trace) > 2:
+            # TODO do more requests if len(mis_trace) > 3
+            summed_up_request.departures = list(set(departures))
+            summed_up_request.arrivals = list(set(arrivals))
+            summed_up_request.ArrivalTime = None
+            summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
+            for d in departures:
+                d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
+            summed_up_request.options = []
+            resp = mis_api.get_summed_up_itineraries(summed_up_request)
+
+            for trip in resp.summedUpTrips:
+                for stop in arrivals:
+                    if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
+                        stop.arrival_time = trip.Arrival.DateTime
+
+            # Add transfer time from previous request results
+            _, departures, _, linked_stops, transfer_durations = detailed_trace[-3]
+            for d, l, t in zip(departures, linked_stops, transfer_durations):
+                d.arrival_time = l.arrival_time + t
+
+        # Do all detailed requests.
+        # Best departure stop from previous request, will become the arrival
+        # point of the next request.
+        prev_stop = None
+        for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace:
+            detailed_request.DepartureTime = None
+            if not prev_stop:
+                # At first, do a departure_at request.
+                prev_stop = arrivals[0]
+                detailed_request.ArrivalTime = None
+                detailed_request.DepartureTime = min([x.arrival_time for x in departures])
+                for d in departures:
+                   d.AccessTime = d.arrival_time - detailed_request.DepartureTime
+            else:
+                # All other requests are arrival_at requests.
+                detailed_request.ArrivalTime = prev_stop.arrival_time
+                detailed_request.DepartureTime = None
+            detailed_request.multiDepartures = multiDeparturesType()
+            detailed_request.multiDepartures.Departure = list(set(departures))
+            detailed_request.multiDepartures.Arrival = prev_stop
+            resp = mis_api.get_itinerary(detailed_request)
+            ret.append((mis_api, resp.DetailedTrip))
+
+            if not linked_stops:
+                # We are at the end of the trace.
+                break
+
+            # Request result gives us the best departure stop, the next step
+            # is to find all stops that are linked to this stop via a transfer.
+            best_stops = []
+            for d, l, t in zip(departures, linked_stops, transfer_durations):
+                if d.PlaceTypeId == resp.DetailedTrip.Departure.TripStopPlace.id:
+                    l.arrival_time = resp.DetailedTrip.Departure.DateTime - t
+                    best_stops.append(l)
+            # If we find several stops linked to the best departure stop, choose
+            # the one which has best arrival_time.
+            best_stops.sort(key=lambda x: x.arrival_time)
+            prev_stop = best_stops[0]
+
+        ret.reverse()
+        return ret
+
+
+    def _init_request(self, request):
+        request.Algorithm = self._params.Algorithm
+        request.modes = self._params.modes
+        request.selfDriveConditions = self._params.selfDriveConditions
+        request.AccessibilityConstraint = self._params.AccessibilityConstraint
+        request.Language = self._params.Language
+
+
+    @benchmark
+    def compute_trip(self, mis_trace):
+        start_date = datetime.now()
+        if not mis_trace:
+            raise Exception("Empty mis_trace")
+
+        # Check that first and last MIS support departure/arrival points with
+        # geographic coordinates.
+        for mis_id in [mis_trace[0], mis_trace[-1]]:
+            if not self._db_session.query(metabase.Mis.geographic_position_compliant) \
+                                   .filter_by(id=mis_id) \
+                                   .one()[0]:
+                raise Exception("First or last Mis is not geographic_position_compliant")
+
+        # If there is only one MIS in the trace, just do a detailed request on the
+        # given MIS.
+        if len(mis_trace) == 1:
+            ret = self._single_mis_trip(mis_trace[0])
+        else:
+            if self._params.DepartureTime:
+                detailed_trace = self._departure_at_detailed_trace(mis_trace)
+                ret = self._departure_at_trip(detailed_trace)
+            else:
+                detailed_trace = self._arrival_at_detailed_trace(mis_trace)
+                ret = self._arrival_at_trip(detailed_trace)
+
         notif = create_full_notification(self._params.clientRequestId, ret, datetime.now() - start_date)
         self._notif_queue.put(notif)
 
         return ret
 
+
     def __del__(self):
         logging.debug("Deleting PlanTripCalculator instance")
         if self._db_session:
-            Session.remove()
             self._db_session.close()
-            self._db_session.bind.dispose()
+            Session.remove()
 
 
 # Check if we've received a cancellation request
@@ -1013,6 +1242,12 @@ def web_socket_transfer_data(connection):
     connection_handler = ConnectionHandler(connection)
     connection_handler.process()
     del connection_handler
+
+
+# Dirty, for unit tests only.
+def clean_db_engine():
+    global db_engine
+    db_engine.dispose()
 
 
 init_logging()
