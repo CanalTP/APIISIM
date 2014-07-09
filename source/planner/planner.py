@@ -569,6 +569,18 @@ class PlanTripCalculator(object):
 
         return ret
 
+    def _get_trace_transfers(self, mis_trace):
+        ret = {}
+        for i in range(0, len(mis_trace) - 1):
+            mis1_id = mis_trace[i]
+            mis2_id = mis_trace[i+1]
+            t = self._get_transfers(mis1_id, mis2_id)
+            if mis1_id not in ret:
+                ret[mis1_id] = {}
+            ret[mis1_id][mis2_id] = t[mis1_id]
+
+        return ret
+
 
     @benchmark
     def compute_traces(self):
@@ -605,6 +617,7 @@ class PlanTripCalculator(object):
         if len(mis_trace) < 2:
             raise Exception("mis_trace length must be > 1")
 
+        transfers = self._get_trace_transfers(mis_trace)
         while True:
             # Divide trace in chunks of 3 MIS
             chunk = mis_trace[i:i+3]
@@ -620,36 +633,26 @@ class PlanTripCalculator(object):
             mis1_api = MisApi(mis1_id) if mis1_id else None
             mis2_api = MisApi(mis2_id) if mis2_id else None
             mis3_api = MisApi(mis3_id) if mis3_id else None
-            chunk_transfers = {mis1_id : {mis2_id : [], mis3_id : []},
-                               mis2_id : {mis1_id : [], mis3_id : []},
-                               mis3_id : {mis1_id : [], mis2_id : []}}
-
-            for x, y in [(mis1_id, mis2_id), (mis2_id, mis3_id)]:
-                if not x or not y:
-                    continue
-                t = self._get_transfers(x, y)
-                chunk_transfers[x][y] = t[x]
-                chunk_transfers[y][x] = t[y]
 
             if trace_start:
                 ret = [(mis1_api,
                         [trace_start],
-                        [x[1] for x in chunk_transfers[mis1_id][mis2_id]],
-                        [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
-                        [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis1_id][mis2_id]])]
+                        [x[1] for x in transfers[mis1_id][mis2_id]],
+                        [x[2] for x in transfers[mis1_id][mis2_id]],
+                        [timedelta(seconds=x[0].duration) for x in transfers[mis1_id][mis2_id]])]
 
             if mis3_id:
                 ret.append(
                     (mis2_api,
-                     [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
-                     [x[1] for x in chunk_transfers[mis2_id][mis3_id]],
-                     [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
-                     [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis2_id][mis3_id]]))
+                     [x[2] for x in transfers[mis1_id][mis2_id]],
+                     [x[1] for x in transfers[mis2_id][mis3_id]],
+                     [x[2] for x in transfers[mis2_id][mis3_id]],
+                     [timedelta(seconds=x[0].duration) for x in transfers[mis2_id][mis3_id]]))
 
                 if trace_end:
                     ret.append(
                         (mis3_api,
-                         [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
+                         [x[2] for x in transfers[mis2_id][mis3_id]],
                          [trace_end],
                          None,
                          None))
@@ -658,7 +661,7 @@ class PlanTripCalculator(object):
                 if trace_end:
                     ret.append(
                         (mis2_api,
-                         [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
+                         [x[2] for x in transfers[mis1_id][mis2_id]],
                          [trace_end],
                          None,
                          None))
@@ -690,6 +693,7 @@ class PlanTripCalculator(object):
         mis_trace = list(mis_trace)
         mis_trace.reverse()
 
+        transfers = self._get_trace_transfers(mis_trace)
         while True:
             # Divide trace in chunks of 3 MIS
             chunk = mis_trace[i:i+3]
@@ -707,37 +711,27 @@ class PlanTripCalculator(object):
             mis1_api = MisApi(mis1_id) if mis1_id else None
             mis2_api = MisApi(mis2_id) if mis2_id else None
             mis3_api = MisApi(mis3_id) if mis3_id else None
-            chunk_transfers = {mis1_id : {mis2_id : [], mis3_id : []},
-                               mis2_id : {mis1_id : [], mis3_id : []},
-                               mis3_id : {mis1_id : [], mis2_id : []}}
-
-            for x, y in [(mis1_id, mis2_id), (mis2_id, mis3_id)]:
-                if not x or not y:
-                    continue
-                t = self._get_transfers(x, y)
-                chunk_transfers[x][y] = t[x]
-                chunk_transfers[y][x] = t[y]
 
             if trace_start:
                 ret = [(mis1_api,
-                        [x[1] for x in chunk_transfers[mis1_id][mis2_id]],
+                        [x[1] for x in transfers[mis1_id][mis2_id]],
                         [trace_start],
-                        [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
-                        [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis1_id][mis2_id]])]
+                        [x[2] for x in transfers[mis1_id][mis2_id]],
+                        [timedelta(seconds=x[0].duration) for x in transfers[mis1_id][mis2_id]])]
 
             if mis3_id:
                 ret.append(
                     (mis2_api,
-                     [x[1] for x in chunk_transfers[mis2_id][mis3_id]],
-                     [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
-                     [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
-                     [timedelta(seconds=x[0].duration) for x in chunk_transfers[mis2_id][mis3_id]]))
+                     [x[1] for x in transfers[mis2_id][mis3_id]],
+                     [x[2] for x in transfers[mis1_id][mis2_id]],
+                     [x[2] for x in transfers[mis2_id][mis3_id]],
+                     [timedelta(seconds=x[0].duration) for x in transfers[mis2_id][mis3_id]]))
 
                 if trace_end:
                     ret.append(
                         (mis3_api,
                          [trace_end],
-                         [x[2] for x in chunk_transfers[mis2_id][mis3_id]],
+                         [x[2] for x in transfers[mis2_id][mis3_id]],
                          None,
                          None))
                     break
@@ -746,7 +740,7 @@ class PlanTripCalculator(object):
                     ret.append(
                         (mis2_api,
                          [trace_end],
-                         [x[2] for x in chunk_transfers[mis1_id][mis2_id]],
+                         [x[2] for x in transfers[mis1_id][mis2_id]],
                          None,
                          None))
                     break
@@ -786,6 +780,7 @@ class PlanTripCalculator(object):
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
+
             summed_up_request.departures = list(set(departures))
             summed_up_request.arrivals = list(set(arrivals))
             if not summed_up_request.DepartureTime:
@@ -832,27 +827,28 @@ class PlanTripCalculator(object):
                     Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
 
-        # Do arrival_at non-detailed request
+        # Do arrival_at non-detailed requests
         if len(detailed_trace) > 2:
-            # TODO do more requests if len(mis_trace) > 3
-            summed_up_request.departures = list(set(departures))
-            summed_up_request.arrivals = list(set(arrivals))
-            summed_up_request.DepartureTime = None
-            summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
-            for a in arrivals:
-                a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
-            summed_up_request.options = []
-            resp = mis_api.get_summed_up_itineraries(summed_up_request)
+            for i in reversed(range(1, len(detailed_trace) - 1)):
+                mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[i]
+                summed_up_request.departures = list(set(departures))
+                summed_up_request.arrivals = list(set(arrivals))
+                summed_up_request.DepartureTime = None
+                summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
+                for a in arrivals:
+                    a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
+                summed_up_request.options = []
+                resp = mis_api.get_summed_up_itineraries(summed_up_request)
 
-            for trip in resp.summedUpTrips:
-                for stop in departures:
-                    if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
-                        stop.departure_time = trip.Departure.DateTime
+                for trip in resp.summedUpTrips:
+                    for stop in departures:
+                        if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
+                            stop.departure_time = trip.Departure.DateTime
 
-            # Substract transfer time from previous request results
-            _, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-3]
-            for a, l, t in zip(arrivals, linked_stops, transfer_durations):
-                a.departure_time = l.departure_time - t
+                # Substract transfer time from previous request results
+                _, _, arrivals, linked_stops, transfer_durations = detailed_trace[i-1]
+                for a, l, t in zip(arrivals, linked_stops, transfer_durations):
+                    a.departure_time = l.departure_time - t
 
         # Do all detailed requests.
         # Best arrival stop from previous request, will become the departure
@@ -957,27 +953,28 @@ class PlanTripCalculator(object):
                     Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
 
-        # Do departure_at non-detailed request
+        # Do departure_at non-detailed requests
         if len(detailed_trace) > 2:
-            # TODO do more requests if len(mis_trace) > 3
-            summed_up_request.departures = list(set(departures))
-            summed_up_request.arrivals = list(set(arrivals))
-            summed_up_request.ArrivalTime = None
-            summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
-            for d in departures:
-                d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
-            summed_up_request.options = []
-            resp = mis_api.get_summed_up_itineraries(summed_up_request)
+            for i in reversed(range(1, len(detailed_trace) - 1)):
+                mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[i]
+                summed_up_request.departures = list(set(departures))
+                summed_up_request.arrivals = list(set(arrivals))
+                summed_up_request.ArrivalTime = None
+                summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
+                for d in departures:
+                    d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
+                summed_up_request.options = []
+                resp = mis_api.get_summed_up_itineraries(summed_up_request)
 
-            for trip in resp.summedUpTrips:
-                for stop in arrivals:
-                    if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
-                        stop.arrival_time = trip.Arrival.DateTime
+                for trip in resp.summedUpTrips:
+                    for stop in arrivals:
+                        if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
+                            stop.arrival_time = trip.Arrival.DateTime
 
-            # Add transfer time from previous request results
-            _, departures, _, linked_stops, transfer_durations = detailed_trace[-3]
-            for d, l, t in zip(departures, linked_stops, transfer_durations):
-                d.arrival_time = l.arrival_time + t
+                # Add transfer time from previous request results
+                _, departures, _, linked_stops, transfer_durations = detailed_trace[i-1]
+                for d, l, t in zip(departures, linked_stops, transfer_durations):
+                    d.arrival_time = l.arrival_time + t
 
         # Do all detailed requests.
         # Best departure stop from previous request, will become the arrival
