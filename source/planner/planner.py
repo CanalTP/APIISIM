@@ -581,6 +581,14 @@ class PlanTripCalculator(object):
 
         return ret
 
+    def _get_providers(self, mis_trace):
+        ret = [] # [ProviderType]
+        for mis_id in mis_trace:
+            mis_api = MisApi(mis_id)
+            ret.append(ProviderType(
+                            Name=mis_api.get_name(),
+                            Url=mis_api.get_api_url()))
+        return ret
 
     @benchmark
     def compute_traces(self):
@@ -766,7 +774,7 @@ class PlanTripCalculator(object):
         return ret
 
 
-    def _departure_at_trip(self, detailed_trace):
+    def _departure_at_trip(self, detailed_trace, providers):
         # Minimum arrival_time to arrival
         best_arrival_time = None
 
@@ -824,6 +832,8 @@ class PlanTripCalculator(object):
         notif = PlanTripExistenceNotificationResponseType(
                     RequestId=self._params.clientRequestId, DepartureTime=self._params.DepartureTime,
                     ArrivalTime=best_arrival_time,
+                    Duration=best_arrival_time - self._params.DepartureTime,
+                    providers=providers,
                     Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
 
@@ -892,7 +902,7 @@ class PlanTripCalculator(object):
         return ret
 
 
-    def _arrival_at_trip(self, detailed_trace):
+    def _arrival_at_trip(self, detailed_trace, providers):
         # Maximum departure_time drom departure
         best_departure_time = None
 
@@ -950,6 +960,8 @@ class PlanTripCalculator(object):
         notif = PlanTripExistenceNotificationResponseType(
                     RequestId=self._params.clientRequestId, DepartureTime=best_departure_time,
                     ArrivalTime=self._params.ArrivalTime,
+                    Duration=self._params.ArrivalTime - best_departure_time,
+                    providers=providers,
                     Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
 
@@ -1046,12 +1058,13 @@ class PlanTripCalculator(object):
         if len(mis_trace) == 1:
             ret = self._single_mis_trip(mis_trace[0])
         else:
+            providers = self._get_providers(mis_trace)
             if self._params.DepartureTime:
                 detailed_trace = self._departure_at_detailed_trace(mis_trace)
-                ret = self._departure_at_trip(detailed_trace)
+                ret = self._departure_at_trip(detailed_trace, providers)
             else:
                 detailed_trace = self._arrival_at_detailed_trace(mis_trace)
-                ret = self._arrival_at_trip(detailed_trace)
+                ret = self._arrival_at_trip(detailed_trace, providers)
 
         notif = create_full_notification(self._params.clientRequestId, ret, datetime.now() - start_date)
         self._notif_queue.put(notif)
