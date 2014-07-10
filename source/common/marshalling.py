@@ -167,6 +167,7 @@ provider_type = {
 
 plan_trip_existence_notification_response_type = {
     'RequestId' : fields.String,
+    'ComposedTripId' : fields.String,
     'DepartureTime' : _DateTime,
     'ArrivalTime' : _DateTime,
     'Duration' : _Duration,
@@ -300,7 +301,7 @@ error_type = {
 }
 
 plan_trip_response_type = {
-    'RequestId' : fields.String,
+    'clientRequestId' : fields.String,
     'Status' : fields.String,
     'errors' : fields.List(NonNullNested(error_type)),
 }

@@ -46,12 +46,12 @@ error_format =  {'type': 'object',
 
 plan_trip_response_format = {'type': 'object',
         'properties': {
-            'RequestId': {'type': 'string'},
+            'clientRequestId': {'type': 'string'},
             'Status': {'enum': ['0', '1', '2']},
             'errors': {'type' : 'array',
                        'items':[error_format]}
         },
-        'required': ['RequestId', 'Status'],
+        'required': ['clientRequestId', 'Status'],
 }
 
 location_structure_format = {'type': 'object',
@@ -112,7 +112,7 @@ plan_trip_existence_notification_format = {'type': 'object',
             'providers': {'type' : 'array',
                           'items':[provider_format]},
         },
-        'required': ['RequestId', 'DepartureTime', 'ArrivalTime',
+        'required': ['RequestId', 'DepartureTime', 'ArrivalTime', 'ComposedTripId',
                      'Duration', 'Departure', 'Arrival', 'providers'],
 }
 

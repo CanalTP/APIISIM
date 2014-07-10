@@ -410,26 +410,24 @@ def stop_to_trace_stop(stop):
     return ret
 
 # full_trip is [(MisApi, DetailedTrip)]
-def create_full_notification(request_id, full_trip, runtime_duration):
+def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
     composed_trip = None
     if full_trip:
         composed_trip = ComposedTripType()
-        # TODO
-        composed_trip.id = request_id + "_"
+        composed_trip.id = trace_id
         composed_trip.Departure = full_trip[0][1].Departure
         composed_trip.Arrival = full_trip[-1][1].Arrival
         composed_trip.Duration = sum([xsd_duration_to_timedelta(x[1].Duration) for x in full_trip], timedelta())
         composed_trip.InterchangeNumber = sum([x[1].InterchangeNumber for x in full_trip])
         composed_trip.Distance = sum([x[1].Distance for x in full_trip])
-        # TODO set partial ids in sections
         composed_trip.sections = []
-        for s in [x[1].sections for x in full_trip]:
-            composed_trip.sections.extend(s)
         composed_trip.partialTrips = []
         for mis_api, trip in full_trip:
+            for s in trip.sections:
+                s.PartialTripId = mis_api.get_name()
+            composed_trip.sections.extend(trip.sections)
             partial_trip = PartialTripType()
-            # TODO
-            partial_trip.id = 0
+            partial_trip.id = mis_api.get_name()
             partial_trip.Provider = ProviderType(
                                         Name=mis_api.get_name(),
                                         Url=mis_api.get_api_url())
@@ -774,7 +772,10 @@ class PlanTripCalculator(object):
         return ret
 
 
-    def _departure_at_trip(self, detailed_trace, providers):
+    def _generate_trace_id(self, mis_trace):
+        return "_".join(map(str, mis_trace))
+
+    def _departure_at_trip(self, detailed_trace, trace_id, providers):
         # Minimum arrival_time to arrival
         best_arrival_time = None
 
@@ -830,7 +831,9 @@ class PlanTripCalculator(object):
         for a, l, t in zip(arrivals, linked_stops, transfer_durations):
             a.departure_time = l.departure_time - t
         notif = PlanTripExistenceNotificationResponseType(
-                    RequestId=self._params.clientRequestId, DepartureTime=self._params.DepartureTime,
+                    RequestId=self._params.clientRequestId, 
+                    ComposedTripId=trace_id,
+                    DepartureTime=self._params.DepartureTime,
                     ArrivalTime=best_arrival_time,
                     Duration=best_arrival_time - self._params.DepartureTime,
                     providers=providers,
@@ -902,7 +905,7 @@ class PlanTripCalculator(object):
         return ret
 
 
-    def _arrival_at_trip(self, detailed_trace, providers):
+    def _arrival_at_trip(self, detailed_trace, trace_id, providers):
         # Maximum departure_time drom departure
         best_departure_time = None
 
@@ -958,7 +961,9 @@ class PlanTripCalculator(object):
         for d, l, t in zip(departures, linked_stops, transfer_durations):
             d.arrival_time = l.arrival_time + t
         notif = PlanTripExistenceNotificationResponseType(
-                    RequestId=self._params.clientRequestId, DepartureTime=best_departure_time,
+                    RequestId=self._params.clientRequestId, 
+                    ComposedTripId=trace_id,
+                    DepartureTime=best_departure_time,
                     ArrivalTime=self._params.ArrivalTime,
                     Duration=self._params.ArrivalTime - best_departure_time,
                     providers=providers,
@@ -1053,6 +1058,7 @@ class PlanTripCalculator(object):
                                    .one()[0]:
                 raise Exception("First or last Mis is not geographic_position_compliant")
 
+        trace_id = self._generate_trace_id(mis_trace)
         # If there is only one MIS in the trace, just do a detailed request on the
         # given MIS.
         if len(mis_trace) == 1:
@@ -1061,12 +1067,12 @@ class PlanTripCalculator(object):
             providers = self._get_providers(mis_trace)
             if self._params.DepartureTime:
                 detailed_trace = self._departure_at_detailed_trace(mis_trace)
-                ret = self._departure_at_trip(detailed_trace, providers)
+                ret = self._departure_at_trip(detailed_trace, trace_id, providers)
             else:
                 detailed_trace = self._arrival_at_detailed_trace(mis_trace)
-                ret = self._arrival_at_trip(detailed_trace, providers)
+                ret = self._arrival_at_trip(detailed_trace, trace_id, providers)
 
-        notif = create_full_notification(self._params.clientRequestId, ret, datetime.now() - start_date)
+        notif = create_full_notification(self._params.clientRequestId, trace_id, ret, datetime.now() - start_date)
         self._notif_queue.put(notif)
 
         return ret
@@ -1184,7 +1190,7 @@ class ConnectionHandler(object):
         logging.error("Sending <%s> status", status)
         notif = PlanTripResponse()
         notif.Status = status
-        notif.RequestId = self._request_id
+        notif.clientRequestId = self._request_id
         if error:
             notif.errors = [error]
         self._notif_queue.put(notif)
