@@ -58,15 +58,24 @@ def string_to_bool(string):
 
 class StringEnum:
     """
-        Return True if given string is in given enum (cls being the enum class), 
+        Return True if given string is in given enum (cls being the enum class),
         False otherwise.
     """
     @classmethod
     def validate(cls, string):
+        return bool(string in cls.values())
+
+    """
+        Return all values of the given enum (cls being the enum class).
+    """
+    @classmethod
+    def values(cls):
+        ret = []
         for k, v in cls.__dict__.iteritems():
-            if not k.startswith('__') and string == v:
-                return True
-        return False
+            if not k.startswith('__'):
+                ret.append(v)
+        return ret
+
 
 class PlanTripStatusEnum:
     OK = "0"
