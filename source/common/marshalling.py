@@ -177,15 +177,15 @@ plan_trip_existence_notification_response_type = {
 }
 
 step_end_point_type = {
-    'TripStopPlace' : fields.Nested(trip_stop_place_type),
+    'TripStopPlace' : NonNullNested(trip_stop_place_type),
     'DateTime' : _DateTime,
-    'PassThrough' : fields.String
+    'PassThrough' : fields.Boolean
 }
 
 step_type = {
     'id' : fields.String,
-    'Departure' : fields.Nested(step_end_point_type),
-    'Arrival' : fields.Nested(step_end_point_type),
+    'Departure' : NonNullNested(step_end_point_type),
+    'Arrival' : NonNullNested(step_end_point_type),
     'Duration' : _Duration
 }
 
@@ -197,7 +197,7 @@ pt_ride_type = {
     'Arrival' : fields.Nested(end_point_type),
     'Duration' : _Duration,
     'Distance' : fields.Integer,
-    'steps' : fields.List(NonNullNested(step_type))
+    'steps' : fields.List(fields.Nested(step_type))
 }
 
 leg_type = {

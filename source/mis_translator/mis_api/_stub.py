@@ -14,11 +14,13 @@
 from base import MisApiBase, Stop
 import json, logging, os
 from common.mis_plan_trip import ItineraryResponseType, EndPointType, \
-                                 TripStopPlaceType, TripType
+                                 TripStopPlaceType, TripType, SectionType, \
+                                 PTRideType, LegType, StepEndPointType, StepType
 from common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
-from common import PlanSearchOptions
+from common import PlanSearchOptions, PublicTransportModeEnum, SelfDriveModeEnum, \
+                   TypeOfPlaceEnum
 import metabase
-from datetime import timedelta
+from datetime import timedelta, datetime
 from random import randint
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -222,6 +224,54 @@ class _MisApi(MisApiBase):
             self._db_session.bind.dispose()
 
 
+def generate_section():
+    ret = SectionType()
+
+    end_point = EndPointType(
+                    TripStopPlace=TripStopPlaceType(
+                                        id="stop_id",
+                                        TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION))
+    r = randint(0, 1)
+    if r:
+        ptr = PTRideType()
+        ptr.ptNetworkRef = "BUS 36"
+        ptr.lineRef = "36"
+        ptr.PublicTransportMode = PublicTransportModeEnum.BUS
+        ptr.Departure = end_point
+        ptr.Arrival = end_point
+        ptr.Departure.DateTime = datetime.now()
+        ptr.Arrival.DateTime = datetime.now()
+        ptr.Duration = timedelta(seconds=20)
+        ptr.Distance = 100
+        ptr.steps = []
+        step_end_point = StepEndPointType(
+                            TripStopPlace=TripStopPlaceType(
+                                                id="stop_id",
+                                                TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION))
+        for i in range(0, randint(0, 3)):
+            step = StepType()
+            step.Departure = step_end_point
+            step.Arrival = step_end_point
+            step.id = "%s:%s" % (step.Departure.TripStopPlace.id, step.Arrival.TripStopPlace.id)
+            step.Departure.DateTime = datetime.now()
+            step.Arrival.DateTime = datetime.now()
+            step.Duration = timedelta(seconds=10)
+            ptr.steps.append(step)
+
+        ret.PTRide = ptr
+    else:
+        leg = LegType()
+        leg.Departure = end_point
+        leg.Arrival = end_point
+        leg.Departure.DateTime = datetime.now()
+        leg.Arrival.DateTime = datetime.now()
+        leg.Duration = timedelta(seconds=30)
+        leg.SelfDriveMode = SelfDriveModeEnum.WALK
+        ret.Leg = leg
+
+    return ret
+
+
 # Return random itineraries.
 class _RandomMisApi(_MisApi):
     def _generate_detailed_trip(self, departures, arrivals, departure_time, arrival_time):
@@ -243,6 +293,9 @@ class _RandomMisApi(_MisApi):
             arrival = arrivals[randint(0, len(arrivals) - 1)]
             ret.Departure = location_to_end_point(departures[0], departure_time, arrival_time)
             ret.Arrival = location_to_end_point(arrival, ret.Departure.DateTime, arrival_time)
+
+        for i in range(0, randint(0,3)):
+            ret.sections.append(generate_section())
 
         return ret
 
@@ -323,6 +376,8 @@ class _SimpleMisApi(_MisApi):
 
         ret.Distance = distance
         ret.Duration = duration
+        for i in range(0, randint(0,3)):
+            ret.sections.append(generate_section())
         # logging.debug("Departure %s %s", ret.Departure.TripStopPlace.id, ret.Departure.DateTime)
         # logging.debug("Arrival %s %s", ret.Arrival.TripStopPlace.id, ret.Arrival.DateTime)
 

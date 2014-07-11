@@ -148,7 +148,7 @@ pt_ride_format = {'type': 'object',
             'steps': {'type' : 'array',
                       'items':[step_format]},
         },
-        'required': ['ptNetworkRef', 'lineRef', 'PublicTransportMode', 'Departure'
+        'required': ['ptNetworkRef', 'lineRef', 'PublicTransportMode', 'Departure',
                      'Arrival', 'Duration', 'steps'],
 }
 
@@ -168,7 +168,7 @@ section_format = {'type': 'object',
             'PTRide': pt_ride_format,
             'Leg': leg_format,
         },
-        'required': ['PTRide', 'Leg'],
+        'required': ['PartialTripId'],
 }
 
 partial_trip_format = {'type': 'object',

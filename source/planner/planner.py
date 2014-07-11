@@ -133,9 +133,10 @@ def parse_steps(steps):
     for step in steps:
         ret.append(
                 StepType(
+                    id=step["id"],
                     Departure=parse_end_point(step["Departure"], step_end_point=True),
                     Arrival=parse_end_point(step["Arrival"], step_end_point=True),
-                    Duration=step["Duration"]))
+                    Duration=xsd_duration_to_timedelta(step["Duration"])))
     return ret
 
 
@@ -152,7 +153,7 @@ def parse_sections(sections):
             ptr.PublicTransportMode = p["PublicTransportMode"]
             ptr.Departure = parse_end_point(p["Departure"])
             ptr.Arrival = parse_end_point(p["Arrival"])
-            ptr.Duration = p["Duration"]
+            ptr.Duration = xsd_duration_to_timedelta(p["Duration"])
             ptr.Distance = p["Distance"]
             ptr.steps = parse_steps(p["steps"])
         elif "Leg" in section:
@@ -161,7 +162,7 @@ def parse_sections(sections):
             leg.SelfDriveMode = l["SelfDriveMode"]
             leg.Departure = parse_end_point(l["Departure"])
             leg.Arrival = parse_end_point(l["Arrival"])
-            leg.Duration = l["Duration"]
+            leg.Duration = xsd_duration_to_timedelta(l["Duration"])
 
         ret.append(SectionType(
                         PartialTripId=section.get("PartialTripId", ""),
@@ -175,7 +176,7 @@ def parse_detailed_trip(trip):
 
     ret.Departure = parse_end_point(trip["Departure"])
     ret.Arrival = parse_end_point(trip["Arrival"])
-    ret.Duration = trip["Duration"]
+    ret.Duration = xsd_duration_to_timedelta(trip["Duration"])
     ret.Distance = trip.get("Distance", 0)
     ret.Disrupted = trip.get("Disrupted", False)
     ret.InterchangeNumber = trip.get("InterchangeNumber", 0)
@@ -417,7 +418,7 @@ def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
         composed_trip.id = trace_id
         composed_trip.Departure = full_trip[0][1].Departure
         composed_trip.Arrival = full_trip[-1][1].Arrival
-        composed_trip.Duration = sum([xsd_duration_to_timedelta(x[1].Duration) for x in full_trip], timedelta())
+        composed_trip.Duration = sum([x[1].Duration for x in full_trip], timedelta())
         composed_trip.InterchangeNumber = sum([x[1].InterchangeNumber for x in full_trip])
         composed_trip.Distance = sum([x[1].Distance for x in full_trip])
         composed_trip.sections = []
@@ -433,7 +434,7 @@ def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
                                         Url=mis_api.get_api_url())
             partial_trip.Departure = trip.Departure
             partial_trip.Arrival = trip.Arrival
-            partial_trip.Duration = xsd_duration_to_timedelta(trip.Duration)
+            partial_trip.Duration = trip.Duration
             partial_trip.Distance = trip.Distance
             composed_trip.partialTrips.append(partial_trip)
 
