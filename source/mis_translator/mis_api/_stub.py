@@ -154,6 +154,7 @@ def location_to_end_point(location, departure_time=None, arrival_time=None):
     place = TripStopPlaceType()
     place.id = get_location_id(location)
     place.Position = location.Position
+    place.TypeOfPlaceRef = TypeOfPlaceEnum.LOCATION
     ret.TripStopPlace = place
 
     return ret
@@ -231,6 +232,7 @@ def generate_section():
                     TripStopPlace=TripStopPlaceType(
                                         id="stop_id",
                                         TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION))
+    ret.PartialTripId = "stub_id"
     r = randint(0, 1)
     if r:
         ptr = PTRideType()
@@ -279,6 +281,7 @@ class _RandomMisApi(_MisApi):
             raise Exception("<generate_detailed_trip> only supports 1-n requests")
 
         ret = TripType()
+        ret.id = "detailed_trip_id"
         ret.Duration = timedelta(seconds=randint(0, 36000))
         ret.Distance = randint(0, 10000)
         ret.Disrupted = False
@@ -353,6 +356,7 @@ class _SimpleMisApi(_MisApi):
             raise Exception("<generate_detailed_trip> only supports 1-n requests")
 
         ret = TripType()
+        ret.id = "detailed_trip_id"
         ret.Disrupted = False
         ret.InterchangeNumber = randint(0, 10)
         ret.sections = []

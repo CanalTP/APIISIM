@@ -77,12 +77,12 @@ class StringEnum:
         return ret
 
 
-class PlanTripStatusEnum:
+class PlanTripStatusEnum(StringEnum):
     OK = "0"
     BAD_REQUEST = "1"
     SERVER_ERROR = "2"
 
-class PlanTripErrorEnum:
+class PlanTripErrorEnum(StringEnum):
     OK ="OK"
     NO_MORE_SOLUTION_FOR_REQUEST = "NO_MORE_SOLUTION_FOR_REQUEST"
     NO_SOLUTION_FOR_REQUEST = "NO_SOLUTION_FOR_REQUEST"
@@ -100,7 +100,7 @@ class AlgorithmEnum(StringEnum):
     FASTEST = 'FASTEST'
     MINCHANGES = 'MINCHANGES'
 
-class StatusCodeEnum:
+class StatusCodeEnum(StringEnum):
     OK = "OK"
     UNKNOWN_END_POINT = "UNKNOWN_END_POINT"
     TOO_MANY_END_POINT = "TOO_MANY_END_POINT"
@@ -118,7 +118,7 @@ class TripPartEnum(StringEnum):
     DEPARTURE = "DEPARTURE"
     ARRIVAL = "ARRIVAL"
 
-class TypeOfPlaceEnum:
+class TypeOfPlaceEnum(StringEnum):
     LOCATION = "LOCATION"
     ADDRESS = "ADDRESS"
     BOARDING_POSITION = "BOARDING_POSITION"
@@ -148,7 +148,7 @@ class TransportModeEnum(StringEnum):
     CAR = 'CAR'
 
 
-class PublicTransportModeEnum:
+class PublicTransportModeEnum(StringEnum):
     BUS = 'BUS'
     TROLLEYBUS = 'TROLLEYBUS'
     TRAM = 'TRAM'
@@ -165,5 +165,5 @@ class PublicTransportModeEnum:
     UNKNOWN = "UNKNOWN"
 
 
-class PlanSearchOptions:
+class PlanSearchOptions(StringEnum):
     DEPARTURE_ARRIVAL_OPTIMIZED = "DEPARTURE_ARRIVAL_OPTIMIZED"

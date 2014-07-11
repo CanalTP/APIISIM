@@ -2,8 +2,11 @@
 
 import json, httplib2, datetime
 from datetime import timedelta
-from common import AlgorithmEnum, TransportModeEnum
+from common import AlgorithmEnum, TransportModeEnum, StatusCodeEnum
 from common.marshalling import DATE_FORMAT
+from common.formats import *
+from jsonschema import validate, Draft4Validator, ValidationError
+
 
 def send_request(data):
     resp, content = h.request(url, "POST", headers=headers, body=json.dumps(data))
@@ -12,6 +15,13 @@ def send_request(data):
 
     print resp
     print content
+
+    content = json.loads(content)
+    if "SummedUpItinerariesResponseType" in content:
+        validate(content["SummedUpItinerariesResponseType"], summed_up_itineraries_response_format)
+    elif "ItineraryResponseType" in content:
+        validate(content["ItineraryResponseType"], itinerary_response_format)
+
 
 h = httplib2.Http(".cache")
 base_url = "http://127.0.0.1:5000/navitia/v0"

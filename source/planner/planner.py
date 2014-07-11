@@ -281,6 +281,7 @@ class MisApi(object):
         if ret.Status.Code != StatusCodeEnum.OK:
             raise Exception("<get_itinerary> %s" % ret.Status.Code)
         ret.DetailedTrip = parse_detailed_trip(content.get("DetailedTrip", None))
+        ret.DetailedTrip.id = self._name
 
         return ret
 

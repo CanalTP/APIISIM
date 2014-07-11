@@ -214,7 +214,7 @@ section_type = {
 }
 
 trip_type = {
-    'id' : fields.Integer,
+    'id' : fields.String,
     'Departure' : fields.Nested(end_point_type),
     'Arrival' : fields.Nested(end_point_type),
     'Duration' : _Duration,
