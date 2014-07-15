@@ -10,8 +10,21 @@ os.environ["PLANNER_DB_URL"] = "postgresql+psycopg2://%s:%s@localhost/%s" % \
                                (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME)
 os.environ["PLANNER_LOG_FILE"] = "/tmp/test_planner.log"
 
-from planner.planner import PlanTripCalculator, TraceStop
+from planner import planner
+from planner.planner import PlanTripCalculator, TraceStop, LocationPointType, LocationStructure
 from common.plan_trip import PlanTripRequestType
+from datetime import timedelta, datetime
+
+
+def new_location(longitude, latitude):
+    ret = LocationPointType()
+    ret.AccessTime = timedelta(seconds=100)
+    l = LocationStructure()
+    l.Longitude = longitude
+    l.Latitude  = latitude
+    ret.Position = l
+
+    return ret
 
 
 class TestPlanner(unittest.TestCase):
@@ -91,6 +104,36 @@ class TestPlanner(unittest.TestCase):
                                                     [2, 1, 4], [3, 4, 2], [3, 2, 4],
                                                     [1, 4, 3, 2], [4, 3, 1, 2], [3, 2, 1, 4]]),
                           [[1, 3, 4], [4, 3, 1], [3, 4, 2], [1, 4, 3, 2]])
+
+    def testComputeTraces(self):
+        planner.MAX_TRACE_LENGTH = 3
+
+        request = PlanTripRequestType()
+        request.Departure = new_location(1, 1)
+        request.Arrival = new_location(3, 3)
+        request.DepartureTime = datetime.now()
+        calculator = PlanTripCalculator(request, Queue.Queue())
+        self.assertEquals(calculator.compute_traces(), [[1, 4, 3]])
+
+        request.Departure = new_location(2, 2)
+        request.Arrival = new_location(4, 4)
+        calculator = PlanTripCalculator(request, Queue.Queue())
+        self.assertEquals(calculator.compute_traces(), [[2, 3, 4]])
+
+        request.Departure = new_location(1, 1)
+        request.Arrival = new_location(4, 4)
+        calculator = PlanTripCalculator(request, Queue.Queue())
+        self.assertEquals(calculator.compute_traces(), [[1, 4]])
+
+        request.Departure = new_location(1, 1)
+        request.Arrival = new_location(2, 2)
+        calculator = PlanTripCalculator(request, Queue.Queue())
+        self.assertEquals(calculator.compute_traces(), [[1, 2]])
+
+        request.Departure = new_location(1, 2)
+        request.Arrival = new_location(3, 4)
+        calculator = PlanTripCalculator(request, Queue.Queue())
+        self.assertEquals(calculator.compute_traces(), [])
 
     def tearDown(self):
         from planner.planner import clean_db_engine

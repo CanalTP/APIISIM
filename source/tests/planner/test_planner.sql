@@ -12,10 +12,10 @@ INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date,
      TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE);
 
 INSERT INTO stop (code, mis_id, name, lat, long) VALUES
-    ('stop_code10', 1, '', 0, 0),
-    ('stop_code20', 2, '', 0, 0),
-    ('stop_code30', 3, '', 0, 0),
-    ('stop_code40', 4, '', 0, 0),
+    ('stop_code10', 1, '', 1, 1),
+    ('stop_code20', 2, '', 2, 2),
+    ('stop_code30', 3, '', 3, 3),
+    ('stop_code40', 4, '', 4, 4),
     ('stop_code11', 1, '', 0, 0),
     ('stop_code21', 2, '', 0, 0),
     ('stop_code31', 3, '', 0, 0),
@@ -35,7 +35,23 @@ INSERT INTO transfer (stop1_id, stop2_id, distance, duration, status) VALUES
     (10, 3, 100, 10, 'auto'),
     (14, 3, 100, 10, 'auto'),
     (7, 4, 100, 10, 'auto'),
-    (11, 4, 100, 10, 'auto');
+    (11, 4, 100, 10, 'auto'),
+    (1, 12, 100, 10, 'auto');
+
+INSERT INTO mis_connection (mis1_id, mis2_id, start_date, end_date) VALUES
+    (1, 2, 
+     (SELECT GREATEST((SELECT start_date from mis where id=1), (SELECT start_date from mis where id=2))), 
+     (SELECT LEAST((SELECT end_date from mis where id=1), (SELECT end_date from mis where id=2)))),
+    (2, 3,
+     (SELECT GREATEST((SELECT start_date from mis where id=2), (SELECT start_date from mis where id=3))), 
+     (SELECT LEAST((SELECT end_date from mis where id=2), (SELECT end_date from mis where id=3)))),
+    (3, 4, 
+     (SELECT GREATEST((SELECT start_date from mis where id=3), (SELECT start_date from mis where id=4))), 
+     (SELECT LEAST((SELECT end_date from mis where id=3), (SELECT end_date from mis where id=4)))),
+    (1, 4, 
+     (SELECT GREATEST((SELECT start_date from mis where id=1), (SELECT start_date from mis where id=4))), 
+     (SELECT LEAST((SELECT end_date from mis where id=1), (SELECT end_date from mis where id=4))));
+
 
 COMMIT;
 \q
