@@ -82,6 +82,15 @@ class TestPlanner(unittest.TestCase):
                         self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s1" % (k - 1))
                 k -= 1
 
+    def testFilterTraces(self):
+        request = PlanTripRequestType()
+        request.Departure = TraceStop(PlaceTypeId="departure")
+        request.Arrival = TraceStop(PlaceTypeId="arrival")
+        calculator = PlanTripCalculator(request, Queue.Queue())
+        self.assertEquals(calculator._filter_traces([[1, 2, 3, 4], [1, 3, 4], [4, 3, 1],
+                                                    [2, 1, 4], [3, 4, 2], [3, 2, 4],
+                                                    [1, 4, 3, 2], [4, 3, 1, 2], [3, 2, 1, 4]]),
+                          [[1, 3, 4], [4, 3, 1], [3, 4, 2], [1, 4, 3, 2]])
 
     def tearDown(self):
         from planner.planner import clean_db_engine

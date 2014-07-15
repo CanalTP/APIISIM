@@ -7,9 +7,9 @@ INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date,
     ('mis2', 'comment2', 'mis2_url', '', TIMESTAMP '2008-02-19 15:36:38', 
      TIMESTAMP '2016-04-16 15:36:38', TRUE, FALSE),
     ('mis3', 'comment3', 'mis3_url', '', TIMESTAMP '2008-02-19 15:36:38', 
-     TIMESTAMP '2016-04-16 15:36:38', TRUE, FALSE),
+     TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE),
     ('mis4', 'comment4', 'mis4_url', '', TIMESTAMP '2008-02-19 15:36:38', 
-     TIMESTAMP '2016-04-16 15:36:38', TRUE, FALSE);
+     TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE);
 
 INSERT INTO stop (code, mis_id, name, lat, long) VALUES
     ('stop_code10', 1, '', 0, 0),

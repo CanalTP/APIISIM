@@ -71,7 +71,7 @@ def launch_mis_translator():
     return process
 
 # !!! IMPORTANT !!!
-# This doesn't work if mis_transaltor is launched in debug mode as Flask
+# This doesn't work if mis_translator is launched in debug mode as Flask
 # forks when running in debug mode.
 def terminate_mis_translator(process):
     process.terminate()
