@@ -43,13 +43,13 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
                          calculator._get_surrounding_mises(request.Arrival.Position, datetime.now())]
         for t in traces:
             full_trip = calculator.compute_trip(t)
-            notif = create_full_notification("test_id", full_trip, timedelta())
+            notif = create_full_notification("test_id", "trace_id", full_trip, timedelta())
             logging.debug(json.dumps(notif.marshal()))
 
             # Basic consistency checks.
             for _, trip in full_trip:
                 self.assertTrue(trip.Departure.DateTime < trip.Arrival.DateTime)
-                self.assertTrue(trip.Duration > 0)
+                self.assertTrue(trip.Duration > timedelta())
                 self.assertTrue(trip.Distance > 0)
 
             # We should have one trip per MIS
@@ -135,7 +135,7 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
 
 class TestPlannerMisStubs3Mis(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs.sql"
-    EXPECTED_TRACES = [[1, 3], [1, 2, 3], [2, 3], [2, 1, 3]]
+    EXPECTED_TRACES = [[1, 3], [2, 3], [2, 1, 3]]
 
     def setUp(self):
         planner.MAX_TRACE_LENGTH = 3
@@ -144,10 +144,10 @@ class TestPlannerMisStubs3Mis(_TestPlannerMisStubsBase):
 
 class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs_4_mis.sql"
-    EXPECTED_TRACES = [[4], [1, 3], [1, 4], [1, 2, 3], [1, 2, 4], [1, 2, 3, 4],
-                       [1, 2, 4, 3], [1, 3, 4], [1, 3, 2, 4], [1, 4, 3], [1, 4, 2, 3],
-                       [2, 3], [2, 4], [2, 1, 3], [2, 1, 4], [2, 1, 3, 4], [2, 1, 4, 3],
-                       [2, 3, 4], [2, 3, 1, 4], [2, 4, 3], [2, 4, 1, 3], [4, 3], [4, 1, 3],
+    EXPECTED_TRACES = [[4], [1, 3], [1, 4], [1, 2, 3], [1, 2, 4],
+                       [1, 2, 4, 3], [1, 4, 3], [1, 4, 2, 3],
+                       [2, 3], [2, 4], [2, 1, 3], [2, 1, 4], [2, 1, 4, 3],
+                       [2, 4, 3], [2, 4, 1, 3], [4, 3], [4, 1, 3],
                        [4, 1, 2, 3], [4, 2, 3], [4, 2, 1, 3]]
 
     def setUp(self):

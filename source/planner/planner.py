@@ -462,11 +462,10 @@ class PlanTripCalculator(object):
 
     @benchmark
     def _get_transfers(self, mis1_id, mis2_id):
-        # {mis1_id : [(transfer, stop_mis1, stop_mis2)],
-        #  mis2_id : [(transfer, stop_mis2, stop_mis1)]}
+        # ([transfer_duration], [stop_mis1], [stop_mis2])
         # To ease further processing (in compute_trip()), stops are returned
         # as TraceStop objects, not as metabase.Stop objects.
-        ret = {mis1_id : [], mis2_id: []}
+        ret = ([], [], [])
         subq = self._db_session.query(metabase.TransferMis.transfer_id) \
                                         .filter(or_(and_(metabase.TransferMis.mis1_id==mis1_id,
                                                          metabase.TransferMis.mis2_id==mis2_id),
@@ -488,11 +487,13 @@ class PlanTripCalculator(object):
             l1 = stop_to_trace_stop(s1)
             l2 = stop_to_trace_stop(s2)
             if s1.mis_id == mis1_id: # implies s2.mis_id == mis2_id
-                ret[mis1_id].append((t, l1, l2))
-                ret[mis2_id].append((t, l2, l1))
+                ret[0].append(timedelta(seconds=t.duration))
+                ret[1].append(l1)
+                ret[2].append(l2)
             elif s1.mis_id == mis2_id: # implies s2.mis_id == mis1_id
-                ret[mis2_id].append((t, l1, l2))
-                ret[mis1_id].append((t, l2, l1))
+                ret[0].append(timedelta(seconds=t.duration))
+                ret[1].append(l2)
+                ret[2].append(l1)
             else:
                 raise Exception("Inconsistency in database, transfer %s is"
                                 "not coherent with its stops %s %s", t, s1, s2)
@@ -581,7 +582,7 @@ class PlanTripCalculator(object):
             t = self._get_transfers(mis1_id, mis2_id)
             if mis1_id not in ret:
                 ret[mis1_id] = {}
-            ret[mis1_id][mis2_id] = t[mis1_id]
+            ret[mis1_id][mis2_id] = t
 
         return ret
 
@@ -665,22 +666,22 @@ class PlanTripCalculator(object):
             if trace_start:
                 ret = [(mis1_api,
                         [trace_start],
-                        [x[1] for x in transfers[mis1_id][mis2_id]],
-                        [x[2] for x in transfers[mis1_id][mis2_id]],
-                        [timedelta(seconds=x[0].duration) for x in transfers[mis1_id][mis2_id]])]
+                        transfers[mis1_id][mis2_id][1],
+                        transfers[mis1_id][mis2_id][2],
+                        transfers[mis1_id][mis2_id][0])]
 
             if mis3_id:
                 ret.append(
                     (mis2_api,
-                     [x[2] for x in transfers[mis1_id][mis2_id]],
-                     [x[1] for x in transfers[mis2_id][mis3_id]],
-                     [x[2] for x in transfers[mis2_id][mis3_id]],
-                     [timedelta(seconds=x[0].duration) for x in transfers[mis2_id][mis3_id]]))
+                     transfers[mis1_id][mis2_id][2],
+                     transfers[mis2_id][mis3_id][1],
+                     transfers[mis2_id][mis3_id][2],
+                     transfers[mis2_id][mis3_id][0]))
 
                 if trace_end:
                     ret.append(
                         (mis3_api,
-                         [x[2] for x in transfers[mis2_id][mis3_id]],
+                         transfers[mis2_id][mis3_id][2],
                          [trace_end],
                          None,
                          None))
@@ -689,7 +690,7 @@ class PlanTripCalculator(object):
                 if trace_end:
                     ret.append(
                         (mis2_api,
-                         [x[2] for x in transfers[mis1_id][mis2_id]],
+                         transfers[mis1_id][mis2_id][2],
                          [trace_end],
                          None,
                          None))
@@ -742,24 +743,24 @@ class PlanTripCalculator(object):
 
             if trace_start:
                 ret = [(mis1_api,
-                        [x[1] for x in transfers[mis1_id][mis2_id]],
+                        transfers[mis1_id][mis2_id][1],
                         [trace_start],
-                        [x[2] for x in transfers[mis1_id][mis2_id]],
-                        [timedelta(seconds=x[0].duration) for x in transfers[mis1_id][mis2_id]])]
+                        transfers[mis1_id][mis2_id][2],
+                        transfers[mis1_id][mis2_id][0])]
 
             if mis3_id:
                 ret.append(
                     (mis2_api,
-                     [x[1] for x in transfers[mis2_id][mis3_id]],
-                     [x[2] for x in transfers[mis1_id][mis2_id]],
-                     [x[2] for x in transfers[mis2_id][mis3_id]],
-                     [timedelta(seconds=x[0].duration) for x in transfers[mis2_id][mis3_id]]))
+                     transfers[mis2_id][mis3_id][1],
+                     transfers[mis1_id][mis2_id][2],
+                     transfers[mis2_id][mis3_id][2],
+                     transfers[mis2_id][mis3_id][0]))
 
                 if trace_end:
                     ret.append(
                         (mis3_api,
                          [trace_end],
-                         [x[2] for x in transfers[mis2_id][mis3_id]],
+                         transfers[mis2_id][mis3_id][2],
                          None,
                          None))
                     break
@@ -768,7 +769,7 @@ class PlanTripCalculator(object):
                     ret.append(
                         (mis2_api,
                          [trace_end],
-                         [x[2] for x in transfers[mis1_id][mis2_id]],
+                         transfers[mis1_id][mis2_id][2],
                          None,
                          None))
                     break
@@ -797,6 +798,57 @@ class PlanTripCalculator(object):
     def _generate_trace_id(self, mis_trace):
         return "_".join(map(str, mis_trace))
 
+    """
+        Update arrival stops after receiving itinerary results from a MIS.
+            - Arrival time is updated according to trips data.
+            - If no itinerary is found to a given arrival stop, this stop (and 
+              its linked stops) are removed from the whole "meta-trip".
+    """
+    def _update_arrivals(self, arrivals, linked_stops, trips):
+        to_del = []
+        for stop in arrivals:
+            found = False
+            for trip in trips:
+                if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
+                    stop.arrival_time = trip.Arrival.DateTime
+                    found = True
+                    break
+            if not found:
+                # No itinerary found to this arrival point, so remove this point 
+                # from the trip, along with its linked stops.
+                to_del.extend([i for i, x in enumerate(arrivals) if x == stop])
+
+        for i in to_del:
+            arrivals.pop(i)
+            if linked_stops:
+                linked_stops.pop(i)
+
+    """
+        Update departure stops after receiving itinerary results from a MIS.
+            - Departure time is updated according to trips data.
+            - If no itinerary is found from a given departure stop, this stop 
+              (and its linked stops) are removed from the whole "meta-trip".
+    """
+    def _update_departures(self, departures, linked_stops, trips):
+        to_del = []
+        for stop in departures:
+            found = False
+            for trip in trips:
+                if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
+                    stop.departure_time = trip.Departure.DateTime
+                    found = True
+                    break
+            if not found:
+                # No itinerary found from this departure point, so remove this
+                # point from the "meta-trip", along with its linked stops.
+                to_del.extend([i for i, x in enumerate(departures) if x == stop])
+
+        for i in to_del:
+            departures.pop(i)
+            if linked_stops:
+                linked_stops.pop(i)
+
+
     def _departure_at_trip(self, detailed_trace, trace_id, providers):
         # Minimum arrival_time to arrival
         best_arrival_time = None
@@ -811,7 +863,6 @@ class PlanTripCalculator(object):
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
-
             summed_up_request.departures = list(set(departures))
             summed_up_request.arrivals = list(set(arrivals))
             if not summed_up_request.DepartureTime:
@@ -823,16 +874,14 @@ class PlanTripCalculator(object):
             summed_up_request.ArrivalTime = None
             summed_up_request.options = []
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
-            for trip in resp.summedUpTrips:
-                for stop in arrivals:
-                    if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
-                        stop.arrival_time = trip.Arrival.DateTime
+            self._update_arrivals(arrivals, linked_stops, resp.summedUpTrips)
+
             # To have linked_stops arrival_time, just add transfer time to request results
             for a, l, t in zip(arrivals, linked_stops, transfer_durations):
                 l.arrival_time = a.arrival_time + t
 
         # Do non-detailed optimized request (only one, always)
-        mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-1]
+        mis_api, departures, arrivals, _, _ = detailed_trace[-1]
         summed_up_request.departures = list(set(departures))
         summed_up_request.arrivals = list(set(arrivals))
         summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
@@ -841,12 +890,8 @@ class PlanTripCalculator(object):
         summed_up_request.ArrivalTime = None
         summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
-
         best_arrival_time = resp.summedUpTrips[0].Arrival.DateTime
-        for trip in resp.summedUpTrips:
-            for stop in departures:
-                if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
-                    stop.departure_time = trip.Departure.DateTime
+        self._update_departures(departures, detailed_trace[-2][2], resp.summedUpTrips)
 
         # Substract transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
@@ -874,11 +919,14 @@ class PlanTripCalculator(object):
                     a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
                 summed_up_request.options = []
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
-
-                for trip in resp.summedUpTrips:
-                    for stop in departures:
-                        if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
-                            stop.departure_time = trip.Departure.DateTime
+                # At this point, MIS should return an itinerary for every
+                # given departure. Indeed, we've already done the whole trip in one direction
+                # (we're doing it backwards now), so all "non-existing" itineraries
+                # should have been detected previously.
+                if len(resp.summedUpTrips) < len(set(departures)):
+                    raise Exception("Incomplete MIS reply: expected %s itineraries, got %s"
+                                    % (len(set(departures)), len(resp.summedUpTrips)))
+                self._update_departures(departures, None, resp.summedUpTrips)
 
                 # Substract transfer time from previous request results
                 _, _, arrivals, linked_stops, transfer_durations = detailed_trace[i-1]
@@ -952,17 +1000,15 @@ class PlanTripCalculator(object):
             summed_up_request.DepartureTime = None
             summed_up_request.options = []
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
-            for trip in resp.summedUpTrips:
-                for stop in departures:
-                    if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
-                        stop.departure_time = trip.Departure.DateTime
+            self._update_departures(departures, linked_stops, resp.summedUpTrips)
+
             # To have linked_stops departure_time, just substract transfer time 
             # from request results.
             for d, l, t in zip(departures, linked_stops, transfer_durations):
                 l.departure_time = d.departure_time - t
 
         # Do non-detailed optimized request (only one, always)
-        mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-1]
+        mis_api, departures, arrivals, _, _ = detailed_trace[-1]
         summed_up_request.departures = list(set(departures))
         summed_up_request.arrivals = list(set(arrivals))
         summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
@@ -973,10 +1019,7 @@ class PlanTripCalculator(object):
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
 
         best_departure_time = resp.summedUpTrips[0].Departure.DateTime
-        for trip in resp.summedUpTrips:
-            for stop in arrivals:
-                if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
-                    stop.arrival_time = trip.Arrival.DateTime
+        self._update_arrivals(arrivals, detailed_trace[-2][1], resp.summedUpTrips)
 
         # Add transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
@@ -995,7 +1038,7 @@ class PlanTripCalculator(object):
         # Do departure_at non-detailed requests
         if len(detailed_trace) > 2:
             for i in reversed(range(1, len(detailed_trace) - 1)):
-                mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[i]
+                mis_api, departures, arrivals, _, _ = detailed_trace[i]
                 summed_up_request.departures = list(set(departures))
                 summed_up_request.arrivals = list(set(arrivals))
                 summed_up_request.ArrivalTime = None
@@ -1004,11 +1047,14 @@ class PlanTripCalculator(object):
                     d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
                 summed_up_request.options = []
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
-
-                for trip in resp.summedUpTrips:
-                    for stop in arrivals:
-                        if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
-                            stop.arrival_time = trip.Arrival.DateTime
+                # At this point, MIS should return an itinerary for every 
+                # given arrival. Indeed, we've already done the trip in one direction
+                # (we're doing it backwards now), so all "non-existing" itineraries
+                # should have been detected previously.
+                if len(resp.summedUpTrips) < len(set(arrivals)):
+                    raise Exception("Incomplete MIS reply: expected %s itineraries, got %s"
+                                    % (len(set(arrivals)), len(resp.summedUpTrips)))
+                self._update_arrivals(arrivals, None, resp.summedUpTrips)
 
                 # Add transfer time from previous request results
                 _, departures, _, linked_stops, transfer_durations = detailed_trace[i-1]
