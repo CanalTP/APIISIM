@@ -65,8 +65,11 @@ def disconnect_db(db_session):
     db_session.bind.dispose()
 
 
-def launch_mis_translator():
-    process = subprocess.Popen(['python', MIS_TRANSLATOR])
+def launch_mis_translator(conf_file=""):
+    cmd = ['python', MIS_TRANSLATOR]
+    if conf_file:
+        cmd.append(conf_file)
+    process = subprocess.Popen(cmd)
     time.sleep(3)
     return process
 

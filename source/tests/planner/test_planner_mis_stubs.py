@@ -19,8 +19,9 @@ from sqlalchemy import or_, and_
 from sqlalchemy.orm import aliased
 from planner import planner
 
-
 class _TestPlannerMisStubsBase(unittest.TestCase):
+
+    MIS_TRANSLATOR_CONF_FILE = ""
 
     def setUp(self):
         try:
@@ -28,7 +29,7 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
         except:
             pass
         tests.create_db(populate_script=self.DB_POPULATE_SCRIPT)
-        self._mis_translator_process = tests.launch_mis_translator()
+        self._mis_translator_process = tests.launch_mis_translator(self.MIS_TRANSLATOR_CONF_FILE)
         tests.launch_back_office(TEST_DIR + "test_planner_mis_stubs.conf")
 
 
@@ -109,8 +110,6 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
 
         return request
 
-
-
     def testDepartureAt(self):
         request = self._new_request()
         request.DepartureTime = datetime.now()
@@ -155,8 +154,67 @@ class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
         super(TestPlannerMisStubs4Mis, self).setUp()
 
 
+class TestPlannerMisStubsEmptyTrips(TestPlannerMisStubs3Mis):
+    def setUp(self):
+        self.MIS_TRANSLATOR_CONF_FILE = "/tmp/TestPlannerMisStubsEmptyTrips.conf"
+        with open(self.MIS_TRANSLATOR_CONF_FILE, "w+") as f:
+            f.write("[Stub]\n" \
+                    "stub_mis_api_class = _EmptyTripsMisApi")
+        super(TestPlannerMisStubsEmptyTrips, self).setUp()
+
+
+class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
+    EXPECTED_TRACES = [[3, 1], [3, 2], [3, 1, 2]]
+
+    def _new_request(self):
+        request = PlanTripRequestType(clientRequestId="test_id")
+        # "stop_area:CBE:SA:gen00133"
+        request.Departure = TraceStop(Position=LocationStructure(Latitude=47.026427,
+                                                                 Longitude=4.828594),
+                                      AccessTime=timedelta(seconds=20))
+        # "stop_area:SCF:SA:SAOCE87276196"
+        request.Arrival = TraceStop(Position=LocationStructure(Latitude=48.976663,
+                                                               Longitude=2.390363),
+                                    AccessTime=timedelta(seconds=80))
+
+        return request
+
+    def _check_trip(self, request, ref_files):
+        calculator = PlanTripCalculator(request, Queue.Queue())
+        traces = calculator.compute_traces()
+        logging.debug("TRACES: %s", traces)
+        self.assertEquals(traces, self.EXPECTED_TRACES)
+
+        for trace, ref_file in zip(traces, ref_files):
+            full_trip = calculator.compute_trip(trace)
+            notif = create_full_notification("test_id", "trace_id", full_trip, timedelta())
+            with open(TEST_DIR + ref_file) as f:
+                ref_content = f.read()
+                self.assertEquals(ref_content.strip(), json.dumps(notif.marshal()).strip(),
+                                  "MIS response doesn't match ref_file '%s'" % ref_file)
+
+    def testDepartureAt(self):
+        request = self._new_request()
+        request.DepartureTime = datetime(year=2014, month=10, day=23, hour=11, minute=20)
+
+        self._check_trip(request, ["departure_at_dump1.json",
+                                   "departure_at_dump2.json",
+                                   "departure_at_dump3.json"])
+
+
+    def testArrivalAt(self):
+        request = self._new_request()
+        request.ArrivalTime = datetime(year=2014, month=10, day=23, hour=11, minute=20) \
+                              + timedelta(hours=10)
+
+        self._check_trip(request, ["arrival_at_dump1.json",
+                                   "arrival_at_dump2.json",
+                                   "arrival_at_dump3.json"])
+
+
 if __name__ == '__main__':
-    test_classes_to_run = [TestPlannerMisStubs3Mis, TestPlannerMisStubs4Mis]
+    test_classes_to_run = [TestPlannerMisStubs3Mis, TestPlannerMisStubs4Mis,
+                           TestPlannerMisStubsEmptyTrips, TestPlannerMisStubsDumpMatch]
 
     loader = unittest.TestLoader()
 

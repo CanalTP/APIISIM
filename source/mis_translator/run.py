@@ -3,7 +3,6 @@
 import resources
 from flask import Flask
 import flask_restful, logging, sys
-import mis_translator
 
 
 def init_logging():

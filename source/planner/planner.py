@@ -66,8 +66,7 @@ class ST_GeogFromText(GenericFunction):
 def log_error(func):
     def decorator(self, *args, **kwargs):
         try:
-            result = func(self, *args, **kwargs)
-            return result
+            return func(self, *args, **kwargs)
         except Exception as e:
             logging.error("Class <%s>: %s\n%s", self.__class__.__name__,
                           e, traceback.format_exc())
@@ -232,7 +231,6 @@ SummedUpItinerariesRequestType.__repr__ = _repr
 SummedUpTripType.__repr__ = _repr
 
 ################################################################################
-
 
 class MisApi(object):
     def __init__(self, id):
@@ -575,6 +573,8 @@ class PlanTripCalculator(object):
         return ret
 
     def _get_trace_transfers(self, mis_trace):
+        # {mis1_id : {mis2_id : transfers},
+        #  mis2_id : {mis3_id : transfers, ...}
         ret = {}
         for i in range(0, len(mis_trace) - 1):
             mis1_id = mis_trace[i]

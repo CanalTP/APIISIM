@@ -2,7 +2,7 @@
 
 """
     Generic Mis API stub class. It retrieves stops from a JSON file, then creates
-    and populates a database with them. When receiving itinerary requests, two
+    and populates a database with them. When receiving itinerary requests, several
     implementations are available:
         - one that returns random itineraries by randomly choosing stops in its database.
             -> _RandomMisApi
@@ -10,6 +10,8 @@
           distance between stop points (using PostGIS). Although simplistic, it
           provides much more meaningful results than the random stub.
             -> _SimpleMisApi
+        - some faulty implementations, with various error cases. They are useful
+          for unit tests.
 """
 from base import MisApiBase, Stop
 import json, logging, os
@@ -28,6 +30,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float
 from geoalchemy2 import Geography
 from geoalchemy2.functions import ST_Distance, GenericFunction
+import sys, ConfigParser
 
 
 NAME = "_stub"
@@ -198,7 +201,6 @@ class _MisApi(MisApiBase):
                                   modes, self_drive_conditions,
                                   accessibility_constraint,
                                   language, options):
-
         ret = SummedUpItinerariesResponseType()
 
         trips = []
@@ -225,7 +227,7 @@ class _MisApi(MisApiBase):
             self._db_session.bind.dispose()
 
 
-def generate_section():
+def generate_section(leg=False):
     ret = SectionType()
 
     end_point = EndPointType(
@@ -233,16 +235,15 @@ def generate_section():
                                         id="stop_id",
                                         TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION))
     ret.PartialTripId = "stub_id"
-    r = randint(0, 1)
-    if r:
+    if not leg:
         ptr = PTRideType()
         ptr.ptNetworkRef = "BUS 36"
         ptr.lineRef = "36"
         ptr.PublicTransportMode = PublicTransportModeEnum.BUS
         ptr.Departure = end_point
         ptr.Arrival = end_point
-        ptr.Departure.DateTime = datetime.now()
-        ptr.Arrival.DateTime = datetime.now()
+        ptr.Departure.DateTime = datetime(year=2014, month=3, day=7)
+        ptr.Arrival.DateTime = datetime(year=2014, month=3, day=7)
         ptr.Duration = timedelta(seconds=20)
         ptr.Distance = 100
         ptr.steps = []
@@ -250,13 +251,13 @@ def generate_section():
                             TripStopPlace=TripStopPlaceType(
                                                 id="stop_id",
                                                 TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION))
-        for i in range(0, randint(0, 3)):
+        for i in range(0, 3):
             step = StepType()
             step.Departure = step_end_point
             step.Arrival = step_end_point
             step.id = "%s:%s" % (step.Departure.TripStopPlace.id, step.Arrival.TripStopPlace.id)
-            step.Departure.DateTime = datetime.now()
-            step.Arrival.DateTime = datetime.now()
+            step.Departure.DateTime = datetime(year=2014, month=3, day=7)
+            step.Arrival.DateTime = datetime(year=2014, month=3, day=7)
             step.Duration = timedelta(seconds=10)
             ptr.steps.append(step)
 
@@ -265,8 +266,8 @@ def generate_section():
         leg = LegType()
         leg.Departure = end_point
         leg.Arrival = end_point
-        leg.Departure.DateTime = datetime.now()
-        leg.Arrival.DateTime = datetime.now()
+        leg.Departure.DateTime = datetime(year=2014, month=3, day=7)
+        leg.Arrival.DateTime = datetime(year=2014, month=3, day=7)
         leg.Duration = timedelta(seconds=30)
         leg.SelfDriveMode = SelfDriveModeEnum.WALK
         ret.Leg = leg
@@ -298,7 +299,7 @@ class _RandomMisApi(_MisApi):
             ret.Arrival = location_to_end_point(arrival, ret.Departure.DateTime, arrival_time)
 
         for i in range(0, randint(0,3)):
-            ret.sections.append(generate_section())
+            ret.sections.append(generate_section(leg=True if i else False))
 
         return ret
 
@@ -358,7 +359,7 @@ class _SimpleMisApi(_MisApi):
         ret = TripType()
         ret.id = "detailed_trip_id"
         ret.Disrupted = False
-        ret.InterchangeNumber = randint(0, 10)
+        ret.InterchangeNumber = 4
         ret.sections = []
 
         if len(departures) > 1:
@@ -380,8 +381,8 @@ class _SimpleMisApi(_MisApi):
 
         ret.Distance = distance
         ret.Duration = duration
-        for i in range(0, randint(0,3)):
-            ret.sections.append(generate_section())
+        for i in range(0, 3):
+            ret.sections.append(generate_section(leg=True if i else False))
         # logging.debug("Departure %s %s", ret.Departure.TripStopPlace.id, ret.Departure.DateTime)
         # logging.debug("Arrival %s %s", ret.Arrival.TripStopPlace.id, ret.Arrival.DateTime)
 
@@ -417,5 +418,40 @@ class _SimpleMisApi(_MisApi):
 
         return ret
 
+class _EmptyTripsMisApi(_SimpleMisApi):
+    # Used by unit test to simulate replies where no itinerary is found for some
+    # departure/arrival pairs.
+    generate_empty_departure_at_trips = False
+    generate_empty_arrival_at_trips = False
 
-MisApi = _SimpleMisApi
+    def get_summed_up_itineraries(self, *args, **kwargs):
+        ret = super(_EmptyTripsMisApi, self).get_summed_up_itineraries(*args, **kwargs)
+        trips = ret.summedUpTrips
+        if trips and \
+           ((self.generate_empty_departure_at_trips and departure_time)
+            or (self.generate_empty_arrival_at_trips and arrival_time)):
+            i = randint(0, len(trips) - 1)
+            logging.debug("Deleting trip %s %s", trips[i].Departure.TripStopPlace.id, 
+                                                 trips[i].Arrival.TripStopPlace.id)
+            trips.pop(i)
+
+        return ret
+
+def parse_config():
+    if len(sys.argv) < 2:
+        return None
+
+    conf_file = sys.argv[1]
+    parser = ConfigParser.RawConfigParser()
+    parser.read(conf_file)
+    stub_mis_api_class = parser.get('Stub', 'stub_mis_api_class')
+    return stub_mis_api_class
+
+# Useful for unit tests. We can choose what type of stub we use
+# depending on test case.
+stub_mis_api_class = parse_config()
+if stub_mis_api_class:
+    MisApi = eval(stub_mis_api_class)
+else:
+    MisApi = _SimpleMisApi
+logging.info("Using Stub MIS API class <%s>", MisApi.__name__)
