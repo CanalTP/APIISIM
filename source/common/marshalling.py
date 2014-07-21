@@ -46,7 +46,7 @@ class _DateTime(fields.DateTime):
 class NonNullNested(fields.Nested):
 
     def __init__(self, *args, **kwargs):
-        super(NonNullNested, self).__init__(*args, **kwargs)
+        super(NonNullNested, self).__init__(*args, allow_null=True, **kwargs)
         self.display_null = False
 
 """
@@ -89,7 +89,7 @@ location_structure_type = {
 
 location_context_type = {
     'PlaceTypeId' : fields.String,
-    'Position' : NonNullNested(location_structure_type, allow_null=True),
+    'Position' : NonNullNested(location_structure_type),
     'AccessTime' : _Duration,
 }
 
@@ -110,14 +110,14 @@ multi_arrivals_type = {
 
 itinerary_request_type = {
     'id' : fields.String,
-    'multiDepartures' : NonNullNested(multi_departures_type, allow_null=True),
-    'multiArrivals' : NonNullNested(multi_arrivals_type, allow_null=True),
+    'multiDepartures' : NonNullNested(multi_departures_type),
+    'multiArrivals' : NonNullNested(multi_arrivals_type),
     'DepartureTime' : _DateTime,
     'ArrivalTime' : _DateTime,
     'Algorithm' : fields.String,
     'modes' : fields.List(fields.String),
     'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
-    # 'selfDriveConditions' : fields.List(fields.Nested(self_drive_condition_type, allow_null=True)),
+    # 'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
     'AccessibilityConstraint' : fields.Boolean,
     'Language' : fields.String,
 }
@@ -138,12 +138,12 @@ summed_up_itineraries_request_type = {
 
 location_point_type = {
     'PlaceTypeId' : fields.String,
-    'Position' : NonNullNested(location_structure_type, allow_null=True),
+    'Position' : NonNullNested(location_structure_type),
 }
 
 place_type = {
     'id' : fields.String,
-    'Position' : NonNullNested(location_structure_type, allow_null=True),
+    'Position' : NonNullNested(location_structure_type),
     'Name' : fields.String,
     'CityCode' : fields.String,
     'CityName' : fields.String,
@@ -193,30 +193,30 @@ pt_ride_type = {
     'ptNetworkRef' : fields.String,
     'lineRef' : fields.String,
     'PublicTransportMode' : fields.String,
-    'Departure' :  fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
+    'Departure' :  NonNullNested(end_point_type),
+    'Arrival' : NonNullNested(end_point_type),
     'Duration' : _Duration,
     'Distance' : fields.Integer,
-    'steps' : fields.List(fields.Nested(step_type))
+    'steps' : fields.List(NonNullNested(step_type))
 }
 
 leg_type = {
     'SelfDriveMode' : fields.String,
-    'Departure' : fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
+    'Departure' : NonNullNested(end_point_type),
+    'Arrival' : NonNullNested(end_point_type),
     'Duration' : _Duration
 }
 
 section_type = {
     'PartialTripId' : fields.String,
-    'PTRide' : fields.Nested(pt_ride_type, allow_null=True),
-    'Leg' : fields.Nested(leg_type, allow_null=True)
+    'PTRide' : NonNullNested(pt_ride_type),
+    'Leg' : NonNullNested(leg_type)
 }
 
 trip_type = {
     'id' : fields.String,
-    'Departure' : fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
+    'Departure' : NonNullNested(end_point_type),
+    'Arrival' : NonNullNested(end_point_type),
     'Duration' : _Duration,
     'Distance' : fields.Integer,
     'InterchangeNumber' : fields.Integer,
@@ -227,15 +227,15 @@ partial_trip_type = {
     'id' : fields.String,
     'Provider' : NonNullNested(provider_type),
     'Distance' : fields.Integer,
-    'Departure' : fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
+    'Departure' : NonNullNested(end_point_type),
+    'Arrival' : NonNullNested(end_point_type),
     'Duration' : _Duration,
 }
 
 composed_trip_type = {
     'id' : fields.String,
-    'Departure' : fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
+    'Departure' : NonNullNested(end_point_type),
+    'Arrival' : NonNullNested(end_point_type),
     'Duration' : _Duration,
     'Distance' : fields.Integer,
     'InterchangeNumber' : fields.Integer,
@@ -264,20 +264,20 @@ status_type = {
 
 itinerary_response_type = {
     'RequestId' : fields.String,
-    'Status' : fields.Nested(status_type),
-    'DetailedTrip' : NonNullNested(trip_type, allow_null=True)
+    'Status' : NonNullNested(status_type),
+    'DetailedTrip' : NonNullNested(trip_type)
 }
 
 summed_up_trip_type = {
-    'Departure' : fields.Nested(end_point_type),
-    'Arrival' : fields.Nested(end_point_type),
+    'Departure' : NonNullNested(end_point_type),
+    'Arrival' : NonNullNested(end_point_type),
     'InterchangeCount' : fields.Integer,
     'InterchangeDuration' : fields.Integer
 }
 
 summed_up_itineraries_response_type = {
     'RequestId' : fields.String,
-    'Status' : fields.Nested(status_type),
+    'Status' : NonNullNested(status_type),
     'summedUpTrips' : fields.List(NonNullNested(summed_up_trip_type))
 }
 
