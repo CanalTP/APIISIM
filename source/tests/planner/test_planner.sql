@@ -9,6 +9,10 @@ INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date,
     ('mis3', 'comment3', 'mis3_url', '', TIMESTAMP '2008-02-19 15:36:38', 
      TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE),
     ('mis4', 'comment4', 'mis4_url', '', TIMESTAMP '2008-02-19 15:36:38', 
+     TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE),
+    ('mis5', 'comment5', 'mis5_url', '', TIMESTAMP '2008-02-19 15:36:38', 
+     TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE),
+    ('mis6', 'comment6', 'mis6_url', '', TIMESTAMP '2008-02-19 15:36:38', 
      TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE);
 
 INSERT INTO stop (code, mis_id, name, lat, long) VALUES
@@ -19,24 +23,24 @@ INSERT INTO stop (code, mis_id, name, lat, long) VALUES
     ('stop_code11', 1, '', 0, 0),
     ('stop_code21', 2, '', 0, 0),
     ('stop_code31', 3, '', 0, 0),
-    ('stop_code41', 4, '', 0, 0),
+    ('stop_code41', 4, '', 8, 8),
     ('stop_code12', 1, '', 0, 0),
     ('stop_code22', 2, '', 0, 0),
     ('stop_code32', 3, '', 0, 0),
-    ('stop_code42', 4, '', 0, 0),
+    ('stop_code42', 4, '', 8, 8),
     ('stop_code13', 1, '', 0, 0),
     ('stop_code23', 2, '', 0, 0),
     ('stop_code33', 3, '', 0, 0),
-    ('stop_code43', 4, '', 0, 0);
+    ('stop_code43', 4, '', 8, 8);
 
 INSERT INTO transfer (stop1_id, stop2_id, distance, duration, status) VALUES
     (1, 2, 100, 10, 'auto'),
     (6, 3, 100, 10, 'auto'),
     (10, 3, 100, 10, 'auto'),
-    (14, 3, 100, 10, 'auto'),
+    (14, 3, 100, 20, 'auto'),
     (7, 4, 100, 10, 'auto'),
     (11, 4, 100, 10, 'auto'),
-    (1, 12, 100, 10, 'auto');
+    (1, 12, 100, 30, 'auto');
 
 INSERT INTO mis_connection (mis1_id, mis2_id, start_date, end_date) VALUES
     (1, 2, 
@@ -52,6 +56,23 @@ INSERT INTO mis_connection (mis1_id, mis2_id, start_date, end_date) VALUES
      (SELECT GREATEST((SELECT start_date from mis where id=1), (SELECT start_date from mis where id=4))), 
      (SELECT LEAST((SELECT end_date from mis where id=1), (SELECT end_date from mis where id=4))));
 
+
+INSERT INTO mode (code) VALUES
+    ('bus'),
+    ('tram'),
+    ('funicular');
+
+INSERT INTO mis_mode (mis_id, mode_id) VALUES
+    (1,1),
+    (2,1),
+    (4,1),
+    (1,2),
+    (2,2),
+    (3,2),
+    (3,3),
+    (5,1),
+    (5,2),
+    (5,3);
 
 COMMIT;
 \q
