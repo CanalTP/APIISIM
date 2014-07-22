@@ -1,0 +1,5 @@
+# Subset of http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/bourgogne/stop_areas?count=10000
+
+{"stop_areas": [
+        {"comment": "", "name": "gare de Le Mée", "coord": {"lat": "48.539939", "lon": "2.624046"}, "id": "stop_area:SCF:SA:SAOCE87682179"},
+        {"comment": "", "name": "SAINT BLAISE", "coord": {"lat": "46.939368", "lon": "4.29835"}, "id": "stop_area:CAN:SA:STBLAI"}]}

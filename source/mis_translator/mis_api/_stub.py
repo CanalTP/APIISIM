@@ -431,12 +431,27 @@ class _EmptyTripsMisApi(_SimpleMisApi):
            ((self.generate_empty_departure_at_trips and departure_time)
             or (self.generate_empty_arrival_at_trips and arrival_time)):
             i = randint(0, len(trips) - 1)
-            logging.debug("Deleting trip %s %s", trips[i].Departure.TripStopPlace.id, 
+            logging.debug("Deleting trip %s %s", trips[i].Departure.TripStopPlace.id,
                                                  trips[i].Arrival.TripStopPlace.id)
             trips.pop(i)
 
         return ret
 
+class _ConsistencyChecksMisApi(_SimpleMisApi):
+    def get_summed_up_itineraries(self, departures, arrivals, departure_time,
+                                  arrival_time, algorithm, modes, self_drive_conditions,
+                                  accessibility_constraint, language, options):
+        departures_ids = [x.PlaceTypeId for x in departures]
+        arrivals_ids = [x.PlaceTypeId for x in arrivals]
+        if (len(departures_ids) != len(set(departures_ids))) \
+           or (len(arrivals_ids) != len(set(arrivals_ids))):
+           raise Exception("Duplicated departure/arrival point")
+
+        return super(_ConsistencyChecksMisApi, self) \
+                    .get_summed_up_itineraries(
+                        departures, arrivals, departure_time, arrival_time,
+                        algorithm, modes, self_drive_conditions,
+                        accessibility_constraint, language, options)
 def parse_config():
     if len(sys.argv) < 2:
         return None

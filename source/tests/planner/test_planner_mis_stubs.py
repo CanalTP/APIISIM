@@ -49,9 +49,9 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
 
             # Basic consistency checks.
             for _, trip in full_trip:
-                self.assertTrue(trip.Departure.DateTime < trip.Arrival.DateTime)
-                self.assertTrue(trip.Duration > timedelta())
-                self.assertTrue(trip.Distance > 0)
+                self.assertTrue(trip.Departure.DateTime <= trip.Arrival.DateTime)
+                self.assertTrue(trip.Duration >= timedelta())
+                self.assertTrue(trip.Distance >= 0)
 
             # We should have one trip per MIS
             self.assertTrue(len(full_trip) == len(t))
@@ -65,6 +65,7 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
             self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Longitude, \
                               request.Arrival.Position.Longitude)
             self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Latitude, \
+
                               request.Arrival.Position.Latitude)
 
             # Check that departure/arrival MISes are correct.
@@ -153,6 +154,12 @@ class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
         planner.MAX_TRACE_LENGTH = 4
         super(TestPlannerMisStubs4Mis, self).setUp()
 
+class _TestPlannerMisStubs3MisLight(_TestPlannerMisStubsBase):
+    DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs_light.sql"
+
+    def setUp(self):
+        planner.MAX_TRACE_LENGTH = 3
+        super(_TestPlannerMisStubs3MisLight, self).setUp()
 
 class TestPlannerMisStubsEmptyTrips(TestPlannerMisStubs3Mis):
     def setUp(self):
@@ -163,6 +170,10 @@ class TestPlannerMisStubsEmptyTrips(TestPlannerMisStubs3Mis):
         super(TestPlannerMisStubsEmptyTrips, self).setUp()
 
 
+
+"""
+    Check that planner responses match reference dump files.
+"""
 class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
     EXPECTED_TRACES = [[3, 1], [3, 2], [3, 1, 2]]
 
@@ -211,10 +222,42 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
                                    "arrival_at_dump2.json",
                                    "arrival_at_dump3.json"])
 
+"""
+    In this test, we ensure that the planner removes duplicated departure/arrival 
+    points before sending request to MIS. Indeed, "stop_area:DUA:SA:8768217" has 
+    2 transfers (with "stop_area:SNC:SA:SAOCE87590554" and "stop_area:SNC:SA:SAOCE87682179"),
+    it would therefore lead to duplicated points if the planner didn't care 
+    to remove them.
+"""
+class TestPlannerMisStubsDuplicatedPoints(_TestPlannerMisStubs3MisLight):
+    EXPECTED_TRACES = [[1], [2], [3], [1, 2], [1, 3], [1, 2, 3], [1, 3, 2], [2, 1], 
+                       [2, 3], [2, 1, 3], [2, 3, 1], [3, 1], [3, 2], [3, 1, 2], [3, 2, 1]]
+
+    def setUp(self):
+        self.MIS_TRANSLATOR_CONF_FILE = "/tmp/TestPlannerMisStubsConsistencyChecks.conf"
+        with open(self.MIS_TRANSLATOR_CONF_FILE, "w+") as f:
+            f.write("[Stub]\n" \
+                    "stub_mis_api_class = _ConsistencyChecksMisApi")
+        super(TestPlannerMisStubsDuplicatedPoints, self).setUp()
+
+    def _new_request(self):
+        request = PlanTripRequestType(clientRequestId="test_id")
+        # "stop_area:DUA:SA:8768217"
+        request.Departure = TraceStop(Position=LocationStructure(Latitude=48.540187,
+                                                                 Longitude=2.624123),
+                                      AccessTime=timedelta(seconds=60))
+        # "stop_area:SNC:SA:SAOCE87682179"
+        request.Arrival = TraceStop(Position=LocationStructure(Latitude=48.539939,
+                                                               Longitude=2.624046),
+                                    AccessTime=timedelta(seconds=60))
+
+        return request
+
 
 if __name__ == '__main__':
     test_classes_to_run = [TestPlannerMisStubs3Mis, TestPlannerMisStubs4Mis,
-                           TestPlannerMisStubsEmptyTrips, TestPlannerMisStubsDumpMatch]
+                           TestPlannerMisStubsEmptyTrips, TestPlannerMisStubsDumpMatch,
+                           TestPlannerMisStubsDuplicatedPoints]
 
     loader = unittest.TestLoader()
 

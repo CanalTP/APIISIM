@@ -19,7 +19,8 @@ MIS_APIS_AVAILABLE = frozenset(["dummy", "navitia", "test1", "test2",
                                 "pays_de_la_loire", "bretagne", "bourgogne",
                                 "transilien", "sncf_national", "stub_transilien", 
                                 "stub_pays_de_la_loire", "stub_bourgogne",
-                                "stub_sncf_national"])
+                                "stub_sncf_national","stub_transilien_light",
+                                "stub_pays_de_la_loire_light", "stub_bourgogne_light"])
 mis_api_mapping = {} # Mis name : MisApi Class
 
 """

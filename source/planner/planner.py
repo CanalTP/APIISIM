@@ -42,6 +42,9 @@ class TraceStop(LocationContextType):
     def __eq__(self, other):
         return self.PlaceTypeId == other.PlaceTypeId
 
+    def __hash__(self):
+        return hash(self.PlaceTypeId)
+
     def __repr__(self):
         return ("<TraceStop(PlaceTypeId='%s')>" % \
                 (self.PlaceTypeId)) \
@@ -288,10 +291,17 @@ class MisApi(object):
         return ret
 
     # request is an object of class SummedUpItinerariesRequestType
-    def get_summed_up_itineraries(self, request):
+    # If must_be_complete is True, an exception is raised if MIS response
+    # doesn't contain an itinerary for each given arrival point (if
+    # it is a departure_at request). If it is an arrival_at request, it ensures
+    # that MIS response contains an itinerary for each given departure point.
+    def get_summed_up_itineraries(self, request, must_be_complete=False):
         ret = SummedUpItinerariesResponseType()
 
         # data = {"SummedUpItinerariesRequestType" : request.marshal()}
+        # Remove duplicates
+        request.departures = list(set(request.departures))
+        request.arrivals = list(set(request.arrivals))
         data = request.marshal()
         resp, content = self._send_request("summed_up_itineraries", data)
         # TODO error handling
@@ -302,6 +312,15 @@ class MisApi(object):
         if ret.Status.Code != StatusCodeEnum.OK:
             raise Exception("<get_summed_up_itineraries> %s" % ret.Status.Code)
         ret.summedUpTrips = parse_summed_up_trips(content.get("summedUpTrips", []))
+
+        if must_be_complete:
+            if request.DepartureTime:
+                nb_expected = len(request.arrivals)
+            else:
+                nb_expected = len(request.departures)
+            if len(ret.summedUpTrips) < nb_expected:
+                raise Exception("Incomplete MIS reply: expected %s itineraries, got %s"
+                                % (nb_expected, len(ret.summedUpTrips)))
 
         return ret
 
@@ -801,7 +820,7 @@ class PlanTripCalculator(object):
     """
         Update arrival stops after receiving itinerary results from a MIS.
             - Arrival time is updated according to trips data.
-            - If no itinerary is found to a given arrival stop, this stop (and 
+            - If no itinerary is found to a given arrival stop, this stop (and
               its linked stops) are removed from the whole "meta-trip".
     """
     def _update_arrivals(self, arrivals, linked_stops, trips):
@@ -814,7 +833,7 @@ class PlanTripCalculator(object):
                     found = True
                     break
             if not found:
-                # No itinerary found to this arrival point, so remove this point 
+                # No itinerary found to this arrival point, so remove this point
                 # from the trip, along with its linked stops.
                 to_del.extend([i for i, x in enumerate(arrivals) if x == stop])
 
@@ -826,7 +845,7 @@ class PlanTripCalculator(object):
     """
         Update departure stops after receiving itinerary results from a MIS.
             - Departure time is updated according to trips data.
-            - If no itinerary is found from a given departure stop, this stop 
+            - If no itinerary is found from a given departure stop, this stop
               (and its linked stops) are removed from the whole "meta-trip".
     """
     def _update_departures(self, departures, linked_stops, trips):
@@ -863,8 +882,8 @@ class PlanTripCalculator(object):
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
-            summed_up_request.departures = list(set(departures))
-            summed_up_request.arrivals = list(set(arrivals))
+            summed_up_request.departures = departures
+            summed_up_request.arrivals = arrivals
             if not summed_up_request.DepartureTime:
                 summed_up_request.DepartureTime = self._params.DepartureTime
             else:
@@ -882,8 +901,8 @@ class PlanTripCalculator(object):
 
         # Do non-detailed optimized request (only one, always)
         mis_api, departures, arrivals, _, _ = detailed_trace[-1]
-        summed_up_request.departures = list(set(departures))
-        summed_up_request.arrivals = list(set(arrivals))
+        summed_up_request.departures = departures
+        summed_up_request.arrivals = arrivals
         summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
         for d in departures:
             d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
@@ -898,7 +917,7 @@ class PlanTripCalculator(object):
         for a, l, t in zip(arrivals, linked_stops, transfer_durations):
             a.departure_time = l.departure_time - t
         notif = PlanTripExistenceNotificationResponseType(
-                    RequestId=self._params.clientRequestId, 
+                    RequestId=self._params.clientRequestId,
                     ComposedTripId=trace_id,
                     DepartureTime=self._params.DepartureTime,
                     ArrivalTime=best_arrival_time,
@@ -911,21 +930,19 @@ class PlanTripCalculator(object):
         if len(detailed_trace) > 2:
             for i in reversed(range(1, len(detailed_trace) - 1)):
                 mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[i]
-                summed_up_request.departures = list(set(departures))
-                summed_up_request.arrivals = list(set(arrivals))
+                summed_up_request.departures = departures
+                summed_up_request.arrivals = arrivals
                 summed_up_request.DepartureTime = None
                 summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
                 for a in arrivals:
                     a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
                 summed_up_request.options = []
-                resp = mis_api.get_summed_up_itineraries(summed_up_request)
                 # At this point, MIS should return an itinerary for every
-                # given departure. Indeed, we've already done the whole trip in one direction
+                # given departure, so set must_be_complete to True.
+                # Indeed, we've already done the whole trip in one direction
                 # (we're doing it backwards now), so all "non-existing" itineraries
                 # should have been detected previously.
-                if len(resp.summedUpTrips) < len(set(departures)):
-                    raise Exception("Incomplete MIS reply: expected %s itineraries, got %s"
-                                    % (len(set(departures)), len(resp.summedUpTrips)))
+                resp = mis_api.get_summed_up_itineraries(summed_up_request, must_be_complete=True)
                 self._update_departures(departures, None, resp.summedUpTrips)
 
                 # Substract transfer time from previous request results
@@ -989,8 +1006,8 @@ class PlanTripCalculator(object):
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
-            summed_up_request.departures = list(set(departures))
-            summed_up_request.arrivals = list(set(arrivals))
+            summed_up_request.departures = departures
+            summed_up_request.arrivals = arrivals
             if not summed_up_request.ArrivalTime:
                 summed_up_request.ArrivalTime = self._params.ArrivalTime
             else:
@@ -1002,15 +1019,15 @@ class PlanTripCalculator(object):
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
             self._update_departures(departures, linked_stops, resp.summedUpTrips)
 
-            # To have linked_stops departure_time, just substract transfer time 
+            # To have linked_stops departure_time, just substract transfer time
             # from request results.
             for d, l, t in zip(departures, linked_stops, transfer_durations):
                 l.departure_time = d.departure_time - t
 
         # Do non-detailed optimized request (only one, always)
         mis_api, departures, arrivals, _, _ = detailed_trace[-1]
-        summed_up_request.departures = list(set(departures))
-        summed_up_request.arrivals = list(set(arrivals))
+        summed_up_request.departures = departures
+        summed_up_request.arrivals = arrivals
         summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
         for a in arrivals:
             a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
@@ -1026,7 +1043,7 @@ class PlanTripCalculator(object):
         for d, l, t in zip(departures, linked_stops, transfer_durations):
             d.arrival_time = l.arrival_time + t
         notif = PlanTripExistenceNotificationResponseType(
-                    RequestId=self._params.clientRequestId, 
+                    RequestId=self._params.clientRequestId,
                     ComposedTripId=trace_id,
                     DepartureTime=best_departure_time,
                     ArrivalTime=self._params.ArrivalTime,
@@ -1039,21 +1056,19 @@ class PlanTripCalculator(object):
         if len(detailed_trace) > 2:
             for i in reversed(range(1, len(detailed_trace) - 1)):
                 mis_api, departures, arrivals, _, _ = detailed_trace[i]
-                summed_up_request.departures = list(set(departures))
-                summed_up_request.arrivals = list(set(arrivals))
+                summed_up_request.departures = departures
+                summed_up_request.arrivals = arrivals
                 summed_up_request.ArrivalTime = None
                 summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
                 for d in departures:
                     d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
                 summed_up_request.options = []
-                resp = mis_api.get_summed_up_itineraries(summed_up_request)
-                # At this point, MIS should return an itinerary for every 
-                # given arrival. Indeed, we've already done the trip in one direction
+                # At this point, MIS should return an itinerary for every
+                # given arrival, so set must_be_complete to True.
+                # Indeed, we've already done the trip in one direction
                 # (we're doing it backwards now), so all "non-existing" itineraries
                 # should have been detected previously.
-                if len(resp.summedUpTrips) < len(set(arrivals)):
-                    raise Exception("Incomplete MIS reply: expected %s itineraries, got %s"
-                                    % (len(set(arrivals)), len(resp.summedUpTrips)))
+                resp = mis_api.get_summed_up_itineraries(summed_up_request, must_be_complete=True)
                 self._update_arrivals(arrivals, None, resp.summedUpTrips)
 
                 # Add transfer time from previous request results
