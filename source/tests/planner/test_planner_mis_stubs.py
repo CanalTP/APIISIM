@@ -190,8 +190,9 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
 
         return request
 
-    def _check_trip(self, request, ref_files):
+    def _check_trip(self, request, ref_files, max_transfers):
         calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator.MAX_TRANSFERS = max_transfers
         traces = calculator.compute_traces()
         logging.debug("TRACES: %s", traces)
         self.assertEquals(traces, self.EXPECTED_TRACES)
@@ -208,9 +209,9 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
         request = self._new_request()
         request.DepartureTime = datetime(year=2014, month=10, day=23, hour=11, minute=20)
 
-        self._check_trip(request, ["departure_at_dump1.json",
-                                   "departure_at_dump2.json",
-                                   "departure_at_dump3.json"])
+        self._check_trip(request, ["departure_at_dump1_1.json",
+                                   "departure_at_dump1_2.json",
+                                   "departure_at_dump1_3.json"], 3)
 
 
     def testArrivalAt(self):
@@ -218,9 +219,28 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
         request.ArrivalTime = datetime(year=2014, month=10, day=23, hour=11, minute=20) \
                               + timedelta(hours=10)
 
-        self._check_trip(request, ["arrival_at_dump1.json",
-                                   "arrival_at_dump2.json",
-                                   "arrival_at_dump3.json"])
+        self._check_trip(request, ["arrival_at_dump1_1.json",
+                                   "arrival_at_dump1_2.json",
+                                   "arrival_at_dump1_3.json"], 3)
+
+    def testDepartureAt2(self):
+        request = self._new_request()
+        request.DepartureTime = datetime(year=2014, month=10, day=23, hour=11, minute=20)
+
+        self._check_trip(request, ["departure_at_dump2_1.json",
+                                   "departure_at_dump2_2.json",
+                                   "departure_at_dump2_3.json"], 10)
+
+
+    def testArrivalAt2(self):
+        request = self._new_request()
+        request.ArrivalTime = datetime(year=2014, month=10, day=23, hour=11, minute=20) \
+                              + timedelta(hours=10)
+
+        self._check_trip(request, ["arrival_at_dump2_1.json",
+                                   "arrival_at_dump2_2.json",
+                                   "arrival_at_dump2_3.json"], 10)
+
 
 """
     In this test, we ensure that the planner removes duplicated departure/arrival 
