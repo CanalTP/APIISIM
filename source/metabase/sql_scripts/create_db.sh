@@ -11,7 +11,7 @@ if [ -n "$1" ]; then
     	exit 1
     fi
 else
-    source $(dirname $0)/create_db.conf
+    source $(dirname $0)/default.conf
 fi
 
 if [ -z "$USER_PASS" ]; then
