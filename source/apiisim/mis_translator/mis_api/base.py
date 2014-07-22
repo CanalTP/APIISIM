@@ -1,6 +1,6 @@
-from common.mis_plan_trip import ItineraryResponseType
-from common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
-from common import StatusCodeEnum
+from apiisim.common.mis_plan_trip import ItineraryResponseType
+from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
+from apiisim.common import StatusCodeEnum
 
 class MisApiException(Exception):
     error_code = StatusCodeEnum.INTERNAL_ERROR

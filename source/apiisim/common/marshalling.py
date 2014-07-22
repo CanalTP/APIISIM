@@ -1,6 +1,6 @@
 from flask_restful import fields, marshal as flask_marshal
 import datetime
-from common import timedelta_to_xsd_duration
+from apiisim.common import timedelta_to_xsd_duration
 
 DATE_FORMAT="%Y-%m-%dT%H:%M:%S"
 

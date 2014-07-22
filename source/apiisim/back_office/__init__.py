@@ -1,6 +1,6 @@
 from mis_api import MisApi
 from math import sqrt
-import metabase
+from apiisim import metabase
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import logging, sys, argparse, ConfigParser, datetime

@@ -4,22 +4,22 @@ from datetime import datetime, timedelta
 import threading
 from sqlalchemy import create_engine, or_, and_
 from sqlalchemy.orm import sessionmaker, scoped_session, aliased
-import metabase
+from apiisim import metabase
 from geoalchemy2 import Geography
 from geoalchemy2.functions import GenericFunction, ST_DWithin
 import os
-from common.plan_trip import *
-from common.mis_plan_summed_up_trip import LocationContextType, \
+from apiisim.common.plan_trip import *
+from apiisim.common.mis_plan_summed_up_trip import LocationContextType, \
                                            SummedUpItinerariesRequestType, \
                                            SummedUpItinerariesResponseType, \
                                            StatusType, SummedUpTripType
-from common.mis_plan_trip import ItineraryRequestType, multiDeparturesType, \
+from apiisim.common.mis_plan_trip import ItineraryRequestType, multiDeparturesType, \
                                  multiArrivalsType, ItineraryResponseType
-from common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
+from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
                    TransportModeEnum, PlanSearchOptions, PlanTripStatusEnum, \
                    PlanTripErrorEnum, OUTPUT_ENCODING, StatusCodeEnum, \
                    xsd_duration_to_timedelta, parse_location_context
-from common.marshalling import marshal, itinerary_request_type, \
+from apiisim.common.marshalling import marshal, itinerary_request_type, \
                                summed_up_itineraries_request_type, \
                                summed_up_trip_type, \
                                plan_trip_existence_notification_response_type, \

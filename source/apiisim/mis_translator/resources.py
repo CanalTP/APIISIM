@@ -1,14 +1,14 @@
 from flask_restful import abort, Resource
 import logging, datetime, json
 from flask import request, Response
-from common.mis_plan_trip import LocationContextType, LocationStructure, \
+from apiisim.common.mis_plan_trip import LocationContextType, LocationStructure, \
                                   ItineraryResponseType, StatusType, \
                                   SelfDriveConditionType
-from common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
-from common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, TripPartEnum, \
+from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
+from apiisim.common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, TripPartEnum, \
                    TransportModeEnum, PlanSearchOptions, string_to_bool, \
                    xsd_duration_to_timedelta, parse_location_context
-from common.marshalling import *
+from apiisim.common.marshalling import *
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
                          MisApiBadRequestException, MisApiInternalErrorException
 from traceback import format_exc

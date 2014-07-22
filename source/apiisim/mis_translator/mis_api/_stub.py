@@ -15,13 +15,13 @@
 """
 from base import MisApiBase, Stop
 import json, logging, os
-from common.mis_plan_trip import ItineraryResponseType, EndPointType, \
+from apiisim.common.mis_plan_trip import ItineraryResponseType, EndPointType, \
                                  TripStopPlaceType, TripType, SectionType, \
                                  PTRideType, LegType, StepEndPointType, StepType
-from common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
-from common import PlanSearchOptions, PublicTransportModeEnum, SelfDriveModeEnum, \
+from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
+from apiisim.common import PlanSearchOptions, PublicTransportModeEnum, SelfDriveModeEnum, \
                    TypeOfPlaceEnum
-import metabase
+from apiisim import metabase
 from datetime import timedelta, datetime
 from random import randint
 from sqlalchemy import create_engine

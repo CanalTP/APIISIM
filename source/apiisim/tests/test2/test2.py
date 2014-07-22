@@ -2,17 +2,14 @@
 Test suite for metabase and back_office components
 """
 import os, sys
-TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
-# A bit dirty but we need this to ensure that when importing "tests", we import
-# our "tests" module, not "tests" module from another package.
-sys.path = [TEST_DIR + "../../"] + sys.path
 
-import tests, unittest, logging, datetime
+import unittest, logging, datetime
+from apiisim import tests
 from random import randint
-import metabase
+from apiisim import metabase
 from geoalchemy2.functions import ST_AsText
 from sqlalchemy.exc import IntegrityError
-from back_office import compute_transfers, compute_mis_connections
+from apiisim.back_office import compute_transfers, compute_mis_connections
 from sqlalchemy import or_
 
 

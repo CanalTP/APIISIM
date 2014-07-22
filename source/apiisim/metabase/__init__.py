@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Enum, TIMESTAMP, Boolean, Float, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship, backref, Session
-from common import OUTPUT_ENCODING
+from apiisim.common import OUTPUT_ENCODING
 import datetime
 from geoalchemy2 import Geography
 

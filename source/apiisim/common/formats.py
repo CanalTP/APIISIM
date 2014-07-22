@@ -1,4 +1,4 @@
-from common import TransportModeEnum, StatusCodeEnum, SelfDriveModeEnum
+from apiisim.common import TransportModeEnum, StatusCodeEnum, SelfDriveModeEnum
 from copy import deepcopy
 
 datetime_pattern = '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$'

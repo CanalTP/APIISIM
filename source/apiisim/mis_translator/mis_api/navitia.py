@@ -5,9 +5,9 @@ from base import MisApiBase, Stop, MisApiException, \
                  MisApiInternalErrorException, MisApiUnauthorizedException
 import json, httplib2, logging, urllib
 # TODO  do not use import *
-from common.mis_plan_trip import *
-from common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
-from common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
+from apiisim.common.mis_plan_trip import *
+from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
+from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
                    TransportModeEnum, PublicTransportModeEnum, PlanSearchOptions
 from datetime import datetime, timedelta
 from random import randint

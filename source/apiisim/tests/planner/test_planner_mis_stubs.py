@@ -1,23 +1,22 @@
 import sys, os, unittest, Queue, logging, json
-TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
-# A bit dirty but we need this to ensure that when importing "tests", we import
-# our "tests" module, not "tests" module from another package.
-sys.path = [TEST_DIR + "../../"] + sys.path
-
-import tests
+from apiisim import tests
 
 os.environ["PLANNER_DB_URL"] = "postgresql+psycopg2://%s:%s@localhost/%s" % \
                                (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME)
 os.environ["PLANNER_LOG_FILE"] = "/tmp/test_planner_mis_stubs.log"
 
-from planner.planner import PlanTripCalculator, TraceStop, create_full_notification, \
-                            MisApi, Session
-from common.plan_trip import PlanTripRequestType, LocationStructure
-import metabase
+from apiisim.planner.planner import PlanTripCalculator, TraceStop, create_full_notification, \
+                                    MisApi, Session
+from apiisim.common.plan_trip import PlanTripRequestType, LocationStructure
+from apiisim import metabase
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import aliased
-from planner import planner
+from apiisim.planner import planner
+
+
+TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
+
 
 class _TestPlannerMisStubsBase(unittest.TestCase):
 

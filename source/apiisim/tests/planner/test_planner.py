@@ -1,21 +1,19 @@
 import sys, os, unittest, Queue, logging
-TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
-# A bit dirty but we need this to ensure that when importing "tests", we import
-# our "tests" module, not "tests" module from another package.
-sys.path = [TEST_DIR + "../../"] + sys.path
-
-import tests
+from apiisim import tests
 
 os.environ["PLANNER_DB_URL"] = "postgresql+psycopg2://%s:%s@localhost/%s" % \
                                (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME)
 os.environ["PLANNER_LOG_FILE"] = "/tmp/test_planner.log"
 
-from planner import planner
-from planner.planner import PlanTripCalculator, TraceStop, LocationPointType, LocationStructure
-from common.plan_trip import PlanTripRequestType, EndPointType
-from common.mis_plan_summed_up_trip import SummedUpTripType, TripStopPlaceType
+from apiisim.planner import planner
+from apiisim.planner.planner import PlanTripCalculator, TraceStop, LocationPointType, LocationStructure
+from apiisim.common.plan_trip import PlanTripRequestType, EndPointType
+from apiisim.common.mis_plan_summed_up_trip import SummedUpTripType, TripStopPlaceType
 from datetime import timedelta, datetime
 from itertools import permutations
+from apiisim.planner.planner import clean_db_engine
+
+TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
 
 
 def new_location(longitude, latitude):
@@ -362,7 +360,6 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(linked_stops[1].PlaceTypeId, "l4")
 
     def tearDown(self):
-        from planner.planner import clean_db_engine
         # Reset SQLAlchemy connection pool. Otherwise, some connections can stay
         # open, which will prevent us from deleting the database.
         clean_db_engine()

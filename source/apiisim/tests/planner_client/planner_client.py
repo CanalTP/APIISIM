@@ -1,9 +1,9 @@
 from websocket import create_connection
-from common import AlgorithmEnum, TransportModeEnum
-from common.plan_trip import PlanTripRequestType, LocationPointType, LocationStructure, \
-                             PlanTripCancellationRequest
-from common.marshalling import *
-from common.formats import *
+from apiisim.common import AlgorithmEnum, TransportModeEnum
+from apiisim.common.plan_trip import PlanTripRequestType, LocationPointType, LocationStructure, \
+                                     PlanTripCancellationRequest
+from apiisim.common.marshalling import *
+from apiisim.common.formats import *
 from random import randint
 import datetime, json, logging, sys
 from datetime import timedelta
