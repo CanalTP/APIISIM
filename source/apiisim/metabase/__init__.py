@@ -2,11 +2,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Enum, TIMESTAMP, Boolean, Float, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Enum, TIMESTAMP, Boolean, Float, \
+                       ForeignKey, Index, UniqueConstraint, TEXT, DATE
 from sqlalchemy.orm import relationship, backref, Session
 from apiisim.common import OUTPUT_ENCODING
 import datetime
-from geoalchemy2 import Geography
+from geoalchemy2 import Geography, Geometry
 
 ###############################################################################
 
@@ -17,13 +18,15 @@ class Mis(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
-    comment = Column(String(255))
+    comment = Column(TEXT)
     api_url = Column(String(255), nullable=False)
     api_key = Column(String(50))
-    start_date = Column(TIMESTAMP)
-    end_date = Column(TIMESTAMP)
+    start_date = Column(DATE)
+    end_date = Column(DATE)
     geographic_position_compliant = Column(Boolean)
-    multiple_start_and_arrivals = Column(Boolean)
+    multiple_start_and_arrivals = Column(Integer)
+    created_at = Column(TIMESTAMP)
+    updated_at = Column(TIMESTAMP)
 
     stops = relationship("Stop", backref="mis")
 
@@ -44,7 +47,7 @@ class Stop(Base):
     name = Column(String(255), nullable=False)
     lat = Column(Float(53), nullable=False)
     long = Column(Float(53), nullable=False)
-    type = Column(Enum(u'GL', u'LAMU', u'ZE', name=u'stop_type_enum'))
+    stop_type = Column(Enum(u'GL', u'LAMU', u'ZE', name=u'stop_type_enum'))
     administrative_code = Column(String(255))
     parent_id = Column(ForeignKey('stop.id'))
     transport_mode = Column(Enum(u'all', u'bus', u'trolleybus', u'tram', u'coach',
@@ -54,6 +57,9 @@ class Stop(Base):
     quay_type = Column(String(255))
     geog = Column(Geography(geometry_type="POINT", srid=4326,
                             spatial_index=True))
+    geom = Column(Geometry)
+    created_at = Column(TIMESTAMP)
+    updated_at = Column(TIMESTAMP)
 
     def __repr__(self):
         return ("<Stop(id='%s', name='%s', code='%s', mis_id='%s', lat=%s, long=%s)>" % \
@@ -69,8 +75,8 @@ class MisConnection(Base):
     id = Column(Integer, primary_key=True)
     mis1_id = Column(ForeignKey('mis.id'), nullable=False)
     mis2_id = Column(ForeignKey('mis.id'), nullable=False)
-    start_date = Column(TIMESTAMP)
-    end_date = Column(TIMESTAMP)
+    start_date = Column(DATE)
+    end_date = Column(DATE)
 
     mis1 = relationship(u'Mis', primaryjoin='MisConnection.mis1_id == Mis.id')
     mis2 = relationship(u'Mis', primaryjoin='MisConnection.mis2_id == Mis.id')
@@ -93,9 +99,14 @@ class Transfer(Base):
     distance = Column(Integer, nullable=False)
     duration = Column(Integer, nullable=False)
     prm_duration = Column(Integer)
-    status = Column(
-                Enum(u'auto', u'manual', u'blocked', u'moved', name=u'transfer_status_enum'),
-                nullable=False)
+    active = Column(Boolean, nullable=False, default=True)
+    modification_state = Column(
+                            Enum(u'auto', u'manual', u'validation_needed',
+                                 u'recalculate', name=u'transfer_state_enum'),
+                            nullable=False)
+    created_at = Column(TIMESTAMP)
+    updated_at = Column(TIMESTAMP)
+
 
     stop1 = relationship(u'Stop', primaryjoin='Transfer.stop1_id == Stop.id')
     stop2 = relationship(u'Stop', primaryjoin='Transfer.stop2_id == Stop.id')
@@ -103,9 +114,10 @@ class Transfer(Base):
 
     def __repr__(self):
         return ("<Transfer(id='%s', stop1_id='%s', stop2_id='%s', distance='%s', " \
-                "duration='%s', prm_duration='%s', status='%s')>" % \
+                "duration='%s', prm_duration='%s', active='%s', modification_state='%s')>" % \
                 (self.id, self.stop1_id, self.stop2_id, self.distance,
-                 self.duration, self.prm_duration, self.status)).encode(OUTPUT_ENCODING)
+                 self.duration, self.prm_duration, self.active, self.modification_state)) \
+                .encode(OUTPUT_ENCODING)
 
 
 class Mode(Base):
@@ -114,9 +126,12 @@ class Mode(Base):
     id = Column(Integer, primary_key=True)
     code = Column(
             Enum(u'all', u'bus', u'trolleybus', u'tram', u'coach', u'rail',
-                u'intercityrail', u'urbanrail', u'metro', u'air', u'water',
-                u'cable', u'funicular', u'taxi', u'bike', u'car', name=u'mode_enum'),
-                nullable=False, unique=True)
+                 u'intercityrail', u'urbanrail', u'metro', u'air', u'water',
+                 u'cable', u'funicular', u'taxi', u'bike', u'car', name=u'mode_enum'),
+                 nullable=False, unique=True)
+    description = Column(TEXT)
+    created_at = Column(TIMESTAMP)
+    updated_at = Column(TIMESTAMP)
 
     def __repr__(self):
         return ("<Mode(id='%s', code='%s')>" % \

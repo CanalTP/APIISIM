@@ -3,13 +3,15 @@ BEGIN;
 CREATE TABLE mis(
     id serial PRIMARY KEY,
     name varchar(50) NOT NULL,
-    comment varchar(255),
+    comment text,
     api_url varchar(255) NOT NULL,
     api_key varchar(50),
-    start_date timestamp,
-    end_date timestamp,
+    start_date date,
+    end_date date,
     geographic_position_compliant boolean,
-    multiple_start_and_arrivals boolean
+    multiple_start_and_arrivals integer,
+    created_at timestamp,
+    updated_at timestamp
 );
 
 CREATE TYPE transport_mode_enum AS ENUM ('all', 'bus', 'trolleybus', 'tram', 'coach', 'rail',
@@ -27,17 +29,21 @@ CREATE TABLE stop(
     name varchar(255) NOT NULL,
     lat double precision NOT NULL,
     long double precision NOT NULL,
-    type stop_type_enum,
+    stop_type stop_type_enum,
     administrative_code varchar(255),
     parent_id integer REFERENCES stop(id),
     transport_mode transport_mode_enum,
     quay_type varchar(255),
     -- We'll use PostGIS geography type to calculate distance between stop points.
     geog GEOGRAPHY(Point),
+    geom geometry,
+    created_at timestamp,
+    updated_at timestamp,
     UNIQUE(code, mis_id)
 );
 
-CREATE TYPE transfer_status_enum AS ENUM ('auto', 'manual', 'recalculate', 'blocked', 'moved');
+CREATE TYPE transfer_state_enum AS ENUM ('auto', 'manual', 'validation_needed',
+                                         'recalculate');
 
 CREATE TABLE transfer(
     id serial PRIMARY KEY,
@@ -46,7 +52,10 @@ CREATE TABLE transfer(
     distance integer NOT NULL,
     duration integer NOT NULL,
     prm_duration integer,
-    status transfer_status_enum NOT NULL,
+    active boolean DEFAULT TRUE NOT NULL,
+    modification_state transfer_state_enum NOT NULL,
+    created_at timestamp,
+    updated_at timestamp,
     UNIQUE(stop1_id, stop2_id)
 );
 
@@ -55,14 +64,17 @@ CREATE TABLE mis_connection(
     id serial PRIMARY KEY,
     mis1_id integer REFERENCES mis(id) ON DELETE CASCADE NOT NULL,
     mis2_id integer REFERENCES mis(id) ON DELETE CASCADE NOT NULL,
-    start_date timestamp,
-    end_date timestamp,
+    start_date date,
+    end_date date,
     UNIQUE(mis1_id, mis2_id)
 );
 
 CREATE TABLE mode(
     id serial PRIMARY KEY,
-    code transport_mode_enum UNIQUE NOT NULL
+    code transport_mode_enum UNIQUE NOT NULL,
+    description text,
+    created_at timestamp,
+    updated_at timestamp
 );
 
 CREATE TABLE mis_mode(
@@ -103,32 +115,53 @@ FOR EACH ROW
 EXECUTE PROCEDURE stop_pre_update_handler();
 
 
--- If "lat" or "long" attributes are modified, set transfer status to "moved" 
--- for all transfers that use this stop.
+-- If "lat" or "long" attributes are modified, update modification_state
+-- of all transfers that use this stop.
 CREATE OR REPLACE FUNCTION stop_post_update_handler()
 RETURNS trigger AS $$
 BEGIN
-
     IF NEW.lat != OLD.lat OR NEW.long != OLD.long THEN
-        UPDATE transfer 
-        SET status='moved' 
-        WHERE (stop1_id=NEW.id) OR (stop2_id=NEW.id);
-    END IF; 
+        UPDATE transfer
+        SET modification_state='validation_needed'
+        WHERE ((stop1_id=NEW.id) OR (stop2_id=NEW.id))
+              AND modification_state='manual';
+        UPDATE transfer
+        SET modification_state='recalculate'
+        WHERE ((stop1_id=NEW.id) OR (stop2_id=NEW.id))
+              AND modification_state='auto';
+    END IF;
 
     RETURN NULL;
 END;
-$$ LANGUAGE 'plpgsql';  
+$$ LANGUAGE 'plpgsql';
 
 CREATE TRIGGER stop_post_update AFTER UPDATE ON stop
 FOR EACH ROW 
 EXECUTE PROCEDURE stop_post_update_handler();
 
 
+-- If transfer is not in a consistent state, disable it.
+CREATE OR REPLACE FUNCTION disable_inconsistent_transfer()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.modification_state = 'validation_needed' OR
+       NEW.modification_state = 'recalculate' THEN
+        NEW.active := FALSE;
+    END IF;
+   RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER transfer_pre_update BEFORE INSERT OR UPDATE ON transfer
+FOR EACH ROW
+EXECUTE PROCEDURE disable_inconsistent_transfer();
+
+
 -- Functions to calculate start_date and end_date for a given mis_connection.
 -- start_date is the maximum between start_date of mis1 and start_date of mis2.
 -- end_date is the minimum between end_date of mis1 and end_date of mis2.
 CREATE OR REPLACE FUNCTION mis_connection_calculate_start_date(mis1_id integer, mis2_id integer)
-RETURNS timestamp AS $$
+RETURNS date AS $$
 BEGIN
     RETURN (SELECT GREATEST(
                 (SELECT start_date from mis where id=mis1_id), 
@@ -137,7 +170,7 @@ END;
 $$ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION mis_connection_calculate_end_date(mis1_id integer, mis2_id integer)
-RETURNS timestamp AS $$
+RETURNS date AS $$
 BEGIN
     RETURN (SELECT LEAST(
                 (SELECT end_date from mis where id=mis1_id), 
@@ -185,6 +218,57 @@ CREATE TRIGGER mis_connection_pre_insert BEFORE INSERT ON mis_connection
 FOR EACH ROW 
 EXECUTE PROCEDURE mis_connection_pre_insert_handler();
 
+
+-- Set creation date when table is created
+CREATE OR REPLACE FUNCTION set_created_at_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.created_at := now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER mis_connection_pre_insert2 BEFORE INSERT ON mis
+FOR EACH ROW
+EXECUTE PROCEDURE set_created_at_timestamp();
+
+CREATE TRIGGER stop_pre_insert BEFORE INSERT ON stop
+FOR EACH ROW
+EXECUTE PROCEDURE set_created_at_timestamp();
+
+CREATE TRIGGER transfer_pre_insert BEFORE INSERT ON transfer
+FOR EACH ROW
+EXECUTE PROCEDURE set_created_at_timestamp();
+
+CREATE TRIGGER mode_pre_insert BEFORE INSERT ON mode
+FOR EACH ROW
+EXECUTE PROCEDURE set_created_at_timestamp();
+
+
+-- Set update date when table is updated
+CREATE OR REPLACE FUNCTION set_updated_at_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at := now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER mis_connection_pre_update BEFORE UPDATE ON mis
+FOR EACH ROW
+EXECUTE PROCEDURE set_updated_at_timestamp();
+
+CREATE TRIGGER stop_pre_update2 BEFORE UPDATE ON stop
+FOR EACH ROW
+EXECUTE PROCEDURE set_updated_at_timestamp();
+
+CREATE TRIGGER transfer_pre_update2 BEFORE UPDATE ON transfer
+FOR EACH ROW
+EXECUTE PROCEDURE set_updated_at_timestamp();
+
+CREATE TRIGGER mode_pre_update BEFORE UPDATE ON mode
+FOR EACH ROW
+EXECUTE PROCEDURE set_updated_at_timestamp();
 
 
 -- Views

@@ -52,20 +52,20 @@ def update_stop(db_session, mis_id, stop):
     db_stop = db_session.query(metabase.Stop) \
               .filter_by(mis_id=mis_id, code=stop.code).one()
 
-    _modified = False
+    modified = False
     if db_stop.name != stop.name:
         db_stop.name = stop.name
-        _modified = True
+        modified = True
 
     if db_stop.lat != stop.lat:
         db_stop.lat = stop.lat
-        _modified = True
+        modified = True
 
     if db_stop.long != stop.long:
         db_stop.long = stop.long
-        _modified = True
+        modified = True
 
-    return _modified
+    return modified
 
 
 """
@@ -198,10 +198,10 @@ def compute_transfers(db_session, transfer_max_distance):
             transfer = metabase.Transfer()
             transfer.stop1_id = stop1_id
             transfer.stop2_id = stop2_id
-        elif transfer.status != 'recalculate':
-            # If transfer already exists and its status is not 'recalculate',
+        elif transfer.modification_state != 'recalculate':
+            # If transfer already exists and its modification_state is not 'recalculate',
             # don't touch it and go the next one.
-            # If its status is 'recalculate', just recalculate its distance,
+            # If its modification_state is 'recalculate', just recalculate its distance,
             # duration, and prm_duration attributes.
             continue
 
@@ -218,7 +218,8 @@ def compute_transfers(db_session, transfer_max_distance):
         # as path is never straight from point to point.
         transfer.duration = int((d/60) * sqrt(2))
         transfer.prm_duration = transfer.duration * 2
-        transfer.status = "auto"
+        transfer.modification_state = "auto"
+        transfer.active = True
 
         if _new_transfer:
             db_session.add(transfer)

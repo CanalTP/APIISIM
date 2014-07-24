@@ -2,18 +2,18 @@ BEGIN;
 
 INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date, 
                  geographic_position_compliant, multiple_start_and_arrivals) VALUES
-    ('mis1', 'comment1', 'mis1_url', '', TIMESTAMP '2007-05-16 15:36:38', 
-     TIMESTAMP '2016-05-16 15:36:38', TRUE, FALSE),
-    ('mis2', 'comment2', 'mis2_url', '', TIMESTAMP '2008-02-19 15:36:38', 
-     TIMESTAMP '2016-04-16 15:36:38', TRUE, FALSE),
-    ('mis3', 'comment3', 'mis3_url', '', TIMESTAMP '2008-02-19 15:36:38', 
-     TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE),
-    ('mis4', 'comment4', 'mis4_url', '', TIMESTAMP '2008-02-19 15:36:38', 
-     TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE),
-    ('mis5', 'comment5', 'mis5_url', '', TIMESTAMP '2008-02-19 15:36:38', 
-     TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE),
-    ('mis6', 'comment6', 'mis6_url', '', TIMESTAMP '2008-02-19 15:36:38', 
-     TIMESTAMP '2016-04-16 15:36:38', TRUE, TRUE);
+    ('mis1', 'comment1', 'mis1_url', '', DATE '2007-05-16', 
+     DATE '2016-05-16', TRUE, 0),
+    ('mis2', 'comment2', 'mis2_url', '', DATE '2008-02-19', 
+     DATE '2016-04-16', TRUE, 0),
+    ('mis3', 'comment3', 'mis3_url', '', DATE '2008-02-19', 
+     DATE '2016-04-16', TRUE, 1),
+    ('mis4', 'comment4', 'mis4_url', '', DATE '2008-02-19', 
+     DATE '2016-04-16', TRUE, 1),
+    ('mis5', 'comment5', 'mis5_url', '', DATE '2008-02-19', 
+     DATE '2016-04-16', TRUE, 1),
+    ('mis6', 'comment6', 'mis6_url', '', DATE '2008-02-19', 
+     DATE '2016-04-16', TRUE, 1);
 
 INSERT INTO stop (code, mis_id, name, lat, long) VALUES
     ('stop_code10', 1, '', 1, 1),
@@ -33,14 +33,14 @@ INSERT INTO stop (code, mis_id, name, lat, long) VALUES
     ('stop_code33', 3, '', 0, 0),
     ('stop_code43', 4, '', 8, 8);
 
-INSERT INTO transfer (stop1_id, stop2_id, distance, duration, status) VALUES
-    (1, 2, 100, 10, 'auto'),
-    (6, 3, 100, 10, 'auto'),
-    (10, 3, 100, 10, 'auto'),
-    (14, 3, 100, 20, 'auto'),
-    (7, 4, 100, 10, 'auto'),
-    (11, 4, 100, 10, 'auto'),
-    (1, 12, 100, 30, 'auto');
+INSERT INTO transfer (stop1_id, stop2_id, distance, duration, active, modification_state) VALUES
+    (1, 2, 100, 10, TRUE, 'auto'),
+    (6, 3, 100, 10, TRUE, 'auto'),
+    (10, 3, 100, 10, TRUE, 'auto'),
+    (14, 3, 100, 20, TRUE, 'auto'),
+    (7, 4, 100, 10, TRUE, 'auto'),
+    (11, 4, 100, 10, TRUE, 'auto'),
+    (1, 12, 100, 30, TRUE, 'auto');
 
 INSERT INTO mis_connection (mis1_id, mis2_id, start_date, end_date) VALUES
     (1, 2, 

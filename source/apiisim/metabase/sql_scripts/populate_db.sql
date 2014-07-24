@@ -2,22 +2,22 @@ BEGIN;
 
 INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date, 
                  geographic_position_compliant, multiple_start_and_arrivals) VALUES
-    ('mis1', 'comment1', 'url1', 'key1', TIMESTAMP '2011-05-16 15:36:38', 
-     TIMESTAMP '2016-05-16 15:36:38', TRUE, FALSE),
-    ('mis2', 'comment2', 'url2', 'key2', TIMESTAMP '2008-02-19 15:36:38', 
-     TIMESTAMP '2014-04-16 15:36:38', FALSE, FALSE),
-    ('mis3', 'comment3', 'url3', 'key3', TIMESTAMP '2012-12-11 15:36:38', 
-     TIMESTAMP '2018-08-01 15:36:38', TRUE, TRUE);
+    ('mis1', 'comment1', 'url1', 'key1', DATE '2011-05-16', 
+     DATE '2016-05-16', TRUE, 0),
+    ('mis2', 'comment2', 'url2', 'key2', DATE '2008-02-19', 
+     DATE '2014-04-16', FALSE, 0),
+    ('mis3', 'comment3', 'url3', 'key3', DATE '2012-12-11', 
+     DATE '2018-08-01', TRUE, 1);
 
 INSERT INTO stop (code, mis_id, name, lat, long) VALUES
     ('stop_code1', 1, 'stop1', 11, 111),
     ('stop_code2', 2, 'stop2', 21, 122),
     ('stop_code3', 3, 'stop3', 33, 133);
 
-INSERT INTO transfer (stop1_id, stop2_id, distance, duration, prm_duration, status) VALUES
-    (1, 2, 120, 10, 20,'auto'),
-    (2, 3, 140, 1, 40, 'manual'),
-    (3, 1, 260, 20, 66,'blocked');
+INSERT INTO transfer (stop1_id, stop2_id, distance, duration, prm_duration, active, modification_state) VALUES
+    (1, 2, 120, 10, 20, TRUE, 'auto'),
+    (2, 3, 140, 1, 40, TRUE, 'manual'),
+    (3, 1, 260, 20, 66, TRUE, 'auto');
 
 INSERT INTO mis_connection (mis1_id, mis2_id, start_date, end_date) VALUES
     (1, 2, 

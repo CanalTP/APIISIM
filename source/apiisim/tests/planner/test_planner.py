@@ -9,7 +9,7 @@ from apiisim.planner import planner
 from apiisim.planner.planner import PlanTripCalculator, TraceStop, LocationPointType, LocationStructure
 from apiisim.common.plan_trip import PlanTripRequestType, EndPointType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpTripType, TripStopPlaceType
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date as date_type
 from itertools import permutations
 from apiisim.planner.planner import clean_db_engine
 
@@ -208,7 +208,7 @@ class TestPlanner(unittest.TestCase):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(request, Queue.Queue())
         position = LocationStructure(Longitude=1, Latitude=1)
-        date = datetime(year=2010, month=4, day=8)
+        date = date_type(year=2010, month=4, day=8)
         self.assertEquals(calculator._get_surrounding_mises(position, date), set([1]))
 
         position = LocationStructure(Longitude=3, Latitude=3)

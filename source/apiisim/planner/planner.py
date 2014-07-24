@@ -522,7 +522,8 @@ class PlanTripCalculator(object):
     """
         Return set of MIS that have at least one stop point whose distance to given
         postion is less than max_distance. Also ensure that returned MIS are available at
-        given date.
+        given date. 
+        Note that date must of type 'date', not 'datetime'.
     """
     @benchmark
     def _get_surrounding_mises(self, position, date):
@@ -632,7 +633,7 @@ class PlanTripCalculator(object):
     @benchmark
     def compute_traces(self):
         # Get Mis near departure and arrival points
-        date = self._params.DepartureTime or self._params.ArrivalTime
+        date = (self._params.DepartureTime or self._params.ArrivalTime).date()
         departure_mises = self._get_surrounding_mises(self._params.Departure.Position, date)
         arrival_mises = self._get_surrounding_mises(self._params.Arrival.Position, date)
 

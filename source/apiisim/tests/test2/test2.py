@@ -4,6 +4,7 @@ Test suite for metabase and back_office components
 import os, sys
 
 import unittest, logging, datetime
+from datetime import timedelta
 from apiisim import tests
 from random import randint
 from apiisim import metabase
@@ -26,6 +27,10 @@ def new_stop(code ="stop_code", name="stop_name", mis_id=1):
 class TestSuite(unittest.TestCase):
 
     def setUp(self):
+        try:
+            tests.drop_db()
+        except:
+            pass
         tests.create_db()
         self.db_session = tests.connect_db()
 
@@ -51,7 +56,8 @@ class TestSuite(unittest.TestCase):
         transfer.stop2_id = stop2_id
         transfer.distance = 100
         transfer.duration = 10
-        transfer.status = 'auto'
+        transfer.active = True
+        transfer.modification_state = 'auto'
         self.db_session.add(transfer)
         self.db_session.flush()
 
@@ -135,9 +141,9 @@ class TestSuite(unittest.TestCase):
 
 
     """
-    Check that transfer status is set to moved when one of its stop is moved.
+    Check that transfer state is updated accordingly when one of its stop is moved.
     """
-    def test_moved_status(self):
+    def test_moved_stop(self):
         mis_id = self.add_mis("mis1")
 
         stop1 = new_stop("code1", "stop1")
@@ -150,24 +156,48 @@ class TestSuite(unittest.TestCase):
         transfer_id = self.add_transfer(stop1.id, stop2.id)
 
         stop1.lat = stop1.lat - 3
-        self.db_session.flush()
-        self.assertEqual(self.db_session.query(metabase.Transfer.status) \
-                                        .filter_by(id=transfer_id).one()[0],
-                        'moved', "Transfer status should be 'moved'")
+        self.db_session.commit()
+        self.db_session.expire_all()
+        transfer = self.db_session.query(metabase.Transfer).filter_by(id=transfer_id).one()
+        self.assertEqual(transfer.modification_state,
+                         'recalculate', "Transfer modification_state should be 'recalculate'")
+        self.assertEqual(transfer.active,
+                         False, "Transfer should not be active")
 
         transfer = self.db_session.query(metabase.Transfer).filter_by(id=transfer_id).one()
-        transfer.status = 'auto'
-        self.db_session.flush()
-        self.assertEqual(self.db_session.query(metabase.Transfer.status) \
-                                        .filter_by(id=transfer_id).one()[0],
-                        'auto', "Transfer status should be 'auto'")
+        transfer.modification_state = 'auto'
+        transfer.active = True
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(transfer.modification_state,
+                         'auto', "Transfer modification_state should be 'auto'")
+        self.assertEqual(transfer.active,
+                         True, "Transfer should be active")
 
         stop2.long = stop2.long + 11.23344
-        self.db_session.flush()
-        self.assertEqual(self.db_session.query(metabase.Transfer.status) \
-                                        .filter_by(id=transfer_id).one()[0],
-                        'moved', "Transfer status should be 'moved'")
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(transfer.modification_state,
+                         'recalculate', "Transfer modification_state should be 'recalculate'")
+        self.assertEqual(transfer.active,
+                         False, "Transfer should not be active")
 
+        transfer.modification_state = 'manual'
+        transfer.active = True
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(transfer.modification_state,
+                         'manual', "Transfer modification_state should be 'manual'")
+        self.assertEqual(transfer.active,
+                         True, "Transfer should be active")
+
+        transfer.modification_state = 'validation_needed'
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(transfer.modification_state,
+                         'validation_needed', "Transfer modification_state should be 'validation_needed'")
+        self.assertEqual(transfer.active,
+                         False, "Transfer should not be active")
 
     """
     Check that mis_connection dates are valid when inserting a new mis_connection
@@ -179,7 +209,7 @@ class TestSuite(unittest.TestCase):
         mis1 = self.db_session.query(metabase.Mis).filter_by(id=mis1_id).one()
         mis2 = self.db_session.query(metabase.Mis).filter_by(id=mis2_id).one()
 
-        mis1.start_date = datetime.datetime.utcnow()
+        mis1.start_date = datetime.date.today()
         mis1.end_date = mis1.start_date + datetime.timedelta(days=1000)
         mis2.start_date = mis1.start_date - datetime.timedelta(days=200)
         mis2.end_date = mis1.start_date + datetime.timedelta(days=600)
@@ -378,10 +408,10 @@ class TestSuite(unittest.TestCase):
 
 
     """
-    Check that if a transfer status is 'recalculate', the back_office effectively
-    recalculate distance and durations for this transfer.
+    Check that if a transfer modification_state is 'recalculate', the back_office 
+    effectively recalculate distance and durations for this transfer.
     """
-    def test_recalculate_status(self):
+    def test_recalculate_state(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
         stop1 = new_stop("code1", "Gare de Lyon", mis1_id)
@@ -401,23 +431,92 @@ class TestSuite(unittest.TestCase):
         transfer.distance = randint(10, 10000)
         transfer.duration = randint(10, 10000)
         transfer.prm_duration = randint(10, 10000)
-        transfer.status = "recalculate"
+        transfer.modification_state = "recalculate"
         self.db_session.flush()
 
         compute_transfers(self.db_session, 900)
         transfer = self.db_session.query(metabase.Transfer) \
                        .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
-        self.assertEqual(transfer.status, 'auto', "Transfer status should be 'auto'")
+        self.assertEqual(transfer.modification_state, 'auto', "Transfer modification_state should be 'auto'")
+        self.assertEqual(transfer.active, True, "Transfer should be active")
         self.assertEqual(original_values,
                          [transfer.distance, transfer.duration, transfer.prm_duration],
                          "Distance and durations have not been recalculated properly ")
 
 
     """
-    Check that back_office doesn't modify transfer when its status is
-    'moved', 'blocked' or 'manual'.
+        Check that trigger on transfer 'active' column works accordingly.
     """
-    def test_manual_blocked_moved_status(self):
+    def test_transfer_active_trigger(self):
+        mis_id = self.add_mis("mis1")
+
+        stop1 = new_stop("code1", "stop1")
+        stop1.mis1_id = mis_id
+        stop2 = new_stop("code2", "stop2")
+        stop2.mis_id = mis_id
+        self.db_session.add(stop1)
+        self.db_session.add(stop2)
+        self.db_session.flush()
+        transfer_id = self.add_transfer(stop1.id, stop2.id)
+        t = self.db_session.query(metabase.Transfer) \
+                                        .filter_by(id=transfer_id).one()
+        self.assertEqual(t.active, True)
+
+        # When modification_state is 'validation_needed', active is automatically
+        # set to False.
+        t.modification_state = 'validation_needed'
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(t.active, False)
+
+        t.active = True
+        self.db_session.commit()
+        self.db_session.expire_all()
+        # Because modification_state is still 'validation_needed', active should
+        # be forced to False.
+        self.assertEqual(t.active, False)
+
+        t.active = True
+        t.modification_state = "auto"
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(t.active, True)
+
+        t.modification_state = 'manual'
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(t.active, True)
+
+        # When modification_state is 'recalculate', active is automatically
+        # set to False.
+        t.modification_state = 'recalculate'
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(t.active, False)
+
+        t.active = True
+        self.db_session.commit()
+        self.db_session.expire_all()
+        # Because modification_state is still 'recalculate', active should
+        # be forced to False.
+        self.assertEqual(t.active, False)
+
+        t.modification_state = 'auto'
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(t.active, False)
+
+        t.active = True
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertEqual(t.active, True)
+
+
+    """
+    Check that back_office doesn't modify transfer when its status is
+    'auto', 'validation_needed' or 'manual'.
+    """
+    def test_transfer_state_unchanged(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
         stop1 = new_stop("code1", "Gare de Lyon", mis1_id)
@@ -438,16 +537,78 @@ class TestSuite(unittest.TestCase):
         transfer.prm_duration = randint(10, 10000)
         manual_values = [transfer.distance, transfer.duration, transfer.prm_duration]
 
-        for status in ['manual', 'blocked', 'moved']:
-            transfer.status = status
+        for state in ['manual', 'validation_needed', 'auto']:
+            transfer.modification_state = state
             self.db_session.flush()
             compute_transfers(self.db_session, 900)
             transfer = self.db_session.query(metabase.Transfer) \
                            .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
-            self.assertEqual(transfer.status, status, "Transfer status should be '%s'" % status)
+            self.assertEqual(transfer.modification_state, state, "Transfer status should be '%s'" % state)
             self.assertEqual(manual_values,
                              [transfer.distance, transfer.duration, transfer.prm_duration],
                              "Distance and durations should not have been modified")
+
+    """
+        Check that dates are correctly set when a row is created/updated.
+    """
+    def test_creation_update_dates_trigger(self):
+        approx_creation_date = datetime.datetime.now()
+        mis1_id = self.add_mis("mis1")
+        mis1 = self.db_session.query(metabase.Mis).get(mis1_id)
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertTrue(mis1.created_at - approx_creation_date < timedelta(seconds=4))
+
+        approx_update_date = datetime.datetime.now()
+        mis1.name += "abc"
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertTrue(mis1.updated_at - approx_update_date < timedelta(seconds=4))
+
+        approx_creation_date = datetime.datetime.now()
+        stop1 = new_stop("code1", "Gare de Lyon", mis1_id)
+        self.db_session.add(stop1)
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertTrue(stop1.created_at - approx_creation_date < timedelta(seconds=4))
+
+        approx_update_date = datetime.datetime.now()
+        stop1.lat -= 2
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertTrue(stop1.updated_at - approx_update_date < timedelta(seconds=4))
+
+        approx_creation_date = datetime.datetime.now()
+        mis2_id = self.add_mis("mis2")
+        mis2 = self.db_session.query(metabase.Mis).get(mis2_id)
+        stop2 = new_stop("code1", "Gare de Lyon", mis2_id)
+        self.db_session.add(stop2)
+        self.db_session.commit()
+        transfer_id = self.add_transfer(stop1.id, stop2.id)
+        transfer = self.db_session.query(metabase.Transfer).get(transfer_id)
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertTrue(transfer.created_at - approx_creation_date < timedelta(seconds=4))
+
+        approx_update_date = datetime.datetime.now()
+        transfer.duration += 30
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertTrue(transfer.updated_at - approx_update_date < timedelta(seconds=4))
+
+        approx_creation_date = datetime.datetime.now()
+        mode = metabase.Mode()
+        mode.code = 'bus'
+        self.db_session.add(mode)
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertTrue(mode.created_at - approx_creation_date < timedelta(seconds=4))
+
+        approx_update_date = datetime.datetime.now()
+        mode.code = 'tram'
+        self.db_session.commit()
+        self.db_session.expire_all()
+        self.assertTrue(mode.updated_at - approx_update_date < timedelta(seconds=4))
 
 
     def tearDown(self):

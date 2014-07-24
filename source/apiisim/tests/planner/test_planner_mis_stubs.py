@@ -9,7 +9,7 @@ from apiisim.planner.planner import PlanTripCalculator, TraceStop, create_full_n
                                     MisApi, Session
 from apiisim.common.plan_trip import PlanTripRequestType, LocationStructure
 from apiisim import metabase
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date as date_type
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import aliased
 from apiisim.planner import planner
@@ -38,9 +38,9 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
         logging.debug("TRACES: %s", traces)
         self.assertEquals(traces, self.EXPECTED_TRACES)
         departure_mises = [MisApi(x).get_name() for x in \
-                           calculator._get_surrounding_mises(request.Departure.Position, datetime.now())]
+                           calculator._get_surrounding_mises(request.Departure.Position, date_type.today())]
         arrival_mises = [MisApi(x).get_name() for x in \
-                         calculator._get_surrounding_mises(request.Arrival.Position, datetime.now())]
+                         calculator._get_surrounding_mises(request.Arrival.Position, date_type.today())]
         for t in traces:
             full_trip = calculator.compute_trip(t)
             notif = create_full_notification("test_id", "trace_id", full_trip, timedelta())
