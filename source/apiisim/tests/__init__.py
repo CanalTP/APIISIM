@@ -49,7 +49,9 @@ def create_db(db_name=DB_NAME, user_name=USER_NAME, admin_name=ADMIN_NAME,
 Delete given database and user. No connection to the database must be
 active (use disconnect_db() if needed before calling drop_db()).
 """
-def drop_db(db_name=DB_NAME, user_name=USER_NAME, admin_name=ADMIN_NAME):
+def drop_db(db_name=DB_NAME, user_name=USER_NAME, admin_name=ADMIN_NAME,
+            admin_password=ADMIN_PASS):
+        os.environ["PGPASSWORD"] = admin_password
         subprocess.call(['psql', '-U', admin_name, '-h', 'localhost',
                          '-c', 'DROP DATABASE %s' % db_name])
         subprocess.call(['psql', '-U', admin_name, '-h', 'localhost',
@@ -119,6 +121,7 @@ def calculate_and_check(conf_file, ref_dump_file, db_name=DB_NAME,
 
     # We need to reset rows creation/update dates, otherwise dump match will fail.
     reset_dates(db_name, admin_name, admin_password)
+    os.environ["PGPASSWORD"] = admin_password
     subprocess.call(['pg_dump', '-U', admin_name, '-h', 'localhost', '-f',
                      current_dump_file, db_name])
     # We don't use diff here because pg_dump dumps data in any order,

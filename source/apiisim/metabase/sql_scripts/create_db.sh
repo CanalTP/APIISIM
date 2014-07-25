@@ -37,7 +37,7 @@ PGPASSWORD=$ADMIN_PASS psql -U $ADMIN_NAME -h localhost -c "GRANT ALL PRIVILEGES
 
 # Create PostGIS extension in order to have Geography type
 # PostGIS 2
-psql -U $ADMIN_NAME -h localhost -c "CREATE EXTENSION IF NOT EXISTS postgis;" $DB_NAME &&
+PGPASSWORD=$ADMIN_PASS psql -U $ADMIN_NAME -h localhost -c "CREATE EXTENSION IF NOT EXISTS postgis;" $DB_NAME &&
 
 # PostGIS 1.5
 # PGPASSWORD=$ADMIN_PASS psql -U $ADMIN_NAME -h localhost -d $DB_NAME -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql &&
