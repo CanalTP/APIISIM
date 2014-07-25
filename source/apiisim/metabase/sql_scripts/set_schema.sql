@@ -274,7 +274,7 @@ EXECUTE PROCEDURE set_updated_at_timestamp();
 -- Views
 
 CREATE VIEW transfer_mis AS 
-SELECT t.id transfer_id, m1.id mis1_id, m2.id mis2_id 
+SELECT t.id transfer_id, m1.id mis1_id, m2.id mis2_id, t.active transfer_active
 FROM transfer t, stop s1, stop s2, mis m1, mis m2
 WHERE s1.mis_id=m1.id AND s2.mis_id=m2.id AND t.stop1_id=s1.id AND t.stop2_id=s2.id;
 COMMIT;

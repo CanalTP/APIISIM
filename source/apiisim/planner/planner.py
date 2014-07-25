@@ -488,6 +488,7 @@ class PlanTripCalculator(object):
                                                          metabase.TransferMis.mis2_id==mis2_id),
                                                     and_(metabase.TransferMis.mis1_id==mis2_id,
                                                          metabase.TransferMis.mis2_id==mis1_id))) \
+                                        .filter(metabase.TransferMis.transfer_active==True) \
                                         .order_by(metabase.TransferMis.transfer_id) \
                                         .limit(self.MAX_TRANSFERS) \
                                         .subquery()

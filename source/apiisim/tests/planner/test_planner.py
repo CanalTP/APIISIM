@@ -196,6 +196,11 @@ class TestPlanner(unittest.TestCase):
         transfers = calculator._get_transfers(2, 6)
         self.assertEquals(transfers, ([], [], []))
 
+        # There is a transfer between MIS 3 and MIS 6 but it is not active,
+        # so it should be ignored by _get_transfers().
+        transfers = calculator._get_transfers(3, 6)
+        self.assertEquals(transfers, ([], [], []))
+
         transfers1 = calculator._get_transfers(2, 3)
         transfers2 = calculator._get_transfers(3, 2)
         self.assertEquals(transfers1[0], transfers2[0])

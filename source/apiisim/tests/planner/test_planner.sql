@@ -31,7 +31,8 @@ INSERT INTO stop (code, mis_id, name, lat, long) VALUES
     ('stop_code13', 1, '', 0, 0),
     ('stop_code23', 2, '', 0, 0),
     ('stop_code33', 3, '', 0, 0),
-    ('stop_code43', 4, '', 8, 8);
+    ('stop_code43', 4, '', 8, 8),
+    ('stop_code60', 6, '', 6, 6);
 
 INSERT INTO transfer (stop1_id, stop2_id, distance, duration, active, modification_state) VALUES
     (1, 2, 100, 10, TRUE, 'auto'),
@@ -40,7 +41,8 @@ INSERT INTO transfer (stop1_id, stop2_id, distance, duration, active, modificati
     (14, 3, 100, 20, TRUE, 'auto'),
     (7, 4, 100, 10, TRUE, 'auto'),
     (11, 4, 100, 10, TRUE, 'auto'),
-    (1, 12, 100, 30, TRUE, 'auto');
+    (1, 12, 100, 30, TRUE, 'auto'),
+    (3, 17, 100, 10, FALSE, 'auto');
 
 INSERT INTO mis_connection (mis1_id, mis2_id, start_date, end_date) VALUES
     (1, 2, 

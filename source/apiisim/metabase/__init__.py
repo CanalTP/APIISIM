@@ -162,3 +162,4 @@ class TransferMis(Base):
     transfer_id = Column(Integer, primary_key=True)
     mis1_id = Column(Integer, nullable=False)
     mis2_id = Column(Integer, nullable=False)
+    transfer_active = Column(Boolean)
