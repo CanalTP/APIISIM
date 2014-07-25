@@ -4,13 +4,14 @@ Test suite for metabase and back_office components
 import os, sys
 
 import unittest, logging, datetime
-from datetime import timedelta
+from datetime import timedelta, date as date_type
 from apiisim import tests
 from random import randint
 from apiisim import metabase
 from geoalchemy2.functions import ST_AsText
 from sqlalchemy.exc import IntegrityError
-from apiisim.back_office import compute_transfers, compute_mis_connections
+from apiisim.back_office import compute_transfers, compute_mis_connections, \
+                                mis_dates_overlap
 from sqlalchemy import or_
 
 
@@ -406,6 +407,27 @@ class TestSuite(unittest.TestCase):
                                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
                          1, "MisConnection not found")
 
+        mis1 = self.db_session.query(metabase.Mis).get(mis1_id)
+        mis4 = self.db_session.query(metabase.Mis).get(mis4_id)
+        mis1.start_date = date_type(year=2010, month=6, day=4)
+        mis1.end_date = date_type(year=2012, month=6, day=4)
+        mis4.start_date = date_type(year=2012, month=7, day=1)
+        mis4.end_date = date_type(year=2013, month=4, day=1)
+        self.db_session.commit()
+        compute_mis_connections(self.db_session)
+        # Validity periods don't overlap, so mis_connection should not have been created.
+        self.assertEqual(self.db_session.query(metabase.MisConnection) \
+                                        .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
+                         0, "MisConnection should have been deleted")
+
+        mis4.start_date = date_type(year=2011, month=7, day=1)
+        self.db_session.commit()
+        compute_mis_connections(self.db_session)
+        # Validity periods now overlap, so mis_connection should exist.
+        self.assertEqual(self.db_session.query(metabase.MisConnection) \
+                                        .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
+                         1, "MisConnection not found")
+
 
     """
     Check that if a transfer modification_state is 'recalculate', the back_office 
@@ -609,6 +631,62 @@ class TestSuite(unittest.TestCase):
         self.db_session.commit()
         self.db_session.expire_all()
         self.assertTrue(mode.updated_at - approx_update_date < timedelta(seconds=4))
+
+
+    def test_mis_dates_overlap(self):
+        mis1_id = self.add_mis(name="mis1")
+        mis2_id = self.add_mis(name="mis2")
+        mis1 = self.db_session.query(metabase.Mis).get(mis1_id)
+        mis2 = self.db_session.query(metabase.Mis).get(mis2_id)
+
+        mis1.start_date = date_type(year=2010, month=6, day=4)
+        mis1.end_date = date_type(year=2012, month=6, day=4)
+        mis2.start_date = date_type(year=2009, month=6, day=4)
+        mis2.end_date = date_type(year=2012, month=2, day=3)
+        self.db_session.commit()
+        self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
+
+        mis1.start_date = date_type(year=2010, month=6, day=4)
+        mis1.end_date = date_type(year=2012, month=6, day=4)
+        mis2.start_date = date_type(year=2012, month=6, day=5)
+        mis2.end_date = date_type(year=2013, month=2, day=3)
+        self.db_session.commit()
+        self.assertFalse(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
+
+        mis1.start_date = date_type(year=2010, month=6, day=4)
+        mis1.end_date = date_type(year=2012, month=6, day=4)
+        mis2.start_date = date_type(year=2013, month=4, day=1)
+        mis2.end_date = date_type(year=2016, month=2, day=3)
+        self.db_session.commit()
+        self.assertFalse(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
+
+        mis1.start_date = date_type(year=2008, month=1, day=2)
+        mis1.end_date = date_type(year=2010, month=6, day=4)
+        mis2.start_date = date_type(year=2009, month=6, day=4)
+        mis2.end_date = date_type(year=2012, month=2, day=3)
+        self.db_session.commit()
+        self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
+
+        mis1.start_date = date_type(year=2008, month=1, day=2)
+        mis1.end_date = date_type(year=2010, month=6, day=4)
+        mis2.start_date = date_type(year=2010, month=6, day=4)
+        mis2.end_date = date_type(year=2012, month=2, day=3)
+        self.db_session.commit()
+        self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
+
+        mis1.start_date = date_type(year=2008, month=1, day=2)
+        mis1.end_date = date_type(year=2010, month=6, day=4)
+        mis2.start_date = date_type(year=2010, month=4, day=3)
+        mis2.end_date = date_type(year=2012, month=2, day=3)
+        self.db_session.commit()
+        self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
+
+        mis1.start_date = date_type(year=2010, month=6, day=4)
+        mis1.end_date = date_type(year=2012, month=6, day=4)
+        mis2.start_date = date_type(year=2013, month=4, day=1)
+        mis2.end_date = None
+        self.db_session.commit()
+        self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
 
 
     def tearDown(self):

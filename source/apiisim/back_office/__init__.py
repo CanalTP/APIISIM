@@ -69,6 +69,22 @@ def update_stop(db_session, mis_id, stop):
 
 
 """
+Return True if mis1 and mis2 validity periods overlap, False otherwise.
+"""
+def mis_dates_overlap(db_session, mis1_id, mis2_id):
+    mis1 = db_session.query(metabase.Mis).get(mis1_id)
+    mis2 = db_session.query(metabase.Mis).get(mis2_id)
+    # If one date is missing, return True
+    if not (mis1.start_date and mis1.end_date and mis2.start_date and mis2.end_date):
+        return True
+
+    max_start = max(mis1.start_date, mis2.start_date)
+    min_end = min(mis1.end_date, mis2.end_date)
+
+    return bool((min_end - max_start) >= datetime.timedelta())
+
+
+"""
 Retrieve all stops from Mis APIs and update database accordingly (add new stops
 and remove obsolete ones).
 """
@@ -255,10 +271,11 @@ don't have any transfer between them).
 """
 @db_transaction
 def compute_mis_connections(db_session):
-
     mis_connections = []
     db_transfers = db_session.query(metabase.Transfer).all()
     nb_new = 0
+
+    logging.info("Computing mis_connections...")
     # Add new mis_connections
     for t in db_transfers:
         m1 = t.stop1.mis_id
@@ -267,6 +284,11 @@ def compute_mis_connections(db_session):
         # identification easier.
         mis1_id = min(m1, m2)
         mis2_id = max(m1, m2)
+
+        # Ignore MIS which will never be active at the same time.
+        if not mis_dates_overlap(db_session, mis1_id, mis2_id):
+            continue
+
         mis_connections.append(frozenset([mis1_id, mis2_id]))
         if db_session.query(metabase.MisConnection) \
                      .filter_by(mis1_id=mis1_id, mis2_id=mis2_id) \
