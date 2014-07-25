@@ -51,6 +51,14 @@ def new_request(departure, arrival):
     return ret
 
 
+def receive_msg(connection):
+    ret =  connection.recv()
+    logging.debug("Received: \n%s" % ret)
+    ret = json.loads(ret)
+
+    return ret
+
+
 init_logging()
 
 Draft4Validator.check_schema(ending_search_format)
@@ -73,6 +81,7 @@ Draft4Validator.check_schema(composed_trip_format)
 Draft4Validator.check_schema(plan_trip_notification_response_format)
 
 ws = create_connection("ws://localhost/planner")
+
 req = new_request(
         # SAINT-MICHEL NOTRE DAME - transilien
         # "stop_area:DUA:SA:8778543"
@@ -82,28 +91,23 @@ req = new_request(
         new_location(None, -0.721072, 47.465466))
 ws.send(json.dumps({"PlanTripRequestType" : marshal(req, plan_trip_request_type)}))
 
-# ws.send(json.dumps(
-#             {"PlanTripCancellationRequest" :
-#                     marshal(PlanTripCancellationRequest(RequestId=req.id),
-#                             plan_trip_cancellation_request_type)}))
-# logging.debug("Sent cancellation request")
-
+msg = receive_msg(ws)
+validate(msg["PlanTripResponse"], plan_trip_response_format)
+msg = receive_msg(ws)
+validate(msg["StartingSearch"], starting_search_format)
 while True:
-    result =  ws.recv()
-    logging.debug("Received: \n%s" % result)
-    result = json.loads(result)
-    if "EndingSearch" in result:
-        validate(result["EndingSearch"], ending_search_format)
-    elif "StartingSearch" in result:
-        validate(result["StartingSearch"], starting_search_format)
-    elif "PlanTripResponse" in result:
-        validate(result["PlanTripResponse"], plan_trip_response_format)
-    elif "PlanTripExistenceNotificationResponseType" in result:
-        validate(result["PlanTripExistenceNotificationResponseType"],
+    msg = receive_msg(ws)
+    if "PlanTripExistenceNotificationResponseType" in msg:
+        validate(msg["PlanTripExistenceNotificationResponseType"],
                  plan_trip_existence_notification_format)
-    elif "PlanTripNotificationResponseType" in result:
-        validate(result["PlanTripNotificationResponseType"],
+    elif "PlanTripNotificationResponseType" in msg:
+        validate(msg["PlanTripNotificationResponseType"],
                  plan_trip_notification_response_format)
+    elif "EndingSearch" in msg:
+        validate(msg["EndingSearch"], ending_search_format)
+        ws.close()
+        break
+    else:
+        raise Exception("FAIL: Unexpected message: %s" % msg)
 
-
-ws.close()
+logging.info("SUCCESS")
