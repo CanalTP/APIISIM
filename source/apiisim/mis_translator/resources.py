@@ -173,12 +173,12 @@ def _itinerary_request(mis_name, request, summed_up_itineraries=False):
 
     if summed_up_itineraries:
         func = mis.get_summed_up_itineraries
-        ret = SummedUpItinerariesResponseType()
+        resp = SummedUpItinerariesResponseType()
     else:
         func = mis.get_itinerary
-        ret = ItineraryResponseType()
+        resp = ItineraryResponseType()
     try:
-        ret = func(
+        resp = func(
                 params.departures, 
                 params.arrivals, 
                 params.departure_time,
@@ -189,26 +189,26 @@ def _itinerary_request(mis_name, request, summed_up_itineraries=False):
                 accessibility_constraint=params.accessibility_constraint,
                 language=params.language,
                 options=params.options)
-        ret.Status = StatusType(Code=StatusCodeEnum.OK)
+        resp.Status = StatusType(Code=StatusCodeEnum.OK)
     except MisApiException as exc:
         resp_code = 500
-        ret.Status = StatusType(Code=exc.error_code)
+        resp.Status = StatusType(Code=exc.error_code)
     except:
         logging.error(format_exc())
         resp_code = 500
-        ret.Status = StatusType(Code=StatusCodeEnum.INTERNAL_ERROR)
+        resp.Status = StatusType(Code=StatusCodeEnum.INTERNAL_ERROR)
 
     request_duration = datetime.datetime.now() - request_start_date
-    ret.Status.RuntimeDuration = request_duration
-    ret.RequestId = params.id
+    resp.Status.RuntimeDuration = request_duration
+    resp.RequestId = params.id
     if summed_up_itineraries:
-        resp_data = {'SummedUpItinerariesResponseType' : \
-                     marshal(ret, summed_up_itineraries_response_type)}
+        marshalled_resp = {'SummedUpItinerariesResponseType' : \
+                     marshal(resp, summed_up_itineraries_response_type)}
     else:
-        resp_data = {'ItineraryResponseType' : marshal(ret, itinerary_response_type)}
+        marshalled_resp = {'ItineraryResponseType' : marshal(resp, itinerary_response_type)}
 
     # TODO handle all errors (TOO_MANY_END_POINT...)
-    return Response(json.dumps(resp_data),
+    return Response(json.dumps(marshalled_resp),
                     status=resp_code, mimetype='application/json')
 
 
