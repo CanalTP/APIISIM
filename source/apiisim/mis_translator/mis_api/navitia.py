@@ -588,7 +588,7 @@ class MisApi(MisApiBase):
                             choose_best_journey(journeys_from_departure, algorithm,
                                                 departure_at=False))
 
-        ret.summedUpTrips = [journey_to_summed_up_trip(x) for x in best_journeys]
+        ret.summedUpTrips = [journey_to_summed_up_trip(x) for x in best_journeys if x]
         logging.debug("Summed up trips (%s) : %s", len(ret.summedUpTrips), ret.summedUpTrips)
 
         return ret
