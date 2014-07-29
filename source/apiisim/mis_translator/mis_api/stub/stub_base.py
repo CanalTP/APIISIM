@@ -13,7 +13,7 @@
         - some faulty implementations, with various error cases. They are useful
           for unit tests.
 """
-from base import MisApiBase, MisCapabilities
+from apiisim.mis_translator.mis_api.base import MisApiBase, MisCapabilities
 import json, logging, os
 from apiisim.common.mis_collect_stops import StopPlaceType, QuayType, CentroidType, LocationStructure
 from apiisim.common.mis_plan_trip import ItineraryResponseType, EndPointType, \
@@ -34,7 +34,7 @@ from geoalchemy2.functions import ST_Distance, GenericFunction
 import sys, ConfigParser
 
 
-NAME = "_stub"
+NAME = "stub_base"
 
 DB_TRIGGER = \
 """
@@ -460,6 +460,38 @@ class _ConsistencyChecksMisApi(_SimpleMisApi):
                         departures, arrivals, departure_time, arrival_time,
                         algorithm, modes, self_drive_conditions,
                         accessibility_constraint, language, options)
+
+class _NoDepartureMisApi(_SimpleMisApi):
+    def _generate_summed_up_trip(self, *args, **kwargs):
+        ret = super(_NoDepartureMisApi, self)._generate_summed_up_trip(*args, **kwargs)
+        ret.Departure = None
+        return None
+
+class _NoArrivalMisApi(_SimpleMisApi):
+    def _generate_summed_up_trip(self, *args, **kwargs):
+        ret = super(_NoArrivalMisApi, self)._generate_summed_up_trip(*args, **kwargs)
+        ret.Arrival = None
+        return ret
+
+class _SwitchPointsMisApi(_SimpleMisApi):
+    def _generate_summed_up_trip(self, *args, **kwargs):
+        ret = super(_SwitchPointsMisApi, self)._generate_summed_up_trip(*args, **kwargs)
+        # Switch arrival and departure points
+        stop_tmp = ret.Departure
+        ret.Departure = ret.Arrival
+        ret.Arrival = stop_tmp
+        return ret
+
+class _SwitchTimesMisApi(_SimpleMisApi):
+    def _generate_summed_up_trip(self, *args, **kwargs):
+        ret = super(_SwitchTimesMisApi, self)._generate_summed_up_trip(*args, **kwargs)
+        # Switch arrival and departure times
+        date_tmp = ret.Departure.DateTime
+        ret.Departure.DateTime = ret.Arrival.DateTime
+        ret.Arrival.DateTime = date_tmp
+        return ret
+
+
 def parse_config():
     if len(sys.argv) < 2:
         return None

@@ -16,13 +16,15 @@ from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
 from traceback import format_exc
 
 
-# List of enabled Mis APIs modules
-MIS_APIS_AVAILABLE = frozenset(["navitia", "test1", "test2", 
+# Lists of enabled Mis APIs modules
+MIS_APIS_AVAILABLE = frozenset(["navitia", "test1", "test2",
                                 "pays_de_la_loire", "bretagne", "bourgogne",
-                                "transilien", "sncf_national", "stub_transilien", 
-                                "stub_pays_de_la_loire", "stub_bourgogne",
-                                "stub_sncf_national","stub_transilien_light",
-                                "stub_pays_de_la_loire_light", "stub_bourgogne_light"])
+                                "transilien", "sncf_national"])
+
+STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien",
+                                     "stub_pays_de_la_loire", "stub_bourgogne",
+                                     "stub_sncf_national","stub_transilien_light",
+                                     "stub_pays_de_la_loire_light", "stub_bourgogne_light"])
 mis_api_mapping = {} # Mis name : MisApi Class
 
 """
@@ -30,12 +32,13 @@ Load all available Mis APIs modules and populate mis_api_mapping dict so that
 we can easily instanciate a MisApi object based on the Mis name.
 """
 def load_mis_apis():
-    for m in MIS_APIS_AVAILABLE:
-        mis_module = "%s_module" % m
-        exec ("import mis_api.%s as %s" % (m, mis_module))
-        mis_name = eval("%s.NAME" % mis_module)
-        mis_api_mapping[mis_name] = eval("%s.MisApi" % mis_module)
-        logging.info("Loaded Mis API <%s> ", m)
+    for subdir, mis_apis in [("", MIS_APIS_AVAILABLE), ("stub.", STUB_MIS_APIS_AVAILABLE)]:
+        for m in mis_apis:
+            mis_module = "%s_module" % m
+            exec ("import mis_api.%s%s as %s" % (subdir, m, mis_module))
+            mis_name = eval("%s.NAME" % mis_module)
+            mis_api_mapping[mis_name] = eval("%s.MisApi" % mis_module)
+            logging.info("Loaded Mis API <%s> ", mis_name)
 
 """
 Return new MisApi object based on given mis_name.

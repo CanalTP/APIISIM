@@ -1,5 +1,5 @@
 import os
-from _stub import MisApi as StubApi
+from stub_base import MisApi as StubApi
 
 NAME="stub_transilien_light"
 
