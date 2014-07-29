@@ -1,11 +1,12 @@
 # -*- coding: utf8 -*-
 
-from base import MisApiBase, Stop, MisApiException, \
+from base import MisApiBase, MisApiException, \
                  MisApiDateOutOfScopeException, MisApiBadRequestException, \
                  MisApiInternalErrorException, MisApiUnauthorizedException
 import json, httplib2, logging, urllib
 # TODO  do not use import *
 from apiisim.common.mis_plan_trip import *
+from apiisim.common.mis_collect_stops import StopPlaceType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
                    TransportModeEnum, PublicTransportModeEnum, PlanSearchOptions
@@ -476,7 +477,7 @@ class MisApi(MisApiBase):
     def get_stops(self):
         base_url = self._api_url + "/stop_areas"
         params = {"count" : ITEMS_PER_PAGE}
-        stops = []
+        ret = []
         # TODO delete that, just here for testing purposes
         max_pages = 0
         pages_read = 0
@@ -485,11 +486,18 @@ class MisApi(MisApiBase):
             resp, content = self._send_request(url)
 
             content = json.loads(content)
-            for s in  content["stop_areas"]:
-                stops.append(Stop(code=s["id"],
-                                  name=s["name"],
-                                  lat=s["coord"]["lat"],
-                                  long=s["coord"]["lon"]))
+            for s in content["stop_areas"]:
+                ret.append(
+                    StopPlaceType(
+                        id=s["id"],
+                        quays=[QuayType(
+                                id=s["id"],
+                                Name=s["name"],
+                                PrivateCode=s["id"],
+                                Centroid=CentroidType(
+                                            Location=LocationStructure(
+                                                        Longitude=s["coord"]["lon"],
+                                                        Latitude=s["coord"]["lat"])))]))
 
             for s in  content["links"]:
                 if "type" in s and s['type'] == "next":
@@ -508,7 +516,7 @@ class MisApi(MisApiBase):
                 if pages_read > max_pages:
                     break
 
-        return stops
+        return ret
 
 
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
@@ -534,7 +542,7 @@ class MisApi(MisApiBase):
 
         best_journey = choose_best_journey(journeys, algorithm)
         # If no journey found, DetailedTrip is None
-        return ItineraryResponseType(DetailedTrip=journey_to_detailed_trip(best_journey))
+        return journey_to_detailed_trip(best_journey)
 
 
     def get_summed_up_itineraries(self, departures, arrivals, departure_time, 
@@ -544,7 +552,7 @@ class MisApi(MisApiBase):
                                   language, options):
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
-        ret = SummedUpItinerariesResponseType()
+        ret = []
 
         # Request itinerary for every departure/arrival pair and then
         # choose best.
@@ -559,8 +567,7 @@ class MisApi(MisApiBase):
 
         if not journeys:
             # No journey found, no need to go further, just return empty list.
-            ret.summedUpTrips = []
-            return ret
+            return []
 
         best_journeys = []
         if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in options:
@@ -588,7 +595,7 @@ class MisApi(MisApiBase):
                             choose_best_journey(journeys_from_departure, algorithm,
                                                 departure_at=False))
 
-        ret.summedUpTrips = [journey_to_summed_up_trip(x) for x in best_journeys if x]
-        logging.debug("Summed up trips (%s) : %s", len(ret.summedUpTrips), ret.summedUpTrips)
+        ret = [journey_to_summed_up_trip(x) for x in best_journeys if x]
+        logging.debug("Summed up trips (%s) : %s", len(ret), ret)
 
         return ret

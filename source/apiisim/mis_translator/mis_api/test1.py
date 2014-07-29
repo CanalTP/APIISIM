@@ -1,4 +1,6 @@
-from base import MisApiBase, Stop
+from base import MisApiBase
+from apiisim.common.mis_collect_stops import StopPlaceType, QuayType, \
+                                             CentroidType, LocationStructure
 import json, os
 
 NAME = "test1"
@@ -13,9 +15,16 @@ class MisApi(MisApiBase):
             content = json.loads(content[content.find('{"stop_points"'):])
 
             for s in  content["stop_points"]:
-                stops.append(Stop(code=s["id"],
-                                  name=s["name"],
-                                  lat=s["coord"]["lat"],
-                                  long=s["coord"]["lon"]))
+                stops.append(
+                    StopPlaceType(
+                        id=s["id"],
+                        quays=[QuayType(
+                                id=s["id"],
+                                Name=s["name"],
+                                PrivateCode=s["id"],
+                                Centroid=CentroidType(
+                                            Location=LocationStructure(
+                                                        Longitude=s["coord"]["lon"],
+                                                        Latitude=s["coord"]["lat"])))]))
 
         return stops

@@ -79,9 +79,6 @@ def marshal(obj, fields):
     return ret
 
 
-stop_fields = {'code': fields.String, 'name': fields.String,
-               'lat': _Float, 'long': _Float}
-
 location_structure_type = {
     'Latitude' : _Float,
     'Longitude' : _Float
@@ -320,4 +317,25 @@ starting_search_type = {
     'RequestId' : fields.String,
     'Status' : fields.String,
     'MaxComposedTripSearched' : fields.Integer,
+}
+
+centroid_type = {
+    'Location' : NonNullNested(location_structure_type)
+}
+
+quay_type = {
+    'id' : fields.String,
+    'Name' : fields.String,
+    'PrivateCode' : fields.String,
+    'Centroid' : NonNullNested(centroid_type)
+}
+
+stop_place_type = {
+    'id' : fields.String,
+    'quays' : fields.List(NonNullNested(quay_type)),
+}
+
+stops_response_type = {
+    'Status' : NonNullNested(status_type),
+    'stopPlaces' : fields.List(NonNullNested(stop_place_type)),
 }

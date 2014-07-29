@@ -13,8 +13,9 @@
         - some faulty implementations, with various error cases. They are useful
           for unit tests.
 """
-from base import MisApiBase, Stop
+from base import MisApiBase
 import json, logging, os
+from apiisim.common.mis_collect_stops import StopPlaceType, QuayType, CentroidType, LocationStructure
 from apiisim.common.mis_plan_trip import ItineraryResponseType, EndPointType, \
                                  TripStopPlaceType, TripType, SectionType, \
                                  PTRideType, LegType, StepEndPointType, StepType
@@ -184,7 +185,17 @@ class _MisApi(MisApiBase):
         ret = []
         stops = self._db_session.query(DbStop).all()
         for s in stops:
-            ret.append(Stop(code=s.code, name=s.name, lat=s.lat, long=s.long))
+            ret.append(
+                StopPlaceType(
+                    id=s.code,
+                    quays=[QuayType(
+                            id=s.code,
+                            Name=s.name,
+                            PrivateCode=s.code,
+                            Centroid=CentroidType(
+                                        Location=LocationStructure(
+                                                    Longitude=s.long,
+                                                    Latitude=s.lat)))]))
 
         return ret
 
@@ -192,8 +203,7 @@ class _MisApi(MisApiBase):
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
                       algorithm, modes, self_drive_conditions,
                       accessibility_constraint, language, options):
-        trip = self._generate_detailed_trip(departures, arrivals, departure_time, arrival_time)
-        return ItineraryResponseType(DetailedTrip=trip)
+        return self._generate_detailed_trip(departures, arrivals, departure_time, arrival_time)
 
 
     def get_summed_up_itineraries(self, departures, arrivals, departure_time,
@@ -201,23 +211,20 @@ class _MisApi(MisApiBase):
                                   modes, self_drive_conditions,
                                   accessibility_constraint,
                                   language, options):
-        ret = SummedUpItinerariesResponseType()
-
-        trips = []
+        ret = []
         if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in options:
             for d in departures:
                 for a in arrivals:
-                    trips.append(self._generate_summed_up_trip([d], [a], departure_time, arrival_time))
+                    ret.append(self._generate_summed_up_trip([d], [a], departure_time, arrival_time))
         else:
             if departure_time:
                 for a in arrivals:
-                    trips.append(self._generate_summed_up_trip(departures, [a], departure_time, None))
+                    ret.append(self._generate_summed_up_trip(departures, [a], departure_time, None))
             else:
                 for d in departures:
-                    trips.append(self._generate_summed_up_trip([d], arrivals, None, arrival_time))
+                    ret.append(self._generate_summed_up_trip([d], arrivals, None, arrival_time))
 
-        ret.summedUpTrips = trips
-        logging.debug("Summed up trips (%s) : %s", len(ret.summedUpTrips), ret.summedUpTrips)
+        logging.debug("Summed up trips (%s) : %s", len(ret), ret)
 
         return ret
 
@@ -425,8 +432,7 @@ class _EmptyTripsMisApi(_SimpleMisApi):
     generate_empty_arrival_at_trips = False
 
     def get_summed_up_itineraries(self, *args, **kwargs):
-        ret = super(_EmptyTripsMisApi, self).get_summed_up_itineraries(*args, **kwargs)
-        trips = ret.summedUpTrips
+        trips = super(_EmptyTripsMisApi, self).get_summed_up_itineraries(*args, **kwargs)
         if trips and \
            ((self.generate_empty_departure_at_trips and departure_time)
             or (self.generate_empty_arrival_at_trips and arrival_time)):
@@ -435,7 +441,7 @@ class _EmptyTripsMisApi(_SimpleMisApi):
                                                  trips[i].Arrival.TripStopPlace.id)
             trips.pop(i)
 
-        return ret
+        return trips
 
 class _ConsistencyChecksMisApi(_SimpleMisApi):
     def get_summed_up_itineraries(self, departures, arrivals, departure_time,

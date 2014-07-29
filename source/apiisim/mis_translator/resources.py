@@ -9,13 +9,14 @@ from apiisim.common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, Tri
                    TransportModeEnum, PlanSearchOptions, string_to_bool, \
                    xsd_duration_to_timedelta, parse_location_context
 from apiisim.common.marshalling import *
+from apiisim.common.mis_collect_stops import StopsResponseType
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
                          MisApiBadRequestException, MisApiInternalErrorException
 from traceback import format_exc
 
 
 # List of enabled Mis APIs modules
-MIS_APIS_AVAILABLE = frozenset(["dummy", "navitia", "test1", "test2", 
+MIS_APIS_AVAILABLE = frozenset(["navitia", "test1", "test2", 
                                 "pays_de_la_loire", "bretagne", "bourgogne",
                                 "transilien", "sncf_national", "stub_transilien", 
                                 "stub_pays_de_la_loire", "stub_bourgogne",
@@ -64,10 +65,30 @@ class _ItineraryRequestParams:
         self.language = ""
         self.options = []
 
-
-def parse_request(request, summed_up_itineraries=False):
+""" 
+Parse given itinerary request.
+To parse a summed_up_itineraries request (i.e. non-detailed itineraries), 
+set summed_up_itineraries to True. To parse a "standard" itinerary request
+(i.e. more detailed itineraries), set summed_up_itineraries to False.
+"""
+def parse_itinerary_request(request, summed_up_itineraries=False):
     # TODO do all validators
     params = _ItineraryRequestParams()
+
+    if not request.json:
+        logging.error("No JSON in request")
+        abort(400)
+
+    if summed_up_itineraries:
+        if ("DepartureTime" not in request.json) and ("ArrivalTime" not in request.json):
+            logging.error("No departure/arrival time given")
+            abort(400)
+    else:
+        if ("DepartureTime" not in request.json and "ArrivalTime" not in request.json) \
+            or ("multiDepartures" not in request.json and "multiArrivals" not in request.json) \
+            or ("multiDepartures" in request.json and "multiArrivals" in request.json):
+            logging.error("Invalid itinerary request")
+            abort(400)
 
     # Required
     # TODO send error if no ID given
@@ -137,98 +158,116 @@ def parse_request(request, summed_up_itineraries=False):
     return params
 
 
-""" 
-Send itinerary request to given MIS.
-If summed_up_itineraries is True, we'll request summed up itineraries 
-(i.e. non-detailed itineraries), otherwise we'll request "standard" 
-itineraries (i.e. more detailed itineraries).
-"""
-def _itinerary_request(mis_name, request, summed_up_itineraries=False):
-    request_start_date = datetime.datetime.now()
+class RequestProcessor(object):
+    def __init__(self, mis_name, request):
+        self._mis_name = mis_name
+        self._request = request
+        self._start_date = datetime.datetime.now()
+        self._mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
 
-    if not request.json:
-        logging.error("No JSON in request")
-        abort(400)
+        logging.debug("MIS NAME %s", mis_name)
+        logging.debug("URL: %s", request.url)
+        if request.json:
+            logging.debug("REQUEST.JSON: \n%s", request.json)
+
+    def _parse_request(self):
+        return None
+
+    def process(self):
+        params = self._parse_request()
+        self._resp = self._new_response()
+
+        resp_code = 200
+        try:
+            self._mis_request(params)
+            self._resp.Status = StatusType(Code=StatusCodeEnum.OK)
+        except MisApiException as exc:
+            resp_code = 500
+            self._resp.Status = StatusType(Code=exc.error_code)
+        except:
+            logging.error(format_exc())
+            resp_code = 500
+            self._resp.Status = StatusType(Code=StatusCodeEnum.INTERNAL_ERROR)
+
+        if params:
+            self._resp.RequestId = params.id
+        self._resp.Status.RuntimeDuration = datetime.datetime.now() - self._start_date
+
+        # TODO handle all errors (TOO_MANY_END_POINT...)
+        return Response(json.dumps(self._marshal_response()),
+                        status=resp_code, mimetype='application/json')
 
 
-    mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
+class ItineraryRequestProcessor(RequestProcessor):
+    def _parse_request(self):
+        return parse_itinerary_request(self._request)
 
-    logging.debug("MIS NAME %s", mis_name)
-    logging.debug("URL: %s\nREQUEST.JSON: %s", request.url, request.json)
+    def _new_response(self):
+        return ItineraryResponseType()
 
-    if summed_up_itineraries:
-        if ("DepartureTime" not in request.json) and ("ArrivalTime" not in request.json):
-            logging.error("No departure/arrival time given")
-            abort(400)
-    else:
-        if ("DepartureTime" not in request.json and "ArrivalTime" not in request.json) \
-            or ("multiDepartures" not in request.json and "multiArrivals" not in request.json) \
-            or ("multiDepartures" in request.json and "multiArrivals" in request.json):
-            logging.error("Invalid itinerary request")
-            abort(400)
+    def _mis_request(self, params):
+        self._resp.DetailedTrip = \
+                self._mis.get_itinerary(
+                        params.departures, 
+                        params.arrivals, 
+                        params.departure_time,
+                        params.arrival_time, 
+                        algorithm=params.algorithm, 
+                        modes=params.modes, 
+                        self_drive_conditions=params.self_drive_conditions,
+                        accessibility_constraint=params.accessibility_constraint,
+                        language=params.language,
+                        options=params.options)
 
-    params = parse_request(request, summed_up_itineraries)
+    def _marshal_response(self):
+        return {'ItineraryResponseType' : marshal(self._resp, itinerary_response_type)}
 
-    resp_code = 200
 
-    if summed_up_itineraries:
-        func = mis.get_summed_up_itineraries
-        resp = SummedUpItinerariesResponseType()
-    else:
-        func = mis.get_itinerary
-        resp = ItineraryResponseType()
-    try:
-        resp = func(
-                params.departures, 
-                params.arrivals, 
-                params.departure_time,
-                params.arrival_time, 
-                algorithm=params.algorithm, 
-                modes=params.modes, 
-                self_drive_conditions=params.self_drive_conditions,
-                accessibility_constraint=params.accessibility_constraint,
-                language=params.language,
-                options=params.options)
-        resp.Status = StatusType(Code=StatusCodeEnum.OK)
-    except MisApiException as exc:
-        resp_code = 500
-        resp.Status = StatusType(Code=exc.error_code)
-    except:
-        logging.error(format_exc())
-        resp_code = 500
-        resp.Status = StatusType(Code=StatusCodeEnum.INTERNAL_ERROR)
+class SummedUpItinerariesRequestProcessor(RequestProcessor):
+    def _parse_request(self):
+        return parse_itinerary_request(self._request, summed_up_itineraries=True)
 
-    request_duration = datetime.datetime.now() - request_start_date
-    resp.Status.RuntimeDuration = request_duration
-    resp.RequestId = params.id
-    if summed_up_itineraries:
-        marshalled_resp = {'SummedUpItinerariesResponseType' : \
-                     marshal(resp, summed_up_itineraries_response_type)}
-    else:
-        marshalled_resp = {'ItineraryResponseType' : marshal(resp, itinerary_response_type)}
+    def _new_response(self):
+        return SummedUpItinerariesResponseType()
 
-    # TODO handle all errors (TOO_MANY_END_POINT...)
-    return Response(json.dumps(marshalled_resp),
-                    status=resp_code, mimetype='application/json')
+    def _mis_request(self, params):
+        self._resp.summedUpTrips = \
+                self._mis.get_summed_up_itineraries(
+                        params.departures, 
+                        params.arrivals, 
+                        params.departure_time,
+                        params.arrival_time, 
+                        algorithm=params.algorithm, 
+                        modes=params.modes, 
+                        self_drive_conditions=params.self_drive_conditions,
+                        accessibility_constraint=params.accessibility_constraint,
+                        language=params.language,
+                        options=params.options)
+
+    def _marshal_response(self):
+        return {'SummedUpItinerariesResponseType' : \
+                marshal(self._resp, summed_up_itineraries_response_type)}
+
+
+class StopsRequestProcessor(RequestProcessor):
+    def _mis_request(self, params):
+        self._resp.stopPlaces = self._mis.get_stops()
+
+    def _new_response(self):
+        return StopsResponseType()
+
+    def _marshal_response(self):
+        return {'StopsResponseType' : marshal(self._resp, stops_response_type)}
 
 
 class Stops(Resource):
-
     def get(self, mis_name=""):
-        mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
-
-        stops = mis.get_stops()
-
-        resp_data = {"stops" : marshal(stops, stop_fields)}
-        return Response(json.dumps(resp_data),
-                        status=200, mimetype='application/json')
+        return StopsRequestProcessor(mis_name, request).process()
 
 class Itineraries(Resource):
-
     def post(self, mis_name=""):
-        return _itinerary_request(mis_name, request)
+        return ItineraryRequestProcessor(mis_name, request).process()
 
 class SummedUpItineraries(Resource):
-
     def post(self, mis_name=""):
-        return _itinerary_request(mis_name, request, summed_up_itineraries=True)
+        return SummedUpItinerariesRequestProcessor(mis_name, request).process()
