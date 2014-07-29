@@ -1,6 +1,3 @@
-"""
-Test suite for metabase and back_office components
-"""
 import os, sys
 
 import unittest, logging, datetime
@@ -14,6 +11,7 @@ from apiisim.back_office import compute_transfers, compute_mis_connections, \
                                 mis_dates_overlap
 from sqlalchemy import or_
 
+TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
 
 def new_stop(code ="stop_code", name="stop_name", mis_id=1):
     stop = metabase.Stop()
@@ -25,7 +23,10 @@ def new_stop(code ="stop_code", name="stop_name", mis_id=1):
 
     return stop
 
-class TestSuite(unittest.TestCase):
+"""
+Test suite for metabase and back_office components
+"""
+class TestBackOffice(unittest.TestCase):
 
     def setUp(self):
         try:
@@ -691,6 +692,41 @@ class TestSuite(unittest.TestCase):
 
     def tearDown(self):
         tests.disconnect_db(self.db_session)
+        tests.drop_db()
+
+
+"""
+This test uses 3 components (metabase, back_office and mis_translator).
+It creates a database, retrieve stops from 2 stub MIS and launch the
+back_office several times, each time with a different maximum distance between
+stops (to calculate transfers). For each different setting, we generate a dump
+of the resulting database and compare it to a reference dump. If they don't match,
+we exit the test and consider it as failed.
+"""
+class TestBackOfficeChangeTransferMaxDistance(unittest.TestCase):
+
+    def setUp(self):
+        try:
+            tests.drop_db()
+        except:
+            pass
+        tests.create_db(populate_script=TEST_DIR + "test_back_office.sql")
+        self._mis_translator_process = tests.launch_mis_translator()
+
+    def test(self):
+        for conf_file, ref_dump_file in \
+            [('test_back_office1.conf', 'db_dump1'),
+             ('test_back_office2.conf', 'db_dump2'),
+             ('test_back_office3.conf', 'db_dump3'),
+             ('test_back_office4.conf', 'db_dump4')]:
+            self.assertTrue(
+                tests.calculate_and_check(
+                    TEST_DIR + conf_file, TEST_DIR + ref_dump_file),
+                msg="Database dump different than reference dump (%s)" \
+                     % (ref_dump_file))
+
+    def tearDown(self):
+        tests.terminate_mis_translator(self._mis_translator_process)
         tests.drop_db()
 
 
