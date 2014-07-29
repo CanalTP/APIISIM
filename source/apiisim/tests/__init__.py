@@ -8,7 +8,7 @@ from apiisim import metabase
 
 CREATE_DB_SCRIPT = os.path.dirname(os.path.realpath(__file__)) + "/../metabase/sql_scripts/create_db.sh"
 MIS_TRANSLATOR = os.path.dirname(os.path.realpath(__file__)) + "/../mis_translator/run.py"
-BACK_OFFICE = os.path.dirname(os.path.realpath(__file__)) + "/../back_office/__init__.py"
+BACK_OFFICE = os.path.dirname(os.path.realpath(__file__)) + "/../back_office/run.py"
 
 DB_NAME = "test_db"
 USER_NAME = "test_user"

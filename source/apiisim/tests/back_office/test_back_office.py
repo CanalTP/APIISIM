@@ -7,7 +7,7 @@ from random import randint
 from apiisim import metabase
 from geoalchemy2.functions import ST_AsText
 from sqlalchemy.exc import IntegrityError
-from apiisim.back_office import compute_transfers, compute_mis_connections, \
+from apiisim.back_office.run import compute_transfers, compute_mis_connections, \
                                 mis_dates_overlap
 from sqlalchemy import or_
 
