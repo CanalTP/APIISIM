@@ -13,7 +13,7 @@
         - some faulty implementations, with various error cases. They are useful
           for unit tests.
 """
-from base import MisApiBase
+from base import MisApiBase, MisCapabilities
 import json, logging, os
 from apiisim.common.mis_collect_stops import StopPlaceType, QuayType, CentroidType, LocationStructure
 from apiisim.common.mis_plan_trip import ItineraryResponseType, EndPointType, \
@@ -199,6 +199,8 @@ class _MisApi(MisApiBase):
 
         return ret
 
+    def get_capabilities(self):
+        return MisCapabilities(True, True, [TransportModeEnum.ALL])
 
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
                       algorithm, modes, self_drive_conditions,

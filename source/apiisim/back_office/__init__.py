@@ -85,6 +85,23 @@ def mis_dates_overlap(db_session, mis1_id, mis2_id):
 
 
 """
+Retrieve MIS capabilities and update database accordingly.
+"""
+@db_transaction
+def retrieve_mis_capabilities(db_session):
+    logging.info("Retrieving MIS capabilities...")
+    for mis in db_session.query(metabase.Mis).all():
+        try:
+            logging.info("From <%s>...", mis.name)
+            capabilities = MisApi(mis.api_url, mis.api_key).get_capabilties()
+            mis.multiple_starts_and_arrivals = capabilities.multiple_starts_and_arrivals
+            mis.geographic_position_compliant = capabilities.geographic_position_compliant
+            logging.info("OK")
+        except Exception as e:
+            logging.error("get_capabilties request to <%s> failed: %s", mis.api_url, e)
+
+
+"""
 Retrieve all stops from Mis APIs and update database accordingly (add new stops
 and remove obsolete ones).
 """
@@ -344,6 +361,7 @@ def main():
     config = get_config()
     db_url = config.get('General', 'db_url')
     transfer_max_distance = config.getint('General', 'transfer_max_distance')
+    request_mis_capabilities = config.getboolean('General', 'request_mis_capabilities')
     logging.info("db_url: %s", db_url)
     logging.info("transfer_max_distance: %s", transfer_max_distance)
 
@@ -352,6 +370,8 @@ def main():
     db_session = Session(bind=db_engine, expire_on_commit=False)
 
     try:
+        if request_mis_capabilities:
+            retrieve_mis_capabilities(db_session)
         retrieve_all_stops(db_session)
         compute_transfers(db_session, transfer_max_distance)
         compute_mis_connections(db_session)

@@ -14,6 +14,17 @@ class MisApiInternalErrorException(MisApiException):
     error_code = StatusCodeEnum.INTERNAL_ERROR
 
 
+class MisCapabilities(object):
+    def __init__(self, multiple_starts_and_arrivals, geographic_position_compliant,
+                 public_transport_modes):
+        # Integer
+        self.multiple_starts_and_arrivals = multiple_starts_and_arrivals
+        # Boolean
+        self.geographic_position_compliant = geographic_position_compliant
+        # [TransportModeEnum]
+        self.public_transport_modes = public_transport_modes
+
+
 class MisApiBase(object):
 
     def __init__(self, api_key=""):
@@ -24,6 +35,9 @@ class MisApiBase(object):
     """
     def get_stops(self):
         return [] # [StopPlaceType]
+
+    def get_capabilities(self):
+        return MisCapabilities(False, False, [])
 
     """
         departures: [LocationContextType]

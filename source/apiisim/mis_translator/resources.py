@@ -10,6 +10,7 @@ from apiisim.common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, Tri
                    xsd_duration_to_timedelta, parse_location_context
 from apiisim.common.marshalling import *
 from apiisim.common.mis_collect_stops import StopsResponseType
+from apiisim.common.mis_capabilities import CapabilitiesResponseType
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
                          MisApiBadRequestException, MisApiInternalErrorException
 from traceback import format_exc
@@ -259,10 +260,26 @@ class StopsRequestProcessor(RequestProcessor):
     def _marshal_response(self):
         return {'StopsResponseType' : marshal(self._resp, stops_response_type)}
 
+class CapabilitiesRequestProcessor(RequestProcessor):
+    def _mis_request(self, params):
+        capabilities = self._mis.get_capabilities()
+        self._resp.MultipleStartsAndArrivals = capabilities.multiple_starts_and_arrivals
+        self._resp.GeographicPositionCompliant = capabilities.geographic_position_compliant
+
+    def _new_response(self):
+        return CapabilitiesResponseType()
+
+    def _marshal_response(self):
+        return {'CapabilitiesResponseType' : marshal(self._resp, capabilities_response_type)}
+
 
 class Stops(Resource):
     def get(self, mis_name=""):
         return StopsRequestProcessor(mis_name, request).process()
+
+class Capabilities(Resource):
+    def get(self, mis_name=""):
+        return CapabilitiesRequestProcessor(mis_name, request).process()
 
 class Itineraries(Resource):
     def post(self, mis_name=""):

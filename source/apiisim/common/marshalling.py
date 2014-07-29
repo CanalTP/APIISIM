@@ -339,3 +339,10 @@ stops_response_type = {
     'Status' : NonNullNested(status_type),
     'stopPlaces' : fields.List(NonNullNested(stop_place_type)),
 }
+
+capabilities_response_type = {
+    'Status' : NonNullNested(status_type),
+    'MultipleStartsAndArrivals' : fields.Integer,
+    'GeographicPositionCompliant' : fields.Boolean,
+    'publicTransportModes' : fields.String,
+}

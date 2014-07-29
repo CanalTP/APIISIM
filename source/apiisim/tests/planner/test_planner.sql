@@ -1,7 +1,7 @@
 BEGIN;
 
 INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date, 
-                 geographic_position_compliant, multiple_start_and_arrivals) VALUES
+                 geographic_position_compliant, multiple_starts_and_arrivals) VALUES
     ('mis1', 'comment1', 'mis1_url', '', DATE '2007-05-16', 
      DATE '2016-05-16', TRUE, 0),
     ('mis2', 'comment2', 'mis2_url', '', DATE '2008-02-19', 

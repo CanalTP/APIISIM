@@ -24,7 +24,7 @@ class Mis(Base):
     start_date = Column(DATE)
     end_date = Column(DATE)
     geographic_position_compliant = Column(Boolean)
-    multiple_start_and_arrivals = Column(Integer)
+    multiple_starts_and_arrivals = Column(Integer)
     created_at = Column(TIMESTAMP)
     updated_at = Column(TIMESTAMP)
 

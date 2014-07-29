@@ -1,6 +1,7 @@
-from base import MisApiBase
+from base import MisApiBase, MisCapabilities
 from apiisim.common.mis_collect_stops import StopPlaceType, QuayType, \
                                              CentroidType, LocationStructure
+from apiisim.common import TransportModeEnum
 import json, os
 
 NAME = "test1"
@@ -28,3 +29,6 @@ class MisApi(MisApiBase):
                                                         Latitude=s["coord"]["lat"])))]))
 
         return stops
+
+    def get_capabilities(self):
+        return MisCapabilities(True, True, [TransportModeEnum.ALL])

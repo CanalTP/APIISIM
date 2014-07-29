@@ -21,6 +21,7 @@ resources.load_mis_apis()
 app = Flask(__name__)
 api = flask_restful.Api(app)
 api.add_resource(resources.Stops, '/<string:mis_name>/v0/stops')
+api.add_resource(resources.Capabilities, '/<string:mis_name>/v0/capabilities')
 api.add_resource(resources.Itineraries, '/<string:mis_name>/v0/itineraries')
 api.add_resource(resources.SummedUpItineraries, '/<string:mis_name>/v0/summed_up_itineraries')
 

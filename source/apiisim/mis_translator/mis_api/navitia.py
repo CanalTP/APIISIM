@@ -2,7 +2,8 @@
 
 from base import MisApiBase, MisApiException, \
                  MisApiDateOutOfScopeException, MisApiBadRequestException, \
-                 MisApiInternalErrorException, MisApiUnauthorizedException
+                 MisApiInternalErrorException, MisApiUnauthorizedException, \
+                 MisCapabilities
 import json, httplib2, logging, urllib
 # TODO  do not use import *
 from apiisim.common.mis_plan_trip import *
@@ -473,6 +474,8 @@ class MisApi(MisApiBase):
             raise MisApiInternalErrorException(exc_msg)
         raise MisApiException(exc_msg)
 
+    def get_capabilities(self):
+        return MisCapabilities(True, True, [TransportModeEnum.ALL])
 
     def get_stops(self):
         base_url = self._api_url + "/stop_areas"

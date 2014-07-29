@@ -242,13 +242,13 @@ class MisApi(object):
         self._api_url = mis.api_url
         self._api_key = mis.api_key
         self._name = mis.name
-        self._multiple_start_and_arrivals = mis.multiple_start_and_arrivals
+        self._multiple_starts_and_arrivals = mis.multiple_starts_and_arrivals
         self._http = httplib2.Http("/tmp/.planner_cache")
         db_session.close()
         Session.remove()
 
-    def get_multiple_start_and_arrivals(self):
-        return self._multiple_start_and_arrivals
+    def get_multiple_starts_and_arrivals(self):
+        return self._multiple_starts_and_arrivals
 
     def get_name(self):
         return self._name
@@ -624,7 +624,7 @@ class PlanTripCalculator(object):
         for t in traces:
             is_valid = True
             for mis_id in t[1:-1]:
-                if not MisApi(mis_id).get_multiple_start_and_arrivals():
+                if not MisApi(mis_id).get_multiple_starts_and_arrivals():
                     is_valid = False
                     break
             if is_valid:

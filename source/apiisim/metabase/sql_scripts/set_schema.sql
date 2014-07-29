@@ -9,7 +9,7 @@ CREATE TABLE mis(
     start_date date,
     end_date date,
     geographic_position_compliant boolean,
-    multiple_start_and_arrivals integer,
+    multiple_starts_and_arrivals integer,
     created_at timestamp,
     updated_at timestamp
 );
