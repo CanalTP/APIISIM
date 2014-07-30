@@ -5,13 +5,15 @@ os.environ["PLANNER_DB_URL"] = "postgresql+psycopg2://%s:%s@localhost/%s" % \
                                (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME)
 os.environ["PLANNER_LOG_FILE"] = "/tmp/test_planner.log"
 
-from apiisim.planner import planner
-from apiisim.planner.planner import PlanTripCalculator, TraceStop, LocationPointType, LocationStructure
-from apiisim.common.plan_trip import PlanTripRequestType, EndPointType
+from apiisim.planner import TraceStop
+from apiisim.planner.plan_trip_calculator import PlanTripCalculator
+from apiisim.common.plan_trip import PlanTripRequestType, EndPointType, \
+                                     LocationPointType, LocationPointType, \
+                                     LocationStructure
 from apiisim.common.mis_plan_summed_up_trip import SummedUpTripType, TripStopPlaceType
 from datetime import timedelta, datetime, date as date_type
 from itertools import permutations
-from apiisim.planner.planner import clean_db_engine
+from apiisim.planner import clean_db_engine
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
 
@@ -106,33 +108,37 @@ class TestPlanner(unittest.TestCase):
                           [[1, 3, 4], [4, 3, 1], [3, 4, 2], [1, 4, 3, 2]])
 
     def testComputeTraces(self):
-        planner.MAX_TRACE_LENGTH = 3
 
         request = PlanTripRequestType()
         request.Departure = new_location(1, 1)
         request.Arrival = new_location(3, 3)
         request.DepartureTime = datetime.now()
         calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [[1, 4, 3]])
 
         request.Departure = new_location(2, 2)
         request.Arrival = new_location(4, 4)
         calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [[2, 3, 4]])
 
         request.Departure = new_location(1, 1)
         request.Arrival = new_location(4, 4)
         calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [[1, 4]])
 
         request.Departure = new_location(1, 1)
         request.Arrival = new_location(2, 2)
         calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [[1, 2]])
 
         request.Departure = new_location(1, 2)
         request.Arrival = new_location(3, 4)
         calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [])
 
     def testGetTransfers(self):

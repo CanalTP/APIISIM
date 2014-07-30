@@ -5,14 +5,14 @@ os.environ["PLANNER_DB_URL"] = "postgresql+psycopg2://%s:%s@localhost/%s" % \
                                (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME)
 os.environ["PLANNER_LOG_FILE"] = "/tmp/test_planner_mis_stubs.log"
 
-from apiisim.planner.planner import PlanTripCalculator, TraceStop, create_full_notification, \
-                                    MisApi, Session
+from apiisim.planner import TraceStop, create_full_notification, MisApi, \
+                            Session, clean_db_engine
+from apiisim.planner.plan_trip_calculator import PlanTripCalculator
 from apiisim.common.plan_trip import PlanTripRequestType, LocationStructure
 from apiisim import metabase
 from datetime import datetime, timedelta, date as date_type
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import aliased
-from apiisim.planner import planner
 
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
@@ -34,6 +34,7 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
 
     def _check_trip(self, request):
         calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator.MAX_TRACE_LENGTH = self.MAX_TRACE_LENGTH
         traces = calculator.compute_traces()
         logging.debug("TRACES: %s", traces)
         self.assertEquals(traces, self.EXPECTED_TRACES)
@@ -128,18 +129,17 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
         tests.terminate_mis_translator(self._mis_translator_process)
         # Reset SQLAlchemy connection pool. Otherwise, some connections can stay
         # open, which will prevent us from deleting the database.
-        planner.clean_db_engine()
+        clean_db_engine()
         tests.drop_db()
 
 
 class TestPlannerMisStubs3Mis(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs.sql"
     EXPECTED_TRACES = [[1, 3], [2, 3], [2, 1, 3]]
+    MAX_TRACE_LENGTH = 3
 
     def setUp(self):
-        planner.MAX_TRACE_LENGTH = 3
         super(TestPlannerMisStubs3Mis, self).setUp()
-
 
 class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs_4_mis.sql"
@@ -148,16 +148,16 @@ class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
                        [2, 3], [2, 4], [2, 1, 3], [2, 1, 4], [2, 1, 4, 3],
                        [2, 4, 3], [2, 4, 1, 3], [4, 3], [4, 1, 3],
                        [4, 1, 2, 3], [4, 2, 3], [4, 2, 1, 3]]
+    MAX_TRACE_LENGTH = 4
 
     def setUp(self):
-        planner.MAX_TRACE_LENGTH = 4
         super(TestPlannerMisStubs4Mis, self).setUp()
 
 class _TestPlannerMisStubs3MisLight(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs_light.sql"
+    MAX_TRACE_LENGTH = 3
 
     def setUp(self):
-        planner.MAX_TRACE_LENGTH = 3
         super(_TestPlannerMisStubs3MisLight, self).setUp()
 
 class TestPlannerMisStubsEmptyTrips(TestPlannerMisStubs3Mis):
