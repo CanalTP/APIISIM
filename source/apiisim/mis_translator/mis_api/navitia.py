@@ -251,7 +251,8 @@ def journey_to_detailed_trip(journey):
             leg.Arrival.DateTime = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
             leg.Duration = timedelta(seconds=s["duration"])
             leg.SelfDriveMode = INVERSE_SELF_DRIVE_MODE_MAPPING.get(
-                                    s["transfer_type"], SelfDriveModeEnum.WALK)
+                                    s.get("transfer_type",""),
+                                    SelfDriveModeEnum.WALK)
             section.Leg = leg
 
         trip.sections.append(section)
