@@ -137,6 +137,9 @@ def parse_summed_up_trips(trips):
     return ret
 
 def parse_detailed_trip(trip):
+    if not trip:
+        return None
+
     ret = TripType()
 
     ret.Departure = parse_end_point(trip["Departure"])
@@ -311,7 +314,8 @@ class MisApi(object):
         if ret.Status.Code != StatusCodeEnum.OK:
             raise Exception("<get_itinerary> %s" % ret.Status.Code)
         ret.DetailedTrip = parse_detailed_trip(content.get("DetailedTrip", None))
-        ret.DetailedTrip.id = self._name
+        if ret.DetailedTrip:
+            ret.DetailedTrip.id = self._name
 
         return ret
 
