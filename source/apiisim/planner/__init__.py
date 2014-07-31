@@ -1,7 +1,5 @@
 import logging, os, json, httplib2
 from datetime import datetime, timedelta
-from geoalchemy2 import Geography
-from geoalchemy2.functions import GenericFunction
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from apiisim.common.mis_plan_trip import ItineraryResponseType, ItineraryRequestType
@@ -256,11 +254,6 @@ class TraceStop(LocationContextType):
         return ("<TraceStop(PlaceTypeId='%s')>" % \
                 (self.PlaceTypeId)) \
                 .encode(OUTPUT_ENCODING)
-
-
-class ST_GeogFromText(GenericFunction):
-    name = 'ST_GeogFromText'
-    type = Geography
 
 
 class MisApi(object):

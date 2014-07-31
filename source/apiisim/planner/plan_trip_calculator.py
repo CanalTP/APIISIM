@@ -1,10 +1,11 @@
-from apiisim.planner import Session, MisApi, benchmark, ST_GeogFromText, \
-                            stop_to_trace_stop, create_full_notification
+from apiisim.planner import Session, MisApi, benchmark, stop_to_trace_stop, \
+                            create_full_notification
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import aliased
 from apiisim import metabase
-from geoalchemy2.functions import ST_DWithin
+from geoalchemy2 import Geography
+from geoalchemy2.functions import ST_DWithin, GenericFunction
 from apiisim.common.plan_trip import PlanTripExistenceNotificationResponseType, \
                                      ProviderType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesRequestType
@@ -22,6 +23,12 @@ class InvalidResponseException(PlannerException):
 class NoItineraryFoundException(PlannerException):
     def __init__(self):
         PlannerException.__init__(self, "No itinerary found")
+
+
+class ST_GeogFromText(GenericFunction):
+    name = 'ST_GeogFromText'
+    type = Geography
+
 
 class PlanTripCalculator(object):
     # Maximum MIS trace length
@@ -42,8 +49,6 @@ class PlanTripCalculator(object):
         # ([transfer_duration], [stop_mis1], [stop_mis2])
         # To ease further processing (in compute_trip()), stops are returned
         # as TraceStop objects, not as metabase.Stop objects.
-        logging.info("MAX_TRACE_LENGTH: %s", self.MAX_TRACE_LENGTH)
-        logging.info("MAX_TRANSFERS: %s", self.MAX_TRANSFERS)
         ret = ([], [], [])
         subq = self._db_session.query(metabase.TransferMis.transfer_id) \
                                         .filter(or_(and_(metabase.TransferMis.mis1_id==mis1_id,
