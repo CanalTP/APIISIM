@@ -279,8 +279,7 @@ class ConnectionHandler(object):
 
 
 def web_socket_do_extra_handshake(connection):
-    # This example handler accepts any connection.
-    pass  # Always accept.
+    pass  # Always accept connection.
 
 
 @benchmark

@@ -485,8 +485,8 @@ class PlanTripCalculator(object):
         summed_up_request.ArrivalTime = None
         summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
-        best_arrival_time = resp.summedUpTrips[0].Arrival.DateTime
         self._update_departures(departures, detailed_trace[-2][2], resp.summedUpTrips)
+        best_arrival_time = min([x.Arrival.DateTime for x in resp.summedUpTrips])
 
         # Substract transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
@@ -612,9 +612,8 @@ class PlanTripCalculator(object):
         summed_up_request.DepartureTime = None
         summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
-
-        best_departure_time = resp.summedUpTrips[0].Departure.DateTime
         self._update_arrivals(arrivals, detailed_trace[-2][1], resp.summedUpTrips)
+        best_departure_time = max([x.Departure.DateTime for x in resp.summedUpTrips])
 
         # Add transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
