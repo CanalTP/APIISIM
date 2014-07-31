@@ -458,13 +458,16 @@ class MisApi(MisApiBase):
             return resp, content
 
         exc_msg = "GET <%s> FAILED: %s" % (url, resp.status)
-        logging.error(exc_msg)
         try:
             content = json.loads(content)
         except:
             content = {}
+        error_id = content.get("error", {}).get("id", "")
+        if error_id:
+            exc_msg += " (%s)" % error_id
+        logging.error(exc_msg)
+
         if resp.status == 404:
-            error_id = content.get("error", {}).get("id", "")
             if error_id == 'date_out_of_bounds':
                 raise MisApiDateOutOfScopeException(exc_msg)
         elif resp.status == 400:
