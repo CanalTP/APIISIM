@@ -513,13 +513,8 @@ class PlanTripCalculator(object):
                 for a in arrivals:
                     a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
                 summed_up_request.options = []
-                # At this point, MIS should return an itinerary for every
-                # given departure, so set must_be_complete to True.
-                # Indeed, we've already done the whole trip in one direction
-                # (we're doing it backwards now), so all "non-existing" itineraries
-                # should have been detected previously.
-                resp = mis_api.get_summed_up_itineraries(summed_up_request, must_be_complete=True)
-                self._update_departures(departures, None, resp.summedUpTrips)
+                resp = mis_api.get_summed_up_itineraries(summed_up_request)
+                self._update_departures(departures, detailed_trace[i-1][2], resp.summedUpTrips)
 
                 # Substract transfer time from previous request results
                 _, _, arrivals, linked_stops, transfer_durations = detailed_trace[i-1]
@@ -640,13 +635,8 @@ class PlanTripCalculator(object):
                 for d in departures:
                     d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
                 summed_up_request.options = []
-                # At this point, MIS should return an itinerary for every
-                # given arrival, so set must_be_complete to True.
-                # Indeed, we've already done the trip in one direction
-                # (we're doing it backwards now), so all "non-existing" itineraries
-                # should have been detected previously.
-                resp = mis_api.get_summed_up_itineraries(summed_up_request, must_be_complete=True)
-                self._update_arrivals(arrivals, None, resp.summedUpTrips)
+                resp = mis_api.get_summed_up_itineraries(summed_up_request)
+                self._update_arrivals(arrivals, detailed_trace[i-1][1], resp.summedUpTrips)
 
                 # Add transfer time from previous request results
                 _, departures, _, linked_stops, transfer_durations = detailed_trace[i-1]

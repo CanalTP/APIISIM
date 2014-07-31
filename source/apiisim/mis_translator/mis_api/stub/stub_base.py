@@ -430,14 +430,9 @@ class _SimpleMisApi(_MisApi):
 class _EmptyTripsMisApi(_SimpleMisApi):
     # Used by unit test to simulate replies where no itinerary is found for some
     # departure/arrival pairs.
-    generate_empty_departure_at_trips = False
-    generate_empty_arrival_at_trips = False
-
     def get_summed_up_itineraries(self, *args, **kwargs):
         trips = super(_EmptyTripsMisApi, self).get_summed_up_itineraries(*args, **kwargs)
-        if trips and \
-           ((self.generate_empty_departure_at_trips and departure_time)
-            or (self.generate_empty_arrival_at_trips and arrival_time)):
+        if trips:
             i = randint(0, len(trips) - 1)
             logging.debug("Deleting trip %s %s", trips[i].Departure.TripStopPlace.id,
                                                  trips[i].Arrival.TripStopPlace.id)
