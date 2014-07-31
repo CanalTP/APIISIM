@@ -14,6 +14,15 @@ from apiisim.common import TransportModeEnum, PlanSearchOptions
 import logging
 
 
+class PlannerException(Exception):
+    pass
+class InvalidResponseException(PlannerException):
+    def __init__(self):
+        PlannerException.__init__(self, "MIS response is invalid")
+class NoItineraryFoundException(PlannerException):
+    def __init__(self):
+        PlannerException.__init__(self, "No itinerary found")
+
 class PlanTripCalculator(object):
     # Maximum MIS trace length
     MAX_TRACE_LENGTH = 3
@@ -397,6 +406,9 @@ class PlanTripCalculator(object):
             if linked_stops:
                 linked_stops.pop(i)
 
+        if not arrivals:
+            raise NoItineraryFoundException()
+
 
     """
         Update departure stops after receiving itinerary results from a MIS.
@@ -422,6 +434,9 @@ class PlanTripCalculator(object):
             departures.pop(i)
             if linked_stops:
                 linked_stops.pop(i)
+
+        if not departures:
+            raise NoItineraryFoundException()
 
 
     def _departure_at_trip(self, detailed_trace, trace_id, providers):
@@ -527,6 +542,8 @@ class PlanTripCalculator(object):
             detailed_request.multiArrivals.Departure = prev_stop
             detailed_request.multiArrivals.Arrival = list(set(arrivals))
             resp = mis_api.get_itinerary(detailed_request)
+            if not resp.DetailedTrip:
+                raise NoItineraryFoundException()
             ret.append((mis_api, resp.DetailedTrip))
 
             if not linked_stops:
@@ -653,6 +670,8 @@ class PlanTripCalculator(object):
             detailed_request.multiDepartures.Departure = list(set(departures))
             detailed_request.multiDepartures.Arrival = prev_stop
             resp = mis_api.get_itinerary(detailed_request)
+            if not resp.DetailedTrip:
+                raise NoItineraryFoundException()
             ret.append((mis_api, resp.DetailedTrip))
 
             if not linked_stops:
