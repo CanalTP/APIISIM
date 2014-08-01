@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import logging, sys, argparse, ConfigParser, datetime
 from geoalchemy2.functions import ST_Distance, ST_DWithin
+import os
 
 
 def init_logging():
@@ -342,10 +343,15 @@ def compute_mis_connections(db_session):
 def get_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", help="Configuration file")
-    config_file = "default.conf"
+    config_file = os.path.dirname(os.path.realpath(__file__)) + "/default.conf"
     args = parser.parse_args()
     if args.config_file:
         config_file = args.config_file
+    if not os.path.isabs(config_file):
+        config_file = os.getcwd() + "/" + config_file
+    if not os.path.isfile(config_file):
+        logging.error("Configuration file <%s> does not exist", config_file)
+        exit(1)
 
     logging.info("Configuration retrieved from '%s':", config_file)
     config = ConfigParser.RawConfigParser()
