@@ -4,7 +4,8 @@ import json, httplib2, datetime
 from datetime import timedelta
 from apiisim.common import AlgorithmEnum, TransportModeEnum, StatusCodeEnum
 from apiisim.common.marshalling import DATE_FORMAT
-from apiisim.common.formats import *
+from apiisim.common.formats import summed_up_itineraries_response_format, \
+                                   itinerary_response_format
 from jsonschema import validate, Draft4Validator, ValidationError
 
 

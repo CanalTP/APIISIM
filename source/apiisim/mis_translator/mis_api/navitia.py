@@ -5,8 +5,10 @@ from base import MisApiBase, MisApiException, \
                  MisApiInternalErrorException, MisApiUnauthorizedException, \
                  MisCapabilities
 import json, httplib2, logging, urllib
-# TODO  do not use import *
-from apiisim.common.mis_plan_trip import *
+from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
+                                         EndPointType, StepEndPointType, StepType, \
+                                         QuayType, CentroidType, TripType, \
+                                         SectionType, PTRideType, LegType
 from apiisim.common.mis_collect_stops import StopPlaceType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
@@ -482,10 +484,9 @@ class MisApi(MisApiBase):
         return MisCapabilities(True, True, [TransportModeEnum.ALL])
 
     def get_stops(self):
+        ret = []
         base_url = self._api_url + "/stop_areas"
         params = {"count" : ITEMS_PER_PAGE}
-        ret = []
-        # TODO delete that, just here for testing purposes
         max_pages = 0
         pages_read = 0
         while True:
@@ -517,7 +518,6 @@ class MisApi(MisApiBase):
                 # Read next page
                 base_url = next_base_url
 
-            # TODO delete that, just here for testing purposes
             if max_pages > 0:
                 pages_read += 1
                 if pages_read > max_pages:

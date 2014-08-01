@@ -1,9 +1,11 @@
+# -*- coding: utf8 -*-
+
 from websocket import create_connection
 from apiisim.common import AlgorithmEnum, TransportModeEnum
 from apiisim.common.plan_trip import PlanTripRequestType, LocationPointType, LocationStructure, \
                                      PlanTripCancellationRequest
-from apiisim.common.marshalling import *
-from apiisim.common.formats import *
+from apiisim.common.marshalling import marshal, plan_trip_request_type
+from apiisim.common import formats
 from random import randint
 import datetime, json, logging, sys
 from datetime import timedelta
@@ -61,24 +63,24 @@ def receive_msg(connection):
 
 init_logging()
 
-Draft4Validator.check_schema(ending_search_format)
-Draft4Validator.check_schema(starting_search_format)
-Draft4Validator.check_schema(error_format)
-Draft4Validator.check_schema(plan_trip_response_format)
-Draft4Validator.check_schema(location_structure_format)
-Draft4Validator.check_schema(location_point_format)
-Draft4Validator.check_schema(trip_stop_place_format)
-Draft4Validator.check_schema(end_point_format)
-Draft4Validator.check_schema(provider_format)
-Draft4Validator.check_schema(plan_trip_existence_notification_format)
-Draft4Validator.check_schema(step_end_point_format)
-Draft4Validator.check_schema(step_format)
-Draft4Validator.check_schema(pt_ride_format)
-Draft4Validator.check_schema(leg_format)
-Draft4Validator.check_schema(section_format)
-Draft4Validator.check_schema(partial_trip_format)
-Draft4Validator.check_schema(composed_trip_format)
-Draft4Validator.check_schema(plan_trip_notification_response_format)
+Draft4Validator.check_schema(formats.ending_search_format)
+Draft4Validator.check_schema(formats.starting_search_format)
+Draft4Validator.check_schema(formats.error_format)
+Draft4Validator.check_schema(formats.plan_trip_response_format)
+Draft4Validator.check_schema(formats.location_structure_format)
+Draft4Validator.check_schema(formats.location_point_format)
+Draft4Validator.check_schema(formats.trip_stop_place_format)
+Draft4Validator.check_schema(formats.end_point_format)
+Draft4Validator.check_schema(formats.provider_format)
+Draft4Validator.check_schema(formats.plan_trip_existence_notification_format)
+Draft4Validator.check_schema(formats.step_end_point_format)
+Draft4Validator.check_schema(formats.step_format)
+Draft4Validator.check_schema(formats.pt_ride_format)
+Draft4Validator.check_schema(formats.leg_format)
+Draft4Validator.check_schema(formats.section_format)
+Draft4Validator.check_schema(formats.partial_trip_format)
+Draft4Validator.check_schema(formats.composed_trip_format)
+Draft4Validator.check_schema(formats.plan_trip_notification_response_format)
 
 ws = create_connection("ws://localhost/planner")
 
@@ -92,19 +94,19 @@ req = new_request(
 ws.send(json.dumps({"PlanTripRequestType" : marshal(req, plan_trip_request_type)}))
 
 msg = receive_msg(ws)
-validate(msg["PlanTripResponse"], plan_trip_response_format)
+validate(msg["PlanTripResponse"], formats.plan_trip_response_format)
 msg = receive_msg(ws)
-validate(msg["StartingSearch"], starting_search_format)
+validate(msg["StartingSearch"], formats.starting_search_format)
 while True:
     msg = receive_msg(ws)
     if "PlanTripExistenceNotificationResponseType" in msg:
         validate(msg["PlanTripExistenceNotificationResponseType"],
-                 plan_trip_existence_notification_format)
+                 formats.plan_trip_existence_notification_format)
     elif "PlanTripNotificationResponseType" in msg:
         validate(msg["PlanTripNotificationResponseType"],
-                 plan_trip_notification_response_format)
+                 formats.plan_trip_notification_response_format)
     elif "EndingSearch" in msg:
-        validate(msg["EndingSearch"], ending_search_format)
+        validate(msg["EndingSearch"], formats.ending_search_format)
         ws.close()
         break
     else:

@@ -8,7 +8,9 @@ from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseTy
 from apiisim.common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, TripPartEnum, \
                    TransportModeEnum, PlanSearchOptions, string_to_bool, \
                    xsd_duration_to_timedelta, parse_location_context
-from apiisim.common.marshalling import *
+from apiisim.common.marshalling import DATE_FORMAT, marshal, itinerary_response_type, \
+                                       summed_up_itineraries_response_type, \
+                                       stops_response_type, capabilities_response_type
 from apiisim.common.mis_collect_stops import StopsResponseType
 from apiisim.common.mis_capabilities import CapabilitiesResponseType
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
