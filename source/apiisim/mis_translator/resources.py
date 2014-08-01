@@ -34,10 +34,21 @@ Load all available Mis APIs modules and populate mis_api_mapping dict so that
 we can easily instanciate a MisApi object based on the Mis name.
 """
 def load_mis_apis():
-    for subdir, mis_apis in [("", MIS_APIS_AVAILABLE), ("stub.", STUB_MIS_APIS_AVAILABLE)]:
+    for package, mis_apis in [("mis_api", MIS_APIS_AVAILABLE),
+                              ("mis_api.stub", STUB_MIS_APIS_AVAILABLE)]:
+        try:
+            exec ("import %s" % (package))
+        except ImportError as e:
+            logging.warning("Could not load MIS API package <%s>: %s", package, e)
+            continue
+
         for m in mis_apis:
             mis_module = "%s_module" % m
-            exec ("import mis_api.%s%s as %s" % (subdir, m, mis_module))
+            try:
+                exec ("from %s import %s as %s" % (package, m, mis_module))
+            except Exception as e:
+                logging.warning("Could not load MIS API <%s>: %s", m, e)
+                continue
             mis_name = eval("%s.NAME" % mis_module)
             mis_api_mapping[mis_name] = eval("%s.MisApi" % mis_module)
             logging.info("Loaded Mis API <%s> ", mis_name)
