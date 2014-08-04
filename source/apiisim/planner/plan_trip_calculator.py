@@ -406,6 +406,7 @@ class PlanTripCalculator(object):
                 # from the trip, along with its linked stops.
                 to_del.extend([i for i, x in enumerate(arrivals) if x == stop])
 
+        to_del = set(to_del)
         for i in sorted(to_del, reverse=True):
             arrivals.pop(i)
             if linked_stops:
@@ -435,6 +436,7 @@ class PlanTripCalculator(object):
                 # point from the "meta-trip", along with its linked stops.
                 to_del.extend([i for i, x in enumerate(departures) if x == stop])
 
+        to_del = set(to_del)
         for i in sorted(to_del, reverse=True):
             departures.pop(i)
             if linked_stops:
