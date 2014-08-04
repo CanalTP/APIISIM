@@ -111,15 +111,15 @@ def connect_db(db_name):
     return Session(bind=engine, expire_on_commit=False)
 
 
-def populate_db(db_name, stops_file):
+def populate_db(db_name, stops_file, stops_field):
     db_session = connect_db(db_name)
 
     try:
         with open(stops_file, 'r') as f:
             content = f.read()
-            content = json.loads(content[content.find('{"stop_areas"'):])
+            content = json.loads(content[content.find('{"%s"' % stops_field):])
 
-        for s in  content["stop_areas"]:
+        for s in  content[stops_field]:
             new_stop = DbStop()
             new_stop.code = s["id"]
             new_stop.name = s["name"]
@@ -164,14 +164,15 @@ def location_to_end_point(location, departure_time=None, arrival_time=None):
     return ret
 
 class _MisApi(MisApiBase):
-    _STOPS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/" + "_stub_stops.json"
-    _DB_NAME = "_stub_db"
+    _STOPS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/" + "stub_base_stops.json"
+    _STOPS_FIELD = "stop_areas"
+    _DB_NAME = "stub_base_db"
     _initialized = False
 
     def __init__(self, api_key=""):
         if not self._initialized:
             create_db(self._DB_NAME)
-            populate_db(self._DB_NAME, self._STOPS_FILE)
+            populate_db(self._DB_NAME, self._STOPS_FILE, self._STOPS_FIELD)
             self.__class__._initialized = True
         self._db_session = connect_db(self._DB_NAME)
 
@@ -282,7 +283,6 @@ def generate_section(leg=False):
         ret.Leg = leg
 
     return ret
-
 
 # Return random itineraries.
 class _RandomMisApi(_MisApi):
@@ -486,6 +486,8 @@ class _SwitchTimesMisApi(_SimpleMisApi):
         ret.Arrival.DateTime = date_tmp
         return ret
 
+class StopPointsMisApi(_MisApi):
+    _STOPS_FIELD = "stop_points"
 
 def parse_config():
     if len(sys.argv) < 2:

@@ -19,14 +19,14 @@ from traceback import format_exc
 
 
 # Lists of enabled Mis APIs modules
-MIS_APIS_AVAILABLE = frozenset(["navitia", "test1", "test2",
-                                "pays_de_la_loire", "bretagne", "bourgogne",
-                                "transilien", "sncf_national"])
+MIS_APIS_AVAILABLE = frozenset(["navitia", "pays_de_la_loire", "bretagne",
+                                "bourgogne", "transilien", "sncf_national"])
 
 STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien",
                                      "stub_pays_de_la_loire", "stub_bourgogne",
                                      "stub_sncf_national","stub_transilien_light",
-                                     "stub_pays_de_la_loire_light", "stub_bourgogne_light"])
+                                     "stub_pays_de_la_loire_light", "stub_bourgogne_light",
+                                     "stub_back_office_test1", "stub_back_office_test2"])
 mis_api_mapping = {} # Mis name : MisApi Class
 
 """

@@ -117,7 +117,7 @@ def calculate_and_check(conf_file, ref_dump_file, db_name=DB_NAME,
                         admin_name=ADMIN_NAME, admin_password=ADMIN_PASS):
     launch_back_office(conf_file)
 
-    _, current_dump_file = tempfile.mkstemp(text=True, prefix="test1_", suffix=".dump")
+    _, current_dump_file = tempfile.mkstemp(text=True, prefix="test_", suffix=".dump")
 
     # We need to reset rows creation/update dates, otherwise dump match will fail.
     reset_dates(db_name, admin_name, admin_password)
