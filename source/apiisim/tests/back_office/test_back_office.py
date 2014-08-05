@@ -23,6 +23,10 @@ def new_stop(code ="stop_code", name="stop_name", mis_id=1):
 
     return stop
 
+def _compute_transfers(db_session, transfer_max_distance):
+    return compute_transfers(db_session, transfer_max_distance,
+                             db_session.query(metabase.Transfer).count())
+
 """
 Test suite for metabase and back_office components
 """
@@ -257,14 +261,14 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.add(stop2)
         self.db_session.flush()
 
-        compute_transfers(self.db_session, 1000)
+        _compute_transfers(self.db_session, 1000)
         self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
                                         .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
                          720, "Transfer distance different than expected")
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          1, "Found more transfers than expected")
 
-        compute_transfers(self.db_session, 100)
+        _compute_transfers(self.db_session, 100)
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          0, "Found transfer where there should not be any")
 
@@ -274,7 +278,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.add(stop3)
         self.db_session.flush()
 
-        compute_transfers(self.db_session, 90000)
+        _compute_transfers(self.db_session, 90000)
         self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
                                         .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
                          720, "Transfer distance different than expected")
@@ -286,7 +290,7 @@ class TestBackOffice(unittest.TestCase):
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          1, "Found more transfers than expected")
 
-        compute_transfers(self.db_session, 900000000)
+        _compute_transfers(self.db_session, 900000000)
         self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
                                 .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
                          720, "Transfer distance different than expected")
@@ -296,7 +300,7 @@ class TestBackOffice(unittest.TestCase):
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          2, "Found more transfers than expected")
 
-        compute_transfers(self.db_session, 1000)
+        _compute_transfers(self.db_session, 1000)
         self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
                                         .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
                          720, "Transfer distance different than expected")
@@ -311,7 +315,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.add(stop4)
         self.db_session.flush()
 
-        compute_transfers(self.db_session, 1000)
+        _compute_transfers(self.db_session, 1000)
         for stop1_id, stop2_id, distance in [(stop1.id, stop2.id, 720),
                                              (stop1.id, stop4.id, 0),
                                              (stop2.id, stop4.id, 720)]:
@@ -328,11 +332,11 @@ class TestBackOffice(unittest.TestCase):
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          0, "Found transfer where there should not be any")
 
-        compute_transfers(self.db_session, 1000)
+        _compute_transfers(self.db_session, 1000)
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          0, "Found transfer where there should not be any")
 
-        compute_transfers(self.db_session, 900000000)
+        _compute_transfers(self.db_session, 900000000)
         self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
                                 .filter_by(stop1_id=stop1.id, stop2_id=stop3.id).one()[0],
                          9127641, "Transfer distance different than expected")
@@ -446,7 +450,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.add(stop1)
         self.db_session.add(stop2)
         self.db_session.flush()
-        compute_transfers(self.db_session, 900)
+        _compute_transfers(self.db_session, 900)
 
         transfer = self.db_session.query(metabase.Transfer) \
                        .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
@@ -457,7 +461,7 @@ class TestBackOffice(unittest.TestCase):
         transfer.modification_state = "recalculate"
         self.db_session.flush()
 
-        compute_transfers(self.db_session, 900)
+        _compute_transfers(self.db_session, 900)
         transfer = self.db_session.query(metabase.Transfer) \
                        .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
         self.assertEqual(transfer.modification_state, 'auto', "Transfer modification_state should be 'auto'")
@@ -551,7 +555,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.add(stop1)
         self.db_session.add(stop2)
         self.db_session.flush()
-        compute_transfers(self.db_session, 900)
+        _compute_transfers(self.db_session, 900)
 
         transfer = self.db_session.query(metabase.Transfer) \
                        .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
@@ -563,7 +567,7 @@ class TestBackOffice(unittest.TestCase):
         for state in ['manual', 'validation_needed', 'auto']:
             transfer.modification_state = state
             self.db_session.flush()
-            compute_transfers(self.db_session, 900)
+            _compute_transfers(self.db_session, 900)
             transfer = self.db_session.query(metabase.Transfer) \
                            .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
             self.assertEqual(transfer.modification_state, state, "Transfer status should be '%s'" % state)
