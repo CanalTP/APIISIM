@@ -176,7 +176,7 @@ Calculate all transfers by parsing all stops and add them to the database.
 Also remove obsolete transfers.
 """
 @db_transaction
-def compute_transfers(db_session, transfer_max_distance):
+def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers):
     all_stops = db_session.query(metabase.Stop).all()
     transfers = [] # List of frozensets: [(stop1_id, stop2_id)]
 
@@ -269,12 +269,13 @@ def compute_transfers(db_session, transfer_max_distance):
                                     metabase.Transfer.stop1_id,
                                     metabase.Transfer.stop2_id) \
                              .all()
-    nb_deleted = 0
     for t in db_transfers:
         if set([t[1], t[2]]) not in transfers:
             db_session.query(metabase.Transfer).filter_by(id=t[0]).delete()
-            nb_deleted += 1
 
+    nb_deleted = orig_nb_transfers - len(transfers)
+    if nb_deleted < 0:
+        nb_deleted = 0
     logging.info("%s transfers", len(transfers))
     logging.info("%s new transfers", nb_new)
     logging.info("%s updated transfers", nb_updated)
@@ -376,10 +377,16 @@ def main():
     db_session = Session(bind=db_engine, expire_on_commit=False)
 
     try:
+        # orig_nb_transfers is used for stats only. We need it to have a
+        # reliable number of deleted transfers. Indeed, some transfers are
+        # automatically deleted by SQL triggers when one of their stops is deleted,
+        # so the only way to know how many transfers were deleted is to compare
+        # total number of transfers, before and after back_office processing.
+        orig_nb_transfers = db_session.query(metabase.Transfer).count()
         if request_mis_capabilities:
             retrieve_mis_capabilities(db_session)
         retrieve_all_stops(db_session)
-        compute_transfers(db_session, transfer_max_distance)
+        compute_transfers(db_session, transfer_max_distance, orig_nb_transfers)
         compute_mis_connections(db_session)
     finally:
         db_session.close()
