@@ -71,8 +71,8 @@ def parse_request(request):
         raise Exception("DateTime format error: %s" % exc)
 
     try:
-        ret.Departure = parse_location_context(request["Departure"])
-        ret.Arrival = parse_location_context(request["Arrival"])
+        ret.Departure = parse_location_context(request["Departure"], has_AccessTime=False)
+        ret.Arrival = parse_location_context(request["Arrival"], has_AccessTime=False)
     except Exception as exc:
         raise Exception("Could not parse Departure/Arrival: %s" % exc)
     if not ret.Departure or not ret.Arrival:

@@ -6,14 +6,17 @@ from mis_plan_trip import LocationContextType, LocationStructure
 # Encoding used when converting objects to strings
 OUTPUT_ENCODING = "utf-8"
 
-def parse_location_context(location):
+def parse_location_context(location, has_AccessTime=True):
     ret = LocationContextType()
 
     if "Position" in location:
         ret.Position = LocationStructure(
                             Latitude=location["Position"]["Latitude"],
                             Longitude=location["Position"]["Longitude"])
-    ret.AccessTime = xsd_duration_to_timedelta(location["AccessTime"])
+    if has_AccessTime:
+        ret.AccessTime = xsd_duration_to_timedelta(location["AccessTime"])
+    else:
+        ret.AccessTime = timedelta(seconds=0)
     ret.PlaceTypeId = location.get("PlaceTypeId", None)
 
     if not ret.PlaceTypeId and not ret.Position:
