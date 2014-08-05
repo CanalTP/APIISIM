@@ -59,7 +59,7 @@ def parse_request(request):
     departure_time = request.get("DepartureTime", "")
     arrival_time = request.get("ArrivalTime", "")
     if departure_time and arrival_time:
-        raise Exception("Request cannot have both departure time and arrival time")
+        raise Exception("Request cannot have both departure and arrival times")
     if not departure_time and not arrival_time:
         raise Exception("No departure/arrival time given")
     try:
