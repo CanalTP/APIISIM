@@ -525,7 +525,6 @@ class MisApi(MisApiBase):
 
         return ret
 
-
     def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
                       algorithm, modes, self_drive_conditions,
                       accessibility_constraint, language, options):
@@ -547,7 +546,7 @@ class MisApi(MisApiBase):
                 params_set_datetime(params, departure_time, arrival_time, departures[0], a)
                 journeys.extend(self._journeys_request(params))
 
-        best_journey = choose_best_journey(journeys, algorithm)
+        best_journey = choose_best_journey(journeys, algorithm, bool(departure_time))
         # If no journey found, DetailedTrip is None
         return journey_to_detailed_trip(best_journey)
 
