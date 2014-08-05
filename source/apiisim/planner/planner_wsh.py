@@ -251,7 +251,7 @@ class ConnectionHandler(object):
         self._send_status(PlanTripStatusEnum.OK)
         notif_queue.put(StartingSearch(MaxComposedTripSearched=len(traces), RequestId=self._request_id))
         self._cancellation_thread = CancellationListener(self._connection, params, termination_queue)
-        self._cancellation_thread.start()
+        # self._cancellation_thread.start()
         self._calculation_thread = CalculationManager(params, traces, notif_queue, termination_queue)
         self._calculation_thread.start()
 
