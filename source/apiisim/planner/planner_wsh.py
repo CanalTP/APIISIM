@@ -55,12 +55,7 @@ class WorkerThread(threading.Thread):
 def parse_request(request):
     ret = PlanTripRequestType()
 
-    request = request.get("PlanTripRequestType", None)
-    if not request:
-        raise Exception("PlanTripRequestType field not found")
-
     # Required
-    ret.clientRequestId = request["clientRequestId"]
     departure_time = request.get("DepartureTime", "")
     arrival_time = request.get("ArrivalTime", "")
     if departure_time and arrival_time:
@@ -232,12 +227,16 @@ class ConnectionHandler(object):
         # logging.debug(content)
         request = json.loads(request)
         try:
+            request = request.get("PlanTripRequestType", None)
+            if not request:
+                raise Exception("PlanTripRequestType field not found")
+            self._request_id = request["clientRequestId"]
             params = parse_request(request)
+            params.clientRequestId = self._request_id
         except Exception as exc:
             error = ErrorType(Field="Error", Message=unicode(exc.message, OUTPUT_ENCODING))
             self._send_status(PlanTripStatusEnum.BAD_REQUEST, error)
             raise
-        self._request_id = params.clientRequestId
 
         try:
             trip_calculator = PlanTripCalculator(params, notif_queue)
