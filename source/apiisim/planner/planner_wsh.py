@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 import Queue, logging
 import json, traceback
 from datetime import datetime
@@ -5,9 +7,10 @@ import threading
 from apiisim.common.plan_trip import PlanTripRequestType, SelfDriveConditionType, \
                                      EndingSearch, PlanTripNotificationResponseType, \
                                      PlanTripExistenceNotificationResponseType, \
-                                     PlanTripResponse, StartingSearch
+                                     PlanTripResponse, StartingSearch, ErrorType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
-                           TransportModeEnum,PlanTripStatusEnum, parse_location_context
+                           TransportModeEnum,PlanTripStatusEnum, parse_location_context, \
+                           OUTPUT_ENCODING
 from apiisim.common.marshalling import DATE_FORMAT
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
 from apiisim.planner import benchmark, PlanTripCancellationResponse
@@ -54,49 +57,42 @@ def parse_request(request):
 
     request = request.get("PlanTripRequestType", None)
     if not request:
-        return None
+        raise Exception("PlanTripRequestType field not found")
 
     # Required
     ret.clientRequestId = request["clientRequestId"]
     departure_time = request.get("DepartureTime", "")
     arrival_time = request.get("ArrivalTime", "")
     if departure_time and arrival_time:
-        logging.error("Request cannot have both departure time and arrival time")
-        return None
+        raise Exception("Request cannot have both departure time and arrival time")
     if not departure_time and not arrival_time:
-        logging.error("No departure/arrival time given")
-        return None
+        raise Exception("No departure/arrival time given")
     try:
         if departure_time:
             ret.DepartureTime = datetime.strptime(departure_time, DATE_FORMAT)
         if arrival_time:
             ret.ArrivalTime = datetime.strptime(arrival_time, DATE_FORMAT)
     except ValueError as exc:
-        logging.error("DateTime format error: %s", exc)
-        return None
+        raise Exception("DateTime format error: %s" % exc)
 
     try:
         ret.Departure = parse_location_context(request["Departure"])
         ret.Arrival = parse_location_context(request["Arrival"])
-    except Exception as e:
-        logging.error(e)
-        return None
+    except Exception as exc:
+        raise Exception("Could not parse Departure/Arrival: %s" % exc)
     if not ret.Departure or not ret.Arrival:
-        logging.error("Missing departure or arrival")
-        return None
+        raise Exception("Missing departure or arrival")
 
     # Optional
     ret.MaxTrips = request.get('MaxTrips', 0)
     ret.Algorithm = request.get('Algorithm', AlgorithmEnum.CLASSIC)
     if not AlgorithmEnum.validate(ret.Algorithm):
-        logging.error("Invalid algorithm")
-        return None
+        raise Exception("Invalid algorithm")
 
     ret.modes = request.get('modes', [TransportModeEnum.ALL])
     for m in ret.modes:
         if not TransportModeEnum.validate(m):
-            logging.error("Invalid transport mode")
-            return None
+            raise Exception("Invalid transport mode")
 
     ret.selfDriveConditions = []
     for c in request.get('selfDriveConditions', []):
@@ -104,8 +100,7 @@ def parse_request(request):
                                 SelfDriveMode=c.get("SelfDriveMode", ""))
         if not TripPartEnum.validate(condition.TripPart) or \
            not SelfDriveModeEnum.validate(condition.SelfDriveMode):
-           logging.error("Invalid self drive condition")
-           return None
+           raise Exception("Invalid self drive condition")
         ret.selfDriveConditions.append(condition)
 
     ret.AccessibilityConstraint = string_to_bool(request.get('AccessibilityConstraint', "False"))
@@ -236,18 +231,21 @@ class ConnectionHandler(object):
         logging.debug("REQUEST: \n%s", request)
         # logging.debug(content)
         request = json.loads(request)
-        params = parse_request(request)
-        if not params:
-            self._send_status(PlanTripStatusEnum.BAD_REQUEST)
-            return
+        try:
+            params = parse_request(request)
+        except Exception as exc:
+            error = ErrorType(Field="Error", Message=unicode(exc.message, OUTPUT_ENCODING))
+            self._send_status(PlanTripStatusEnum.BAD_REQUEST, error)
+            raise
         self._request_id = params.clientRequestId
 
         try:
             trip_calculator = PlanTripCalculator(params, notif_queue)
             traces = trip_calculator.compute_traces()
-        except Exception as e:
-            logging.error("compute_traces: %s %s", e, traceback.format_exc())
-            self._send_status(PlanTripStatusEnum.SERVER_ERROR)
+        except Exception as exc:
+            logging.error("compute_traces: %s %s", exc, traceback.format_exc())
+            error = ErrorType(Field="Error", Message=unicode(exc.message, OUTPUT_ENCODING))
+            self._send_status(PlanTripStatusEnum.SERVER_ERROR, error)
             return
 
         logging.info("MIS TRACES: %s", traces)
