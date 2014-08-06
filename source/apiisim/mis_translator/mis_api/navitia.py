@@ -115,9 +115,9 @@ TRANSPORT_MODE_MAPPING = {
 
 SELF_DRIVE_MODE_MAPPING = {
     # SelfDriveModeEnum : [Navitia modes]
-    SelfDriveModeEnum.WALK : ["walking"],
+    SelfDriveModeEnum.FOOT : ["walking"],
     SelfDriveModeEnum.CAR : ["car"],
-    SelfDriveModeEnum.BIKE : ["bike", "bss"],
+    SelfDriveModeEnum.BICYCLE : ["bike", "bss"],
 }
 
 # Navitia mode : SelfDriveModeEnum
@@ -254,7 +254,7 @@ def journey_to_detailed_trip(journey):
             leg.Duration = timedelta(seconds=s["duration"])
             leg.SelfDriveMode = INVERSE_SELF_DRIVE_MODE_MAPPING.get(
                                     s.get("transfer_type",""),
-                                    SelfDriveModeEnum.WALK)
+                                    SelfDriveModeEnum.FOOT)
             section.Leg = leg
 
         trip.sections.append(section)
@@ -402,9 +402,9 @@ def params_set_datetime(params, departure_time, arrival_time, departure, arrival
 def params_set_modes(params, modes, self_drive_conditions):
     params["forbidden_uris[]"] = modes_to_forbidden_uris(modes)
     params["first_section_mode[]"] = list(
-                                        SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
+                                        SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.FOOT])
     params["last_section_mode[]"] = list(
-                                        SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.WALK])
+                                        SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.FOOT])
 
     for c in self_drive_conditions:
         if c.TripPart == TripPartEnum.DEPARTURE:

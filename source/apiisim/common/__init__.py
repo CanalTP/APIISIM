@@ -113,9 +113,12 @@ class StatusCodeEnum(StringEnum):
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
 class SelfDriveModeEnum(StringEnum):
-    CAR = "CAR"
-    BIKE = "BIKE"
-    WALK = "WALK"
+    CAR = "car"
+    FOOT = "foot"
+    BICYCLE = "bicycle"
+    TAXI = "taxi"
+    SHUTTLE = "shuttle"
+    BOAT = "boat"
 
 class TripPartEnum(StringEnum):
     DEPARTURE = "DEPARTURE"

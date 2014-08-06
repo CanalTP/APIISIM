@@ -279,7 +279,7 @@ def generate_section(leg=False):
         leg.Departure.DateTime = datetime(year=2014, month=3, day=7)
         leg.Arrival.DateTime = datetime(year=2014, month=3, day=7)
         leg.Duration = timedelta(seconds=30)
-        leg.SelfDriveMode = SelfDriveModeEnum.WALK
+        leg.SelfDriveMode = SelfDriveModeEnum.FOOT
         ret.Leg = leg
 
     return ret
