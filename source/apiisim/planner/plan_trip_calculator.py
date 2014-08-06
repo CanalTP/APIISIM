@@ -1,5 +1,5 @@
 from apiisim.planner import Session, MisApi, benchmark, stop_to_trace_stop, \
-                            create_full_notification
+                            create_full_notification, NoItineraryFoundException
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import aliased
@@ -13,16 +13,6 @@ from apiisim.common.mis_plan_trip import ItineraryRequestType, multiDeparturesTy
                                          multiArrivalsType
 from apiisim.common import TransportModeEnum, PlanSearchOptions
 import logging
-
-
-class PlannerException(Exception):
-    pass
-class InvalidResponseException(PlannerException):
-    def __init__(self):
-        PlannerException.__init__(self, "MIS response is invalid")
-class NoItineraryFoundException(PlannerException):
-    def __init__(self):
-        PlannerException.__init__(self, "No itinerary found")
 
 
 class ST_GeogFromText(GenericFunction):

@@ -13,7 +13,7 @@ from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, strin
                            OUTPUT_ENCODING
 from apiisim.common.marshalling import DATE_FORMAT
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
-from apiisim.planner import benchmark, PlanTripCancellationResponse
+from apiisim.planner import benchmark, PlanTripCancellationResponse, BadRequestException
 
 
 def log_error(func):
@@ -59,35 +59,39 @@ def parse_request(request):
     departure_time = request.get("DepartureTime", "")
     arrival_time = request.get("ArrivalTime", "")
     if departure_time and arrival_time:
-        raise Exception("Request cannot have both departure and arrival times")
+        raise BadRequestException("Request cannot have both departure and arrival times")
     if not departure_time and not arrival_time:
-        raise Exception("No departure/arrival time given")
+        raise BadRequestException("No departure/arrival time given")
     try:
         if departure_time:
             ret.DepartureTime = datetime.strptime(departure_time, DATE_FORMAT)
         if arrival_time:
             ret.ArrivalTime = datetime.strptime(arrival_time, DATE_FORMAT)
     except ValueError as exc:
-        raise Exception("DateTime format error: %s" % exc)
+        bad_field = "DepartureTime" if departure_time else "ArrivalTime"
+        raise BadRequestException("DateTime format error: %s" % exc, bad_field)
 
     try:
         ret.Departure = parse_location_context(request["Departure"], has_AccessTime=False)
+    except Exception as exc:
+        raise BadRequestException("Could not parse Departure: %s" % exc, "Departure")
+    try:
         ret.Arrival = parse_location_context(request["Arrival"], has_AccessTime=False)
     except Exception as exc:
-        raise Exception("Could not parse Departure/Arrival: %s" % exc)
+        raise BadRequestException("Could not parse Arrival: %s" % exc, "Arrival")
     if not ret.Departure or not ret.Arrival:
-        raise Exception("Missing departure or arrival")
+        raise BadRequestException("Missing departure or arrival")
 
     # Optional
     ret.MaxTrips = request.get('MaxTrips', 0)
     ret.Algorithm = request.get('Algorithm', AlgorithmEnum.CLASSIC)
     if not AlgorithmEnum.validate(ret.Algorithm):
-        raise Exception("Invalid algorithm")
+        raise BadRequestException("Invalid algorithm", "Algorithm")
 
     ret.modes = request.get('modes', [TransportModeEnum.ALL])
     for m in ret.modes:
         if not TransportModeEnum.validate(m):
-            raise Exception("Invalid transport mode")
+            raise BadRequestException("Invalid transport mode: %s" % m, "modes")
 
     ret.selfDriveConditions = []
     for c in request.get('selfDriveConditions', []):
@@ -95,7 +99,7 @@ def parse_request(request):
                                 SelfDriveMode=c.get("SelfDriveMode", ""))
         if not TripPartEnum.validate(condition.TripPart) or \
            not SelfDriveModeEnum.validate(condition.SelfDriveMode):
-           raise Exception("Invalid self drive condition")
+           raise BadRequestException("Invalid self drive condition", "selfDriveConditions")
         ret.selfDriveConditions.append(condition)
 
     ret.AccessibilityConstraint = string_to_bool(request.get('AccessibilityConstraint', "False"))
@@ -229,12 +233,14 @@ class ConnectionHandler(object):
         try:
             request = request.get("PlanTripRequestType", None)
             if not request:
-                raise Exception("PlanTripRequestType field not found")
+                raise BadRequestException("PlanTripRequestType field not found")
             self._request_id = request["clientRequestId"]
             params = parse_request(request)
             params.clientRequestId = self._request_id
         except Exception as exc:
-            error = ErrorType(Field="Error", Message=unicode(exc.message, OUTPUT_ENCODING))
+            error = ErrorType(Message=unicode(exc.message, OUTPUT_ENCODING))
+            if isinstance(exc, BadRequestException):
+                error.Field = exc.field
             self._send_status(PlanTripStatusEnum.BAD_REQUEST, error)
             raise
 
