@@ -9,8 +9,7 @@ from apiisim.common.plan_trip import PlanTripRequestType, SelfDriveConditionType
                                      PlanTripExistenceNotificationResponseType, \
                                      PlanTripResponse, StartingSearch, ErrorType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
-                           TransportModeEnum,PlanTripStatusEnum, parse_location_context, \
-                           OUTPUT_ENCODING
+                           TransportModeEnum,PlanTripStatusEnum, parse_location_context
 from apiisim.common.marshalling import DATE_FORMAT
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
 from apiisim.planner import benchmark, PlanTripCancellationResponse, BadRequestException
@@ -238,7 +237,7 @@ class ConnectionHandler(object):
             params = parse_request(request)
             params.clientRequestId = self._request_id
         except Exception as exc:
-            error = ErrorType(Message=unicode(exc.message, OUTPUT_ENCODING))
+            error = ErrorType(Message=exc.message)
             if isinstance(exc, BadRequestException):
                 error.Field = exc.field
             self._send_status(PlanTripStatusEnum.BAD_REQUEST, error)
@@ -249,7 +248,7 @@ class ConnectionHandler(object):
             traces = trip_calculator.compute_traces()
         except Exception as exc:
             logging.error("compute_traces: %s %s", exc, traceback.format_exc())
-            error = ErrorType(Field="Error", Message=unicode(exc.message, OUTPUT_ENCODING))
+            error = ErrorType(Field="Error", Message=exc.message)
             self._send_status(PlanTripStatusEnum.SERVER_ERROR, error)
             return
 
