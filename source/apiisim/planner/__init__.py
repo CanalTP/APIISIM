@@ -27,6 +27,19 @@ from apiisim.common.marshalling import marshal, itinerary_request_type, \
 from apiisim import metabase
 
 
+class PlannerException(Exception):
+    pass
+class InvalidResponseException(PlannerException):
+    def __init__(self):
+        PlannerException.__init__(self, "MIS response is invalid")
+class NoItineraryFoundException(PlannerException):
+    def __init__(self):
+        PlannerException.__init__(self, "No itinerary found")
+class BadRequestException(PlannerException):
+    def __init__(self, message, field=""):
+        PlannerException.__init__(self, message)
+        self.field = field
+
 ################################################################################
 
 def _marshal_ItineraryRequestType(self):
