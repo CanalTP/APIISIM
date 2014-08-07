@@ -356,7 +356,7 @@ class PlanTripCalculator(object):
         return ret
 
 
-    def _single_mis_trip(self, mis_id):
+    def _single_mis_trip(self, mis_id, trace_id, providers):
         # Return best trip, which is a list of partial trips.
         ret = [] #  [DetailedTrip]
 
@@ -369,7 +369,20 @@ class PlanTripCalculator(object):
         detailed_request.ArrivalTime = self._params.ArrivalTime
         mis_api = MisApi(mis_id)
         resp = mis_api.get_itinerary(detailed_request)
+        if not resp.DetailedTrip:
+            raise NoItineraryFoundException()
         ret.append((mis_api, resp.DetailedTrip))
+
+        notif = PlanTripExistenceNotificationResponseType(
+                    RequestId=self._params.clientRequestId,
+                    ComposedTripId=trace_id,
+                    DepartureTime=resp.DetailedTrip.Departure.DateTime,
+                    ArrivalTime=resp.DetailedTrip.Arrival.DateTime,
+                    Duration=resp.DetailedTrip.Duration,
+                    providers=providers,
+                    Departure=self._params.Departure, Arrival=self._params.Arrival)
+        self._notif_queue.put(notif)
+
         return ret
 
 
@@ -706,7 +719,7 @@ class PlanTripCalculator(object):
         # If there is only one MIS in the trace, just do a detailed request on the
         # given MIS.
         if len(mis_trace) == 1:
-            ret = self._single_mis_trip(mis_trace[0])
+            ret = self._single_mis_trip(mis_trace[0], trace_id, providers)
         else:
             providers = self._get_providers(mis_trace)
             if self._params.DepartureTime:
