@@ -716,12 +716,12 @@ class PlanTripCalculator(object):
                 raise Exception("First or last Mis is not geographic_position_compliant")
 
         trace_id = self._generate_trace_id(mis_trace)
+        providers = self._get_providers(mis_trace)
         # If there is only one MIS in the trace, just do a detailed request on the
         # given MIS.
         if len(mis_trace) == 1:
             ret = self._single_mis_trip(mis_trace[0], trace_id, providers)
         else:
-            providers = self._get_providers(mis_trace)
             if self._params.DepartureTime:
                 detailed_trace = self._departure_at_detailed_trace(mis_trace)
                 ret = self._departure_at_trip(detailed_trace, trace_id, providers)
