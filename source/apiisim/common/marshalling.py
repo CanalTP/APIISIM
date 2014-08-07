@@ -243,7 +243,7 @@ composed_trip_type = {
 plan_trip_notification_response_type = {
     'RequestId' : fields.String,
     'RuntimeDuration' : _Duration,
-    'ComposedTrip' : fields.List(NonNullNested(composed_trip_type)),
+    'ComposedTrip' : NonNullNested(composed_trip_type),
 }
 
 plan_trip_cancellation_response_type = {

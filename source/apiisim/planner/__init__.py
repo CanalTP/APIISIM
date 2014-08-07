@@ -248,7 +248,7 @@ def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
     return PlanTripNotificationResponseType(
                 RequestId=request_id,
                 RuntimeDuration=runtime_duration,
-                ComposedTrip=[composed_trip] if composed_trip else [])
+                ComposedTrip=composed_trip)
 
 
 class TraceStop(LocationContextType):
