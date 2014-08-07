@@ -264,7 +264,7 @@ class TraceStop(LocationContextType):
         return hash(self.PlaceTypeId)
 
     def __repr__(self):
-        return ("<TraceStop(PlaceTypeId='%s')>" % \
+        return (u"<TraceStop(PlaceTypeId='%s')>" % \
                 (self.PlaceTypeId)) \
                 .encode(OUTPUT_ENCODING)
 
@@ -360,7 +360,7 @@ class MisApi(object):
         return ret
 
     def __repr__(self):
-        return ("<MisApi(name='%s')>" % \
+        return (u"<MisApi(name='%s')>" % \
                 (self._name)) \
                 .encode(OUTPUT_ENCODING)
 

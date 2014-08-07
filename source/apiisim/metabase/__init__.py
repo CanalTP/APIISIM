@@ -31,7 +31,7 @@ class Mis(Base):
     stops = relationship("Stop", backref="mis")
 
     def __repr__(self):
-        return ("<Mis(id='%s', name='%s', api_url='%s', start_date='%s', end_date='%s')>" % \
+        return (u"<Mis(id='%s', name='%s', api_url='%s', start_date='%s', end_date='%s')>" % \
                 (self.id, self.name, self.api_url, self.start_date, self.end_date)) \
                 .encode(OUTPUT_ENCODING)
 
@@ -62,7 +62,7 @@ class Stop(Base):
     updated_at = Column(TIMESTAMP)
 
     def __repr__(self):
-        return ("<Stop(id='%s', name='%s', code='%s', mis_id='%s', lat=%s, long=%s)>" % \
+        return (u"<Stop(id='%s', name='%s', code='%s', mis_id='%s', lat=%s, long=%s)>" % \
                 (self.id, self.name, self.code, self.mis_id, self.lat, self.long)) \
                 .encode(OUTPUT_ENCODING)
 
@@ -83,7 +83,7 @@ class MisConnection(Base):
     UniqueConstraint('mis1_id', 'mis2_id')
 
     def __repr__(self):
-        return ("<MisConnection(id='%s', mis1_id='%s', mis2_id='%s', start_date=%s, end_date=%s)>" % \
+        return (u"<MisConnection(id='%s', mis1_id='%s', mis2_id='%s', start_date=%s, end_date=%s)>" % \
                 (self.id, self.mis1_id, self.mis2_id, self.start_date, self.end_date)) \
                 .encode(OUTPUT_ENCODING)
 
@@ -113,7 +113,7 @@ class Transfer(Base):
     UniqueConstraint('stop1_id', 'stop2_id')
 
     def __repr__(self):
-        return ("<Transfer(id='%s', stop1_id='%s', stop2_id='%s', distance='%s', " \
+        return (u"<Transfer(id='%s', stop1_id='%s', stop2_id='%s', distance='%s', " \
                 "duration='%s', prm_duration='%s', active='%s', modification_state='%s')>" % \
                 (self.id, self.stop1_id, self.stop2_id, self.distance,
                  self.duration, self.prm_duration, self.active, self.modification_state)) \
@@ -134,7 +134,7 @@ class Mode(Base):
     updated_at = Column(TIMESTAMP)
 
     def __repr__(self):
-        return ("<Mode(id='%s', code='%s')>" % \
+        return (u"<Mode(id='%s', code='%s')>" % \
                 (self.id, self.code)).encode(OUTPUT_ENCODING)
 
 class MisMode(Base):
@@ -153,7 +153,7 @@ class MisMode(Base):
     UniqueConstraint('mis_id', 'mode_id')
 
     def __repr__(self):
-        return ("<MisMode(id='%s', mis_id='%s', mode_id='%s')>" % \
+        return (u"<MisMode(id='%s', mis_id='%s', mode_id='%s')>" % \
                 (self.id, self.mis_id, self.mode_id)).encode(OUTPUT_ENCODING)
 
 class TransferMis(Base):
