@@ -190,7 +190,7 @@ class NotificationThread(threading.Thread):
                 notifications_sent += 1
             elif isinstance(notif, PlanTripExistenceNotificationResponseType):
                 existence_notifications_sent += 1
-            logging.debug("Sending notification...")
+            logging.debug("Sending notification <%s>...", notif.__class__.__name__)
             self._connection.ws_stream.send_message(json.dumps(notif.marshal()), binary=False)
             logging.debug("Notification sent")
             self._queue.task_done()
