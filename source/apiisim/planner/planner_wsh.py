@@ -209,7 +209,7 @@ class ConnectionHandler(object):
         self._cancellation_thread = None
 
     def _send_status(self, status, error=None):
-        logging.error("Sending <%s> status", status)
+        logging.info("Sending <%s> status", status)
         notif = PlanTripResponse()
         notif.Status = status
         notif.clientRequestId = self._request_id
