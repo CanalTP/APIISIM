@@ -1,11 +1,6 @@
 import sys, os, unittest, Queue, logging
 from apiisim import tests
-
-os.environ["PLANNER_DB_URL"] = "postgresql+psycopg2://%s:%s@localhost/%s" % \
-                               (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME)
-os.environ["PLANNER_LOG_FILE"] = "/tmp/test_planner.log"
-
-from apiisim.planner import TraceStop
+from apiisim.planner import TraceStop, Planner
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
 from apiisim.common.plan_trip import PlanTripRequestType, EndPointType, \
                                      LocationPointType, LocationPointType, \
@@ -13,7 +8,6 @@ from apiisim.common.plan_trip import PlanTripRequestType, EndPointType, \
 from apiisim.common.mis_plan_summed_up_trip import SummedUpTripType, TripStopPlaceType
 from datetime import timedelta, datetime, date as date_type
 from itertools import permutations
-from apiisim.planner import clean_db_engine
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
 
@@ -37,13 +31,15 @@ class TestPlanner(unittest.TestCase):
         except:
             pass
         tests.create_db(populate_script=TEST_DIR + "test_planner.sql")
+        self._planner = Planner("postgresql+psycopg2://%s:%s@localhost/%s" % \
+                                (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME))
 
 
     def testDepartureAtDetailedTrace(self):
         request = PlanTripRequestType()
         request.Departure = TraceStop(PlaceTypeId="departure")
         request.Arrival = TraceStop(PlaceTypeId="arrival")
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
 
         for i in [2, 3, 4]:
             res = calculator._departure_at_detailed_trace(range(1, i + 1))
@@ -69,7 +65,7 @@ class TestPlanner(unittest.TestCase):
         request = PlanTripRequestType()
         request.Departure = TraceStop(PlaceTypeId="departure")
         request.Arrival = TraceStop(PlaceTypeId="arrival")
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
 
         for i in [2, 3, 4]:
             res = calculator._arrival_at_detailed_trace(range(1, i + 1))
@@ -101,7 +97,7 @@ class TestPlanner(unittest.TestCase):
         request = PlanTripRequestType()
         request.Departure = TraceStop(PlaceTypeId="departure")
         request.Arrival = TraceStop(PlaceTypeId="arrival")
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         self.assertEquals(calculator._filter_traces([[1, 2, 3, 4], [1, 3, 4], [4, 3, 1],
                                                     [2, 1, 4], [3, 4, 2], [3, 2, 4],
                                                     [1, 4, 3, 2], [4, 3, 1, 2], [3, 2, 1, 4]]),
@@ -113,37 +109,37 @@ class TestPlanner(unittest.TestCase):
         request.Departure = new_location(1, 1)
         request.Arrival = new_location(3, 3)
         request.DepartureTime = datetime.now()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [[1, 4, 3]])
 
         request.Departure = new_location(2, 2)
         request.Arrival = new_location(4, 4)
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [[2, 3, 4]])
 
         request.Departure = new_location(1, 1)
         request.Arrival = new_location(4, 4)
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [[1, 4]])
 
         request.Departure = new_location(1, 1)
         request.Arrival = new_location(2, 2)
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [[1, 2]])
 
         request.Departure = new_location(1, 2)
         request.Arrival = new_location(3, 4)
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [])
 
     def testGetTransfers(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
 
         transfers = calculator._get_transfers(1, 2)
         self.assertEquals(len(transfers), 3)
@@ -217,7 +213,7 @@ class TestPlanner(unittest.TestCase):
 
     def testGetSurroundingMises(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         position = LocationStructure(Longitude=1, Latitude=1)
         date = date_type(year=2010, month=4, day=8)
         self.assertEquals(calculator._get_surrounding_mises(position, date), set([1]))
@@ -234,7 +230,7 @@ class TestPlanner(unittest.TestCase):
 
     def testGetMisModes(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         self.assertEquals(calculator._get_mis_modes(1), set(["bus", "tram"]))
         self.assertEquals(calculator._get_mis_modes(2), set(["bus", "tram"]))
         self.assertEquals(calculator._get_mis_modes(3), set(["tram", "funicular"]))
@@ -244,7 +240,7 @@ class TestPlanner(unittest.TestCase):
 
     def testGetConnectedMises(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         self.assertEquals(calculator._get_connected_mises(1), set([2, 4]))
         self.assertEquals(calculator._get_connected_mises(2), set([1, 3]))
         self.assertEquals(calculator._get_connected_mises(3), set([2, 4]))
@@ -254,7 +250,7 @@ class TestPlanner(unittest.TestCase):
 
     def testGetTraceTransfers(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         for l in [permutations([1, 2, 3]), permutations([1, 4, 6])]:
             for a, b ,c in l:
                 transfers = calculator._get_trace_transfers([a, b, c])
@@ -272,7 +268,7 @@ class TestPlanner(unittest.TestCase):
 
     def testGetProviders(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         providers = calculator._get_providers([2, 1, 3])
         self.assertEquals(providers[0].Name, "mis2")
         self.assertEquals(providers[1].Name, "mis1")
@@ -286,7 +282,7 @@ class TestPlanner(unittest.TestCase):
 
     def testGenerateTraceId(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         self.assertEquals(calculator._generate_trace_id([2, 3, 4]), "2_3_4")
         self.assertEquals(calculator._generate_trace_id([2, 3, 4, 5, 6]), "2_3_4_5_6")
         self.assertEquals(calculator._generate_trace_id([1]), "1")
@@ -294,7 +290,7 @@ class TestPlanner(unittest.TestCase):
 
     def testUpdateDepartures(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         departures = [TraceStop(PlaceTypeId="1"),
                       TraceStop(PlaceTypeId="2"),
                       TraceStop(PlaceTypeId="3"),
@@ -333,7 +329,7 @@ class TestPlanner(unittest.TestCase):
 
     def testUpdateArrivals(self):
         request = PlanTripRequestType()
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         arrivals = [TraceStop(PlaceTypeId="1"),
                       TraceStop(PlaceTypeId="2"),
                       TraceStop(PlaceTypeId="3"),
@@ -371,9 +367,10 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(linked_stops[1].PlaceTypeId, "l4")
 
     def tearDown(self):
-        # Reset SQLAlchemy connection pool. Otherwise, some connections can stay
-        # open, which will prevent us from deleting the database.
-        clean_db_engine()
+        # Force planner deletion to reset SQLAlchemy connection pool. Otherwise, 
+        # some connections can stay open, which will prevent us from deleting 
+        # the database.
+        del self._planner
         tests.drop_db()
 
 

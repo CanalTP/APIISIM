@@ -1,12 +1,6 @@
 import sys, os, unittest, Queue, logging, json
 from apiisim import tests
-
-os.environ["PLANNER_DB_URL"] = "postgresql+psycopg2://%s:%s@localhost/%s" % \
-                               (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME)
-os.environ["PLANNER_LOG_FILE"] = "/tmp/test_planner_mis_stubs.log"
-
-from apiisim.planner import TraceStop, create_full_notification, MisApi, \
-                            Session, clean_db_engine
+from apiisim.planner import TraceStop, create_full_notification, Planner, MisApi
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
 from apiisim.common.plan_trip import PlanTripRequestType, LocationStructure
 from apiisim import metabase
@@ -30,17 +24,20 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
         tests.create_db(populate_script=self.DB_POPULATE_SCRIPT)
         self._mis_translator_process = tests.launch_mis_translator(self.MIS_TRANSLATOR_CONF_FILE)
         tests.launch_back_office(TEST_DIR + "test_planner_mis_stubs.conf")
+        self._planner = Planner("postgresql+psycopg2://%s:%s@localhost/%s" % \
+                                (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME))
 
 
     def _check_trip(self, request):
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        db_session = self._planner.create_db_session()
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         calculator.MAX_TRACE_LENGTH = self.MAX_TRACE_LENGTH
         traces = calculator.compute_traces()
         logging.debug("TRACES: %s", traces)
         self.assertEquals(traces, self.EXPECTED_TRACES)
-        departure_mises = [MisApi(x).get_name() for x in \
+        departure_mises = [MisApi(db_session, x).get_name() for x in \
                            calculator._get_surrounding_mises(request.Departure.Position, date_type.today())]
-        arrival_mises = [MisApi(x).get_name() for x in \
+        arrival_mises = [MisApi(db_session, x).get_name() for x in \
                          calculator._get_surrounding_mises(request.Arrival.Position, date_type.today())]
         for t in traces:
             full_trip = calculator.compute_trip(t)
@@ -74,7 +71,6 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
 
             # For all partial trips, check that arrival stop point is connected to
             # the departure stop point of the next trip (via a transfer).
-            db_session = Session()
             departures = [x[1].Departure.TripStopPlace.id for x in full_trip]
             arrivals = [x[1].Arrival.TripStopPlace.id for x in full_trip]
             for i in range(0, len(departures) - 1):
@@ -94,8 +90,7 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
                                                metabase.Transfer.stop2_id == s1.c.id))) \
                               .count() > 0)
 
-            db_session.close()
-            Session.remove()
+            self._planner.remove_db_session(db_session)
 
 
     def _new_request(self):
@@ -127,9 +122,10 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
 
     def tearDown(self):
         tests.terminate_mis_translator(self._mis_translator_process)
-        # Reset SQLAlchemy connection pool. Otherwise, some connections can stay
-        # open, which will prevent us from deleting the database.
-        clean_db_engine()
+        # Force planner deletion to reset SQLAlchemy connection pool. Otherwise, 
+        # some connections can stay open, which will prevent us from deleting 
+        # the database.
+        del self._planner
         tests.drop_db()
 
 
@@ -190,7 +186,7 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
         return request
 
     def _check_trip(self, request, ref_files, max_transfers):
-        calculator = PlanTripCalculator(request, Queue.Queue())
+        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         calculator.MAX_TRANSFERS = max_transfers
         traces = calculator.compute_traces()
         logging.debug("TRACES: %s", traces)

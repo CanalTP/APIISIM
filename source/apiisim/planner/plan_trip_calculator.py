@@ -1,4 +1,4 @@
-from apiisim.planner import Session, MisApi, benchmark, stop_to_trace_stop, \
+from apiisim.planner import MisApi, benchmark, stop_to_trace_stop, \
                             create_full_notification, NoItineraryFoundException
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_
@@ -28,8 +28,9 @@ class PlanTripCalculator(object):
     # performance when using MIS that don't support n-m itineraries requests.
     MAX_TRANSFERS = 10
 
-    def __init__(self, params, notif_queue):
-        self._db_session = Session()
+    def __init__(self, planner, params, notif_queue):
+        self._planner = planner
+        self._db_session = self._planner.create_db_session()
         self._params = params
         self._notif_queue = notif_queue
 
@@ -167,7 +168,7 @@ class PlanTripCalculator(object):
     def _get_providers(self, mis_trace):
         ret = [] # [ProviderType]
         for mis_id in mis_trace:
-            mis_api = MisApi(mis_id)
+            mis_api = MisApi(self._db_session, mis_id)
             ret.append(ProviderType(
                             Name=mis_api.get_name(),
                             Url=mis_api.get_api_url()))
@@ -181,7 +182,7 @@ class PlanTripCalculator(object):
         for t in traces:
             is_valid = True
             for mis_id in t[1:-1]:
-                if not MisApi(mis_id).get_multiple_starts_and_arrivals():
+                if not MisApi(self._db_session, mis_id).get_multiple_starts_and_arrivals():
                     is_valid = False
                     break
             if is_valid:
@@ -237,9 +238,9 @@ class PlanTripCalculator(object):
             mis1_id = chunk[0]
             mis2_id = chunk[1] if len(chunk) > 1 else 0
             mis3_id = chunk[2] if len(chunk) > 2 else 0
-            mis1_api = MisApi(mis1_id) if mis1_id else None
-            mis2_api = MisApi(mis2_id) if mis2_id else None
-            mis3_api = MisApi(mis3_id) if mis3_id else None
+            mis1_api = MisApi(self._db_session, mis1_id) if mis1_id else None
+            mis2_api = MisApi(self._db_session, mis2_id) if mis2_id else None
+            mis3_api = MisApi(self._db_session, mis3_id) if mis3_id else None
 
             if trace_start:
                 ret = [(mis1_api,
@@ -315,9 +316,9 @@ class PlanTripCalculator(object):
             mis1_id = chunk[0]
             mis2_id = chunk[1] if len(chunk) > 1 else 0
             mis3_id = chunk[2] if len(chunk) > 2 else 0
-            mis1_api = MisApi(mis1_id) if mis1_id else None
-            mis2_api = MisApi(mis2_id) if mis2_id else None
-            mis3_api = MisApi(mis3_id) if mis3_id else None
+            mis1_api = MisApi(self._db_session, mis1_id) if mis1_id else None
+            mis2_api = MisApi(self._db_session, mis2_id) if mis2_id else None
+            mis3_api = MisApi(self._db_session, mis3_id) if mis3_id else None
 
             if trace_start:
                 ret = [(mis1_api,
@@ -367,7 +368,7 @@ class PlanTripCalculator(object):
         detailed_request.multiDepartures.Arrival = self._params.Arrival
         detailed_request.DepartureTime = self._params.DepartureTime
         detailed_request.ArrivalTime = self._params.ArrivalTime
-        mis_api = MisApi(mis_id)
+        mis_api = MisApi(self._db_session, mis_id)
         resp = mis_api.get_itinerary(detailed_request)
         if not resp.DetailedTrip:
             raise NoItineraryFoundException()
@@ -738,5 +739,4 @@ class PlanTripCalculator(object):
     def __del__(self):
         logging.debug("Deleting PlanTripCalculator instance")
         if self._db_session:
-            self._db_session.close()
-            Session.remove()
+            self._planner.remove_db_session(self._db_session)

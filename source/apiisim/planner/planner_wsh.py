@@ -1,19 +1,29 @@
 # -*- coding: utf8 -*-
 
-import Queue, logging
+import Queue, logging, os
 import json, traceback
 from datetime import datetime
 import threading
+from mod_python import apache
 from apiisim.common.plan_trip import PlanTripRequestType, SelfDriveConditionType, \
                                      EndingSearch, PlanTripNotificationResponseType, \
                                      PlanTripExistenceNotificationResponseType, \
                                      PlanTripResponse, StartingSearch, ErrorType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
-                           TransportModeEnum,PlanTripStatusEnum, parse_location_context
+                           TransportModeEnum, PlanTripStatusEnum, parse_location_context
 from apiisim.common.marshalling import DATE_FORMAT
+from apiisim.planner import benchmark, PlanTripCancellationResponse, BadRequestException, \
+                            Planner
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
-from apiisim.planner import benchmark, PlanTripCancellationResponse, BadRequestException
 
+
+def init_logging(log_file):
+    handler = logging.FileHandler(log_file)
+    formatter = logging.Formatter('%(asctime)s <%(thread)d> [%(levelname)s] %(message)s')
+    handler.setFormatter(formatter)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.addHandler(handler)
 
 def log_error(func):
     def decorator(self, *args, **kwargs):
@@ -38,7 +48,7 @@ class WorkerThread(threading.Thread):
     def run(self):
         logging.debug("Worker Thread started")
         trace = self._job_queue.get()
-        trip_calculator = PlanTripCalculator(self._params, self._notif_queue)
+        trip_calculator = PlanTripCalculator(planner, self._params, self._notif_queue)
         try:
             trip_calculator.compute_trip(trace)
             self.exit_code = 0
@@ -244,7 +254,7 @@ class ConnectionHandler(object):
             raise
 
         try:
-            trip_calculator = PlanTripCalculator(params, notif_queue)
+            trip_calculator = PlanTripCalculator(planner, params, notif_queue)
             traces = trip_calculator.compute_traces()
         except Exception as exc:
             logging.error("compute_traces: %s %s", exc, traceback.format_exc())
@@ -289,3 +299,9 @@ def web_socket_transfer_data(connection):
     connection_handler = ConnectionHandler(connection)
     connection_handler.process()
     del connection_handler
+
+
+apache_options = apache.main_server.get_options()
+init_logging(apache_options.get("PLANNER_LOG_FILE", "") or "/tmp/meta_planner.log")
+planner = Planner(apache_options.get("PLANNER_DB_URL", "") or \
+                  "postgresql+psycopg2://postgres:postgres@localhost/afimb_db")

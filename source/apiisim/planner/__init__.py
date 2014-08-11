@@ -88,15 +88,6 @@ SummedUpTripType.__repr__ = _repr
 
 ################################################################################
 
-def init_logging():
-    handler = logging.FileHandler(
-                    os.environ.get("PLANNER_LOG_FILE", "") or "/tmp/meta_planner.log")
-    formatter = logging.Formatter('%(asctime)s <%(thread)d> [%(levelname)s] %(message)s')
-    handler.setFormatter(formatter)
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(handler)
-
 def benchmark(func):
     def decorator(*args, **kwargs):
         start_date = datetime.now()
@@ -270,16 +261,13 @@ class TraceStop(LocationContextType):
 
 
 class MisApi(object):
-    def __init__(self, id):
-        db_session = Session()
+    def __init__(self, db_session, id):
         mis = db_session.query(metabase.Mis).filter_by(id=id).one()
         self._api_url = mis.api_url
         self._api_key = mis.api_key
         self._name = mis.name
         self._multiple_starts_and_arrivals = mis.multiple_starts_and_arrivals
         self._http = httplib2.Http("/tmp/.planner_cache")
-        db_session.close()
-        Session.remove()
 
     def get_multiple_starts_and_arrivals(self):
         return self._multiple_starts_and_arrivals
@@ -365,16 +353,25 @@ class MisApi(object):
                 .encode(OUTPUT_ENCODING)
 
 
-# Dirty, for unit tests only.
-def clean_db_engine():
-    global db_engine
-    db_engine.dispose()
+class Planner(object):
+    def __init__(self, db_url):
+        # Create engine used to connect to database
+        logging.debug("DB_URL: %s", db_url)
+        self._db_engine = create_engine(db_url, echo=False)
+        # Class that will be instantiated by every thread to create their own 
+        # thread-local sessions
+        self._db_session_factory = scoped_session(sessionmaker(
+                                                        bind=self._db_engine, 
+                                                        expire_on_commit=False))
 
+    def __del__(self):
+        # Not mandatory but a good way to ensure that no connection to the database
+        # is kept alive (particularly useful for unit tests).
+        self._db_engine.dispose()
 
-init_logging()
-# Create engine used to connect to database
-db_url = os.environ.get("PLANNER_DB_URL", "") or \
-                "postgresql+psycopg2://postgres:postgres@localhost/afimb_db"
-db_engine = create_engine(db_url, echo=False)
-# Class that will be instantiated by every thread to create their own thread-local sessions
-Session = scoped_session(sessionmaker(bind=db_engine, expire_on_commit=False))
+    def create_db_session(self):
+        return self._db_session_factory()
+
+    def remove_db_session(self, db_session):
+        db_session.close()
+        self._db_session_factory.remove()
