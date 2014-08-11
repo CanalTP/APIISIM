@@ -36,6 +36,9 @@ import sys, ConfigParser
 
 NAME = "stub_base"
 
+DB_ADMIN_NAME = "postgres"
+DB_ADMIN_PASS = "postgres"
+
 DB_TRIGGER = \
 """
 CREATE OR REPLACE FUNCTION stop_pre_update_handler()
@@ -80,7 +83,9 @@ class DbStop(Base):
 
 
 def create_db(db_name):
-    engine = create_engine("postgresql+psycopg2://postgres:postgres@localhost/postgres", echo=False)
+    engine = create_engine("postgresql+psycopg2://%s:%s@localhost/postgres" % \
+                           (DB_ADMIN_NAME, DB_ADMIN_PASS),
+                           echo=False)
     conn = engine.connect()
     # Delete database. If it doesn't exist, SQLAlchemy will raise an error,
     # just ignore it.
@@ -95,7 +100,9 @@ def create_db(db_name):
     conn.close()
     engine.dispose()
 
-    engine = create_engine("postgresql+psycopg2://postgres:postgres@localhost/%s" % db_name, echo=False)
+    engine = create_engine("postgresql+psycopg2://%s:%s@localhost/%s" % \
+                           (DB_ADMIN_NAME, DB_ADMIN_PASS, db_name),
+                           echo=False)
     conn = engine.connect()
     conn.execute("CREATE EXTENSION IF NOT EXISTS postgis")
 
@@ -107,7 +114,9 @@ def create_db(db_name):
 
 
 def connect_db(db_name):
-    engine = create_engine("postgresql+psycopg2://postgres:postgres@localhost/%s" % db_name, echo=False)
+    engine = create_engine("postgresql+psycopg2://%s:%s@localhost/%s" % \
+                           (DB_ADMIN_NAME, DB_ADMIN_PASS, db_name),
+                           echo=False)
     return Session(bind=engine, expire_on_commit=False)
 
 
@@ -489,21 +498,26 @@ class _SwitchTimesMisApi(_SimpleMisApi):
 class StopPointsMisApi(_MisApi):
     _STOPS_FIELD = "stop_points"
 
-def parse_config():
+
+def get_config():
     if len(sys.argv) < 2:
         return None
 
     conf_file = sys.argv[1]
     parser = ConfigParser.RawConfigParser()
     parser.read(conf_file)
-    stub_mis_api_class = parser.get('Stub', 'stub_mis_api_class')
-    return stub_mis_api_class
+    return parser
 
-# Useful for unit tests. We can choose what type of stub we use
-# depending on test case.
-stub_mis_api_class = parse_config()
-if stub_mis_api_class:
-    MisApi = eval(stub_mis_api_class)
-else:
-    MisApi = _SimpleMisApi
+
+MisApi = _SimpleMisApi
+config = get_config()
+if config:
+    DB_ADMIN_NAME = config.get('Stub', 'db_admin_name') or DB_ADMIN_NAME
+    DB_ADMIN_PASS = config.get('Stub', 'db_admin_pass') or DB_ADMIN_PASS
+    # Useful for unit tests. We can choose what type of stub we use
+    # depending on test case.
+    stub_mis_api_class = config.get('Stub', 'stub_mis_api_class')
+    if stub_mis_api_class:
+        MisApi = eval(stub_mis_api_class)
+
 logging.info("Using Stub MIS API class <%s>", MisApi.__name__)
