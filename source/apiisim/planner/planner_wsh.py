@@ -80,6 +80,8 @@ def parse_request(request):
         bad_field = "DepartureTime" if departure_time else "ArrivalTime"
         raise BadRequestException("DateTime format error: %s" % exc, bad_field)
 
+    if ('Departure' not in request) or ('Arrival' not in request):
+        raise BadRequestException("Missing departure or arrival")
     try:
         ret.Departure = parse_location_context(request["Departure"], has_AccessTime=False)
     except Exception as exc:
@@ -88,8 +90,6 @@ def parse_request(request):
         ret.Arrival = parse_location_context(request["Arrival"], has_AccessTime=False)
     except Exception as exc:
         raise BadRequestException("Could not parse Arrival: %s" % exc, "Arrival")
-    if not ret.Departure or not ret.Arrival:
-        raise BadRequestException("Missing departure or arrival")
 
     # Optional
     ret.MaxTrips = request.get('MaxTrips', 0)
