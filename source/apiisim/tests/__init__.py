@@ -86,7 +86,7 @@ def terminate_mis_translator(process):
 
 
 def launch_back_office(conf_file):
-    return subprocess.call(['python', BACK_OFFICE, "--config_file", conf_file])
+    return subprocess.call(['python', BACK_OFFICE, "--config", conf_file])
 
 """
     Set all creation/update dates of rows to minimal datetime.

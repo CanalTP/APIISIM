@@ -343,11 +343,11 @@ def compute_mis_connections(db_session):
 
 def get_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_file", help="Configuration file")
+    parser.add_argument("-c", "--config", help="Configuration file")
     config_file = os.path.dirname(os.path.realpath(__file__)) + "/default.conf"
     args = parser.parse_args()
-    if args.config_file:
-        config_file = args.config_file
+    if args.config:
+        config_file = args.config
     if not os.path.isabs(config_file):
         config_file = os.getcwd() + "/" + config_file
     if not os.path.isfile(config_file):
