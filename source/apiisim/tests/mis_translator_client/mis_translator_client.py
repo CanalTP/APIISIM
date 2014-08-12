@@ -24,8 +24,8 @@ def send_request(data):
         validate(content["ItineraryResponseType"], itinerary_response_format)
 
 
-h = httplib2.Http(".cache")
 base_url = "http://127.0.0.1:5000/navitia/v0"
+h = httplib2.Http()
 
 headers = {'Content-type': 'application/json',
            'Authorization' : '77bca947-ca67-4f17-92a3-92b716fc3d82'}

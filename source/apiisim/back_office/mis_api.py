@@ -24,7 +24,7 @@ class MisApi(object):
         self._api_key = api_key
 
     def _http_request(self, resource):
-        h = httplib2.Http(".cache")
+        h = httplib2.Http()
         headers = {'Authorization' : self._api_key}
         url = self._api_url + resource
 

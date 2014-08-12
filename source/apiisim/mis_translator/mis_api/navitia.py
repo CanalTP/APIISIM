@@ -449,7 +449,7 @@ class MisApi(MisApiBase):
 
     def _send_request(self, url):
         if not self._http:
-            self._http = httplib2.Http(".cache")
+            self._http = httplib2.Http()
 
         logging.debug("NAVITIA URL %s", url)
 
