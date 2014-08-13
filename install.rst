@@ -7,20 +7,20 @@ Dependencies
 
 #. Python
 
-* psycopg2
-* sqlalchemy
-* flask
-* geoalchemy2
-* python-mod-pywebsocket
-* flask-restful (https://github.com/l-vincent-l/flask-restful) **patched version**
-* websocket-client (only needed by test client)
-* jsonschema (only needed by planner_client example)
+   * psycopg2
+   * sqlalchemy
+   * flask
+   * geoalchemy2
+   * python-mod-pywebsocket
+   * flask-restful (https://github.com/l-vincent-l/flask-restful) **patched version**
+   * websocket-client (only needed by test client)
+   * jsonschema (only needed by planner_client example)
 
 #. Other
 
-* apache2
-* postgresql (9.1+)
-* postgis (1.5+)
+   * apache2
+   * postgresql (9.1+)
+   * postgis (1.5+)
 
 You can use the given *install_deps.sh* script that will install all required
 dependencies (tested on Debian 7 only).
@@ -29,9 +29,11 @@ Build & Install
 ===============
 
 #. Get the source from git
+
    ``git clone https://github.com/CanalTP/APIISIM/ -b dev /tmp/apiisim``
 
 #. Build and install the package
+
    ``cd /tmp/apiisim/source``
 
    ``./install.sh``
