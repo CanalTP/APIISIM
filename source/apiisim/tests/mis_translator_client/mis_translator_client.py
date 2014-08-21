@@ -186,8 +186,8 @@ data6 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
 data7 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a1},
          "DepartureTime" : departure_time,
-         "selfDriveConditions" : [{"TripPart" : "DEPARTURE", "SelfDriveMode" : "BIKE"},
-                                  {"TripPart" : "ARRIVAL", "SelfDriveMode" : "BIKE"}]
+         "selfDriveConditions" : [{"TripPart" : "DEPARTURE", "SelfDriveMode" : "bicycle"},
+                                  {"TripPart" : "ARRIVAL", "SelfDriveMode" : "bicycle"}]
          }
 
 data8 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
