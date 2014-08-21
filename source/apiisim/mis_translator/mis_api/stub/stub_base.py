@@ -278,6 +278,7 @@ def generate_section(leg=False):
         ptr.Arrival.DateTime = datetime(year=2014, month=3, day=7)
         ptr.Duration = timedelta(seconds=20)
         ptr.Distance = 100
+        ptr.StopHeadSign = "Head Sign 387"
         ptr.steps = []
         step_end_point = StepEndPointType(
                             TripStopPlace=TripStopPlaceType(
