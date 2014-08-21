@@ -197,6 +197,7 @@ def parse_sections(sections):
             ptr.Arrival = parse_end_point(p["Arrival"])
             ptr.Duration = xsd_duration_to_timedelta(p["Duration"])
             ptr.Distance = p["Distance"]
+            ptr.StopHeadSign = p["StopHeadSign"]
             ptr.steps = parse_steps(p["steps"])
         elif "Leg" in section:
             l = section["Leg"]
