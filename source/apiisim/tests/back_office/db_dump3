@@ -39,6 +39,18 @@ COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial
 SET search_path = public, pg_catalog;
 
 --
+-- Name: import_result_enum; Type: TYPE; Schema: public; Owner: test_user
+--
+
+CREATE TYPE import_result_enum AS ENUM (
+    'success',
+    'fail'
+);
+
+
+ALTER TYPE public.import_result_enum OWNER TO test_user;
+
+--
 -- Name: stop_type_enum; Type: TYPE; Schema: public; Owner: test_user
 --
 
@@ -272,6 +284,52 @@ ALTER FUNCTION public.stop_pre_update_handler() OWNER TO test_user;
 SET default_tablespace = '';
 
 SET default_with_oids = false;
+
+--
+-- Name: back_office_import; Type: TABLE; Schema: public; Owner: test_user; Tablespace: 
+--
+
+CREATE TABLE back_office_import (
+    id integer NOT NULL,
+    start_date timestamp without time zone,
+    end_date timestamp without time zone,
+    result import_result_enum,
+    nb_stops integer,
+    nb_new_stops integer,
+    nb_updated_stops integer,
+    nb_deleted_stops integer,
+    nb_transfers integer,
+    nb_new_transfers integer,
+    nb_updated_transfers integer,
+    nb_deleted_transfers integer,
+    nb_mis_connections integer,
+    nb_new_mis_connections integer,
+    nb_deleted_mis_connections integer
+);
+
+
+ALTER TABLE public.back_office_import OWNER TO test_user;
+
+--
+-- Name: back_office_import_id_seq; Type: SEQUENCE; Schema: public; Owner: test_user
+--
+
+CREATE SEQUENCE back_office_import_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.back_office_import_id_seq OWNER TO test_user;
+
+--
+-- Name: back_office_import_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: test_user
+--
+
+ALTER SEQUENCE back_office_import_id_seq OWNED BY back_office_import.id;
+
 
 --
 -- Name: mis; Type: TABLE; Schema: public; Owner: test_user; Tablespace: 
@@ -533,6 +591,13 @@ ALTER TABLE public.transfer_mis OWNER TO test_user;
 -- Name: id; Type: DEFAULT; Schema: public; Owner: test_user
 --
 
+ALTER TABLE ONLY back_office_import ALTER COLUMN id SET DEFAULT nextval('back_office_import_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: test_user
+--
+
 ALTER TABLE ONLY mis ALTER COLUMN id SET DEFAULT nextval('mis_id_seq'::regclass);
 
 
@@ -569,6 +634,24 @@ ALTER TABLE ONLY stop ALTER COLUMN id SET DEFAULT nextval('stop_id_seq'::regclas
 --
 
 ALTER TABLE ONLY transfer ALTER COLUMN id SET DEFAULT nextval('transfer_id_seq'::regclass);
+
+
+--
+-- Data for Name: back_office_import; Type: TABLE DATA; Schema: public; Owner: test_user
+--
+
+COPY back_office_import (id, start_date, end_date, result, nb_stops, nb_new_stops, nb_updated_stops, nb_deleted_stops, nb_transfers, nb_new_transfers, nb_updated_transfers, nb_deleted_transfers, nb_mis_connections, nb_new_mis_connections, nb_deleted_mis_connections) FROM stdin;
+1	0001-01-01 00:00:00	0001-01-01 00:00:00	success	200	200	0	0	243	243	0	0	1	1	0
+2	0001-01-01 00:00:00	0001-01-01 00:00:00	success	200	0	0	0	2475	2232	0	0	1	0	0
+3	0001-01-01 00:00:00	0001-01-01 00:00:00	success	200	0	0	0	1	0	0	2474	1	0	0
+\.
+
+
+--
+-- Name: back_office_import_id_seq; Type: SEQUENCE SET; Schema: public; Owner: test_user
+--
+
+SELECT pg_catalog.setval('back_office_import_id_seq', 3, true);
 
 
 --
@@ -880,6 +963,14 @@ COPY transfer (id, stop1_id, stop2_id, distance, duration, prm_duration, active,
 --
 
 SELECT pg_catalog.setval('transfer_id_seq', 2475, true);
+
+
+--
+-- Name: back_office_import_pkey; Type: CONSTRAINT; Schema: public; Owner: test_user; Tablespace: 
+--
+
+ALTER TABLE ONLY back_office_import
+    ADD CONSTRAINT back_office_import_pkey PRIMARY KEY (id);
 
 
 --

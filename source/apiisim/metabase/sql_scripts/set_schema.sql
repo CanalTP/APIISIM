@@ -88,6 +88,26 @@ CREATE TABLE schema_migrations(
     version varchar(255) NOT NULL
 );
 
+CREATE TYPE import_result_enum AS ENUM ('success', 'fail');
+
+CREATE TABLE back_office_import(
+    id serial PRIMARY KEY,
+    start_date timestamp,
+    end_date timestamp,
+    result import_result_enum,
+    nb_stops integer,
+    nb_new_stops integer,
+    nb_updated_stops integer,
+    nb_deleted_stops integer,
+    nb_transfers integer,
+    nb_new_transfers integer,
+    nb_updated_transfers integer,
+    nb_deleted_transfers integer,
+    nb_mis_connections integer,
+    nb_new_mis_connections integer,
+    nb_deleted_mis_connections integer
+);
+
 CREATE UNIQUE INDEX unique_schema_migrations ON schema_migrations USING btree(version);
 CREATE INDEX stop_geog_gist ON stop USING GIST (geog);
 

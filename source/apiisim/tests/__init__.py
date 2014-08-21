@@ -90,6 +90,7 @@ def launch_back_office(conf_file):
 
 """
     Set all creation/update dates of rows to minimal datetime.
+    Also set start/end dates in back_office_import table to minimal datetime.
 """
 def reset_dates(db_name=DB_NAME, user_name=ADMIN_NAME, user_password=ADMIN_PASS):
     db_session = connect_db(db_name, user_name, user_password)
@@ -105,6 +106,11 @@ def reset_dates(db_name=DB_NAME, user_name=ADMIN_NAME, user_password=ADMIN_PASS)
     for table in tables:
         conn = db_session.connection()
         conn.execute("ALTER TABLE %s ENABLE TRIGGER ALL;" % table.__tablename__)
+        db_session.commit()
+
+    for row in db_session.query(metabase.BackOfficeImport).all():
+        row.start_date = datetime.min
+        row.end_date = datetime.min
         db_session.commit()
 
     disconnect_db(db_session)

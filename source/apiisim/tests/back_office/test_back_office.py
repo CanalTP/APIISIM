@@ -8,7 +8,7 @@ from apiisim import metabase
 from geoalchemy2.functions import ST_AsText
 from sqlalchemy.exc import IntegrityError
 from apiisim.back_office.run import compute_transfers, compute_mis_connections, \
-                                mis_dates_overlap
+                                    mis_dates_overlap
 from sqlalchemy import or_
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
@@ -25,7 +25,11 @@ def new_stop(code ="stop_code", name="stop_name", mis_id=1):
 
 def _compute_transfers(db_session, transfer_max_distance):
     return compute_transfers(db_session, transfer_max_distance,
-                             db_session.query(metabase.Transfer).count())
+                             db_session.query(metabase.Transfer).count(),
+                             metabase.BackOfficeImport())
+
+def _compute_mis_connections(db_session):
+    return compute_mis_connections(db_session, metabase.BackOfficeImport())
 
 """
 Test suite for metabase and back_office components
@@ -376,7 +380,7 @@ class TestBackOffice(unittest.TestCase):
         for s1, s2 in transfers:
             self.add_transfer(s1, s2)
 
-        compute_mis_connections(self.db_session)
+        _compute_mis_connections(self.db_session)
         db_mis_connections = self.db_session.query(metabase.MisConnection.mis1_id,
                                                    metabase.MisConnection.mis2_id) \
                                             .all()
@@ -390,7 +394,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.query(metabase.Transfer).filter_by(stop1_id=stop2_id, stop2_id=stop5_id).delete()
         self.db_session.query(metabase.Transfer).filter_by(stop1_id=stop2_id, stop2_id=stop6_id).delete()
         self.db_session.flush()
-        compute_mis_connections(self.db_session)
+        _compute_mis_connections(self.db_session)
         # mis_connection should still be here
         self.assertEqual(self.db_session.query(metabase.MisConnection) \
                                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
@@ -398,7 +402,7 @@ class TestBackOffice(unittest.TestCase):
 
         self.db_session.query(metabase.Transfer).filter_by(stop1_id=stop1_id, stop2_id=stop5_id).delete()
         self.db_session.flush()
-        compute_mis_connections(self.db_session)
+        _compute_mis_connections(self.db_session)
         # mis_connection should not exist as all transfers between mis1 and mis4 have been deleted
         self.assertEqual(self.db_session.query(metabase.MisConnection) \
                                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
@@ -406,7 +410,7 @@ class TestBackOffice(unittest.TestCase):
 
         self.add_transfer(stop1_id, stop6_id)
         self.db_session.flush()
-        compute_mis_connections(self.db_session)
+        _compute_mis_connections(self.db_session)
         # mis_connection should come back now that a transfer has been added
         self.assertEqual(self.db_session.query(metabase.MisConnection) \
                                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
@@ -419,7 +423,7 @@ class TestBackOffice(unittest.TestCase):
         mis4.start_date = date_type(year=2012, month=7, day=1)
         mis4.end_date = date_type(year=2013, month=4, day=1)
         self.db_session.commit()
-        compute_mis_connections(self.db_session)
+        _compute_mis_connections(self.db_session)
         # Validity periods don't overlap, so mis_connection should not have been created.
         self.assertEqual(self.db_session.query(metabase.MisConnection) \
                                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
@@ -427,7 +431,7 @@ class TestBackOffice(unittest.TestCase):
 
         mis4.start_date = date_type(year=2011, month=7, day=1)
         self.db_session.commit()
-        compute_mis_connections(self.db_session)
+        _compute_mis_connections(self.db_session)
         # Validity periods now overlap, so mis_connection should exist.
         self.assertEqual(self.db_session.query(metabase.MisConnection) \
                                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),

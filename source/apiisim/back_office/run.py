@@ -107,7 +107,7 @@ Retrieve all stops from Mis APIs and update database accordingly (add new stops
 and remove obsolete ones).
 """
 @db_transaction
-def retrieve_all_stops(db_session):
+def retrieve_all_stops(db_session, stats):
     # First, retrieve stops for all Mis existing in the DB
     logging.info("Retrieving stops...")
     all_stops = {} # {mis_id : [list of stops]}
@@ -170,13 +170,18 @@ def retrieve_all_stops(db_session):
     logging.info("%s deleted stops", nb_extra_stops)
     logging.info("%s updated stops", nb_updated_stops)
 
+    stats.nb_stops = nb_stops
+    stats.nb_new_stops = nb_new_stops
+    stats.nb_deleted_stops = nb_extra_stops
+    stats.nb_updated_stops = nb_updated_stops
+
 
 """
 Calculate all transfers by parsing all stops and add them to the database.
 Also remove obsolete transfers.
 """
 @db_transaction
-def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers):
+def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers, stats):
     all_stops = db_session.query(metabase.Stop).all()
     transfers = [] # List of frozensets: [(stop1_id, stop2_id)]
 
@@ -273,13 +278,19 @@ def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers):
         if set([t[1], t[2]]) not in transfers:
             db_session.query(metabase.Transfer).filter_by(id=t[0]).delete()
 
-    nb_deleted = orig_nb_transfers - len(transfers)
+    nb_transfers = len(transfers)
+    nb_deleted = orig_nb_transfers - nb_transfers
     if nb_deleted < 0:
         nb_deleted = 0
-    logging.info("%s transfers", len(transfers))
+    logging.info("%s transfers", nb_transfers)
     logging.info("%s new transfers", nb_new)
     logging.info("%s updated transfers", nb_updated)
     logging.info("%s deleted transfers", nb_deleted)
+
+    stats.nb_transfers = nb_transfers
+    stats.nb_new_transfers = nb_new
+    stats.nb_updated_transfers = nb_updated
+    stats.nb_deleted_transfers = nb_deleted
 
 
 """
@@ -289,7 +300,7 @@ Also remove obsolete mis_connections (i.e. mis_connections where the 2 MIS
 don't have any transfer between them).
 """
 @db_transaction
-def compute_mis_connections(db_session):
+def compute_mis_connections(db_session, stats):
     mis_connections = []
     db_transfers = db_session.query(metabase.Transfer).all()
     nb_new = 0
@@ -336,9 +347,14 @@ def compute_mis_connections(db_session):
             db_session.query(metabase.MisConnection).filter_by(id=m[0]).delete()
             nb_deleted += 1
 
-    logging.info("%s mis_connections", len(mis_connections))
+    nb_mis_connections = len(mis_connections)
+    logging.info("%s mis_connections", nb_mis_connections)
     logging.info("%s new mis_connections", nb_new)
     logging.info("%s deleted mis_connections", nb_deleted)
+
+    stats.nb_mis_connections = nb_mis_connections
+    stats.nb_new_mis_connections = nb_new
+    stats.nb_deleted_mis_connections = nb_deleted
 
 
 def get_config():
@@ -361,10 +377,17 @@ def get_config():
 
     return config
 
+@db_transaction
+def add_import_stats(db_session, stats):
+    db_session.add(stats)
+
 
 def main():
     init_logging()
-    logging.info("Back Office start: %s", datetime.datetime.now().isoformat())
+
+    import_stats = metabase.BackOfficeImport()
+    import_stats.start_date = datetime.datetime.now().isoformat()
+    logging.info("Back Office start: %s", import_stats.start_date)
 
     config = get_config()
     db_url = config.get('General', 'db_url')
@@ -378,6 +401,7 @@ def main():
     db_session = Session(bind=db_engine, expire_on_commit=False)
 
     try:
+        add_import_stats(db_session, import_stats)
         # orig_nb_transfers is used for stats only. We need it to have a
         # reliable number of deleted transfers. Indeed, some transfers are
         # automatically deleted by SQL triggers when one of their stops is deleted,
@@ -386,15 +410,23 @@ def main():
         orig_nb_transfers = db_session.query(metabase.Transfer).count()
         if request_mis_capabilities:
             retrieve_mis_capabilities(db_session)
-        retrieve_all_stops(db_session)
-        compute_transfers(db_session, transfer_max_distance, orig_nb_transfers)
-        compute_mis_connections(db_session)
+        retrieve_all_stops(db_session, import_stats)
+        compute_transfers(db_session, transfer_max_distance, orig_nb_transfers, import_stats)
+        compute_mis_connections(db_session, import_stats)
+    except:
+        db_session.rollback()
+        import_stats.result = "fail"
+        raise
+    else:
+        import_stats.result = "success"
     finally:
+        import_stats.end_date = datetime.datetime.now().isoformat()
+        db_session.commit()
         db_session.close()
         db_session.bind.dispose()
 
-    logging.info("Back Office end: %s", datetime.datetime.now().isoformat())
+    logging.info("Back Office end: %s", import_stats.end_date)
+
 
 if __name__ == '__main__':
     main()
-
