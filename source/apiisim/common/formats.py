@@ -128,19 +128,40 @@ step_format = {'type': 'object',
         'required': ['id', 'Departure', 'Arrival', 'Duration'],
 }
 
+pt_network_format = {'type': 'object',
+        'properties': {
+            'id': {'type': 'string'},
+            'Name': {'type': 'string'},
+            'RegistrationNumber': {'type': 'string'},
+        },
+        'required': ['id', 'Name'],
+}
+
+line_format = {'type': 'object',
+        'properties': {
+            'id': {'type': 'string'},
+            'Name': {'type': 'string'},
+            'Number': {'type': 'string'},
+            'PublishedName': {'type': 'string'},
+            'RegistrationNumber': {'type': 'string'},
+        },
+        'required': ['id', 'Name'],
+}
+
 pt_ride_format = {'type': 'object',
         'properties': {
-            'ptNetworkRef': {'type': 'string'},
-            'lineRef': {'type': 'string'},
             'PublicTransportMode': {'enum': [x for x in TransportModeEnum.values()]},
             'Departure': end_point_format,
             'Arrival': end_point_format,
             'Duration': {'type': 'string', 'pattern': duration_pattern},
             'Distance': {'type': 'integer'},
+            'PTNetwork': pt_network_format,
+            'Line': line_format,
+            'StopHeadSign': {'type': 'string'},
             'steps': {'type' : 'array',
                       'items':[step_format]},
         },
-        'required': ['ptNetworkRef', 'lineRef', 'PublicTransportMode', 'Departure',
+        'required': ['PublicTransportMode', 'Departure',
                      'Arrival', 'Duration', 'steps'],
 }
 
@@ -186,7 +207,7 @@ trip_format = {'type': 'object',
             'sections': {'type' : 'array',
                          'items':[section_format]},
         },
-        'required': ['id', 'Departure', 'Arrival', 'Duration', 'sections'],
+        'required': ['Departure', 'Arrival', 'Duration', 'sections'],
 }
 
 composed_trip_format = deepcopy(trip_format)

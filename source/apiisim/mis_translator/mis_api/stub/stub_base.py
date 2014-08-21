@@ -18,7 +18,8 @@ import json, logging, os
 from apiisim.common.mis_collect_stops import StopPlaceType, QuayType, CentroidType, LocationStructure
 from apiisim.common.mis_plan_trip import ItineraryResponseType, EndPointType, \
                                  TripStopPlaceType, TripType, SectionType, \
-                                 PTRideType, LegType, StepEndPointType, StepType
+                                 PTRideType, LegType, StepEndPointType, StepType, \
+                                 LineType, PTNetworkType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
 from apiisim.common import PlanSearchOptions, PublicTransportModeEnum, SelfDriveModeEnum, \
                    TypeOfPlaceEnum
@@ -256,8 +257,20 @@ def generate_section(leg=False):
     ret.PartialTripId = "stub_id"
     if not leg:
         ptr = PTRideType()
-        ptr.ptNetworkRef = "BUS 36"
-        ptr.lineRef = "36"
+        line = LineType()
+        line.id = "LINE:ID:387"
+        line.Name = "Line 387"
+        line.Number = "387"
+        line.PublishedName = "Line 387"
+        line.RegistrationNumber = "LINE:ID:387"
+        ptr.Line = line
+
+        network = PTNetworkType()
+        network.id = "NETWORK:ID:241"
+        network.Name = "Network 421"
+        network.RegistrationNumber = "NETWORK:ID:241"
+        ptr.PTNetwork = network
+
         ptr.PublicTransportMode = PublicTransportModeEnum.BUS
         ptr.Departure = end_point
         ptr.Arrival = end_point

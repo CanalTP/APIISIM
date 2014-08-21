@@ -8,7 +8,8 @@ import json, httplib2, logging, urllib
 from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
                                          EndPointType, StepEndPointType, StepType, \
                                          QuayType, CentroidType, TripType, \
-                                         SectionType, PTRideType, LegType
+                                         SectionType, PTRideType, LegType, \
+                                         LineType, PTNetworkType
 from apiisim.common.mis_collect_stops import StopPlaceType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
@@ -227,8 +228,21 @@ def journey_to_detailed_trip(journey):
         section.PartialTripId = s["id"]
         if s["type"] == SectionTypeEnum.PUBLIC_TRANSPORT:
             ptr = PTRideType()
-            ptr.ptNetworkRef = s["display_informations"]["network"]
-            ptr.lineRef = s["display_informations"]["code"]
+
+            line = LineType()
+            line.id = next((x["id"] for x in s.get("links", []) if x["type"] == "line"), "")
+            line.Name = s["display_informations"]["label"]
+            line.Number = s["display_informations"].get("code", "") or None
+            line.PublishedName = line.Name or None
+            line.RegistrationNumber = line.id or None
+            ptr.Line = line
+
+            network = PTNetworkType()
+            network.id = next((x["id"] for x in s.get("links", []) if x["type"] == "network"), "")
+            network.Name = s["display_informations"]["network"]
+            network.RegistrationNumber = network.id or None
+            ptr.PTNetwork = network
+
             physical_mode_id = next((x["id"] for x in s.get("links", []) if x["type"] == "physical_mode"), "")
             ptr.PublicTransportMode = PUBLIC_TRANSPORT_MODE_MAPPING.get(
                                             physical_mode_id, 
@@ -240,6 +254,7 @@ def journey_to_detailed_trip(journey):
             ptr.Duration = timedelta(seconds=s["duration"])
             # TODO remove that hard coded 0 index
             ptr.Distance = s["geojson"]["properties"][0]["length"]
+            ptr.StopHeadSign = s["display_informations"].get("headsign", None)
             ptr.steps = parse_stop_times(s.get("stop_date_times", None))
             section.PTRide = ptr
         else: # Consider section as LegType

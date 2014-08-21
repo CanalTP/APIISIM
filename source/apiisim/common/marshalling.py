@@ -186,14 +186,29 @@ step_type = {
     'Duration' : _Duration
 }
 
+pt_network_type = {
+    'id' : fields.String,
+    'Name' : fields.String,
+    'RegistrationNumber' : fields.String,
+}
+
+line_type = {
+    'id' : fields.String,
+    'Name' : fields.String,
+    'Number' : fields.String,
+    'PublishedName' : fields.String,
+    'RegistrationNumber' : fields.String,
+}
+
 pt_ride_type = {
-    'ptNetworkRef' : fields.String,
-    'lineRef' : fields.String,
     'PublicTransportMode' : fields.String,
     'Departure' :  NonNullNested(end_point_type),
     'Arrival' : NonNullNested(end_point_type),
     'Duration' : _Duration,
     'Distance' : fields.Integer,
+    'PTNetwork' : NonNullNested(pt_network_type),
+    'Line' : NonNullNested(line_type),
+    'StopHeadSign' : fields.String,
     'steps' : fields.List(NonNullNested(step_type))
 }
 

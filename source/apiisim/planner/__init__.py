@@ -2,7 +2,8 @@ import logging, os, json, httplib2
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from apiisim.common.mis_plan_trip import ItineraryResponseType, ItineraryRequestType
+from apiisim.common.mis_plan_trip import ItineraryResponseType, ItineraryRequestType, \
+                                         LineType, PTNetworkType
 from apiisim.common.plan_trip import PlanTripRequestType, \
                                      PlanTripExistenceNotificationResponseType, \
                                      PlanTripNotificationResponseType, \
@@ -174,8 +175,23 @@ def parse_sections(sections):
         if "PTRide" in section:
             p = section["PTRide"]
             ptr = PTRideType()
-            ptr.ptNetworkRef = p["ptNetworkRef"]
-            ptr.lineRef = p["lineRef"]
+
+            if "Line" in p:
+                line = LineType()
+                line.id = p["Line"]["id"]
+                line.Name = p["Line"]["Name"]
+                line.Number = p["Line"].get("Number", None)
+                line.PublishedName = p["Line"].get("PublishedName", None)
+                line.RegistrationNumber = p["Line"].get("RegistrationNumber", None)
+                ptr.Line = line
+
+            if "PTNetwork" in p:
+                network = PTNetworkType()
+                network.id = p["PTNetwork"]["id"]
+                network.Name = p["PTNetwork"]["Name"]
+                network.RegistrationNumber = p["PTNetwork"].get("RegistrationNumber", None)
+                ptr.PTNetwork = network
+
             ptr.PublicTransportMode = p["PublicTransportMode"]
             ptr.Departure = parse_end_point(p["Departure"])
             ptr.Arrival = parse_end_point(p["Arrival"])
