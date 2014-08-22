@@ -16,7 +16,8 @@ from apiisim.common.mis_plan_summed_up_trip import LocationContextType, \
                                                    SummedUpItinerariesResponseType, \
                                                    StatusType, SummedUpTripType, \
                                                    SummedUpItinerariesRequestType
-from apiisim.common import OUTPUT_ENCODING, StatusCodeEnum, xsd_duration_to_timedelta
+from apiisim.common import OUTPUT_ENCODING, StatusCodeEnum, xsd_duration_to_timedelta, \
+                           TypeOfPlaceEnum
 from apiisim.common.marshalling import marshal, itinerary_request_type, \
                                summed_up_itineraries_request_type, \
                                summed_up_trip_type, \
@@ -114,10 +115,10 @@ def parse_end_point(point, step_end_point=False):
     place = TripStopPlaceType()
     p = point["TripStopPlace"]
     place.id = p["id"]
-    place.Name = p.get("Name", "")
-    place.CityCode = p.get("CityCode", "")
-    place.CityName = p.get("CityName", "")
-    place.TypeOfPlaceRef = p.get("TypeOfPlaceRef", "")
+    place.Name = p.get("Name", None)
+    place.CityCode = p.get("CityCode", None)
+    place.CityName = p.get("CityName", None)
+    place.TypeOfPlaceRef = p.get("TypeOfPlaceRef", TypeOfPlaceEnum.LOCATION)
     if "Position" in p:
         place.Position = LocationStructure(
                             Latitude=p["Position"]["Latitude"],
@@ -208,7 +209,7 @@ def parse_sections(sections):
             leg.Duration = xsd_duration_to_timedelta(l["Duration"])
 
         ret.append(SectionType(
-                        PartialTripId=section.get("PartialTripId", ""),
+                        PartialTripId=section.get("PartialTripId", None),
                         PTRide=ptr, Leg=leg))
 
     return ret
