@@ -26,7 +26,7 @@ class PlanTripCalculator(object):
     SURROUNDING_MISES_MAX_DISTANCE = 400 # In meters
     # Maximum number of transfers between 2 MIS. We need that limit to have acceptable
     # performance when using MIS that don't support n-m itineraries requests.
-    MAX_TRANSFERS = 10
+    MAX_TRANSFERS = 20
 
     def __init__(self, planner, params, notif_queue):
         self._planner = planner
