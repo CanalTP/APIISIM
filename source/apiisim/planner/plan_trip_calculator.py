@@ -544,6 +544,7 @@ class PlanTripCalculator(object):
                 # All other requests are departure_at requests.
                 detailed_request.DepartureTime = prev_stop.departure_time
                 detailed_request.ArrivalTime = None
+                prev_stop.AccessTime = timedelta(seconds=0)
             detailed_request.multiArrivals = multiArrivalsType()
             detailed_request.multiArrivals.Departure = prev_stop
             detailed_request.multiArrivals.Arrival = list(set(arrivals))
@@ -666,6 +667,7 @@ class PlanTripCalculator(object):
                 # All other requests are arrival_at requests.
                 detailed_request.ArrivalTime = prev_stop.arrival_time
                 detailed_request.DepartureTime = None
+                prev_stop.AccessTime = timedelta(seconds=0)
             detailed_request.multiDepartures = multiDeparturesType()
             detailed_request.multiDepartures.Departure = list(set(departures))
             detailed_request.multiDepartures.Arrival = prev_stop
