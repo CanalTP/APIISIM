@@ -165,7 +165,9 @@ class CalculationManager(threading.Thread):
             workers.append(worker)
             job_queue.put(trace)
             worker.start()
-            worker.join() # TODO delete that, just for debugging
+            # Uncomment the line below to run workers sequentially.
+            # This slows down performance but makes debugging much easier.
+            # worker.join()
             if i == self._params.MaxTrips:
                 break
         for w in workers:
