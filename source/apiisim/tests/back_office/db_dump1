@@ -507,7 +507,7 @@ CREATE TABLE stop (
     transport_mode transport_mode_enum,
     quay_type character varying(255),
     geog geography(Point,4326),
-    geom geometry,
+    geom geometry(Geometry,4326),
     created_at timestamp without time zone,
     updated_at timestamp without time zone
 );
