@@ -42,7 +42,7 @@ def init_logging(log_file):
     root_logger.setLevel(logging.DEBUG)
     root_logger.addHandler(handler)
 
-    logging.info("Logging to '%s':", log_file or "stdout")
+    print "Logging to '%s'" % (log_file or "stdout")
 
 
 args = get_cmd_args()

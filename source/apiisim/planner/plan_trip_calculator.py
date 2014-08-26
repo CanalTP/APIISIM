@@ -426,9 +426,11 @@ class PlanTripCalculator(object):
 
         to_del = set(to_del)
         for i in sorted(to_del, reverse=True):
-            arrivals.pop(i)
+            deleted_stop = arrivals.pop(i)
+            logging.debug("No itinerary found to stop point %s, deleting it", deleted_stop)
             if linked_stops:
-                linked_stops.pop(i)
+                deleted_stop = linked_stops.pop(i)
+                logging.debug("Also deleting its linked stop point %s", deleted_stop)
 
         if not arrivals:
             raise NoItineraryFoundException()
@@ -456,9 +458,11 @@ class PlanTripCalculator(object):
 
         to_del = set(to_del)
         for i in sorted(to_del, reverse=True):
-            departures.pop(i)
+            deleted_stop = departures.pop(i)
+            logging.debug("No itinerary found from stop point %s, deleting it", deleted_stop)
             if linked_stops:
-                linked_stops.pop(i)
+                deleted_stop = linked_stops.pop(i)
+                logging.debug("Also deleting its linked stop point %s", deleted_stop)
 
         if not departures:
             raise NoItineraryFoundException()
