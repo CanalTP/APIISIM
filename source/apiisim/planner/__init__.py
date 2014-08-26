@@ -296,6 +296,20 @@ class MisApi(object):
     def get_api_url(self):
         return self._api_url
 
+    # Should not be hard-coded but it will do the job for now.
+    def get_shape(self):
+        if self._name == "paysdelaloire":
+            return "POLYGON((-2.557442956 46.26975161,-2.557442956 48.56805252," \
+                   "0.915342221 48.56805252,0.915342221 46.26975161,-2.557442956 46.26975161))"
+        elif self._name == "transilien":
+            return "POLYGON((1.447406441 48.12237262,1.447406441 " \
+                   "49.2334534,3.54286966 49.2334534,3.54286966 48.12237262,1.447406441 48.12237262))"
+        elif self._name == "bretagne":
+            return "POLYGON((-5.139900401 47.27952014,-5.139900401 48.87967361," \
+                   "-1.013521807 48.87967361,-1.013521807 47.27952014,-5.139900401 47.27952014))"
+        else:
+            return None
+
     def _send_request(self, resource, data):
         url = self._api_url + ("/" if self._api_url[-1] != "/" else "") + resource
         logging.debug("<MIS REQUEST>\n"

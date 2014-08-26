@@ -6,6 +6,7 @@ from sqlalchemy.orm import aliased
 from apiisim import metabase
 from geoalchemy2 import Geography
 from geoalchemy2.functions import ST_DWithin, GenericFunction
+from geoalchemy2.functions import ST_Intersects
 from apiisim.common.plan_trip import PlanTripExistenceNotificationResponseType, \
                                      ProviderType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesRequestType
@@ -79,9 +80,11 @@ class PlanTripCalculator(object):
 
 
     """
-        Return set of MIS that have at least one stop point whose distance to given
-        postion is less than max_distance. Also ensure that returned MIS are available at
-        given date. 
+        Return set of MIS that:
+            - have at least one stop point whose distance to given position is
+              less than max_distance.
+            - if MIS provides a shape, given point must be included in this shape.
+        Also ensure that returned MIS are available at given date.
         Note that date must of type 'date', not 'datetime'.
     """
     @benchmark
@@ -100,7 +103,18 @@ class PlanTripCalculator(object):
                                         self.SURROUNDING_MISES_MAX_DISTANCE)) \
                                .count() > 0 \
                and (mis.start_date <= date <= mis.end_date):
-                ret.add(mis.id)
+
+                shape = MisApi(self._db_session, mis.id).get_shape()
+                if shape:
+                    intersect = self._db_session.query(ST_Intersects(
+                                                ST_GeogFromText('POINT(%s %s)' \
+                                                    % (position.Longitude, position.Latitude)),
+                                                ST_GeogFromText(shape))).one()[0]
+                    logging.debug("INTERSECTS <%s>: %s", mis.name, intersect)
+                    if intersect:
+                        ret.add(mis.id)
+                else:
+                    ret.add(mis.id)
 
         logging.debug("MISes surrounding point (%s %s): %s",
                       position.Longitude, position.Latitude, ret)

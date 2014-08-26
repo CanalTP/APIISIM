@@ -5,7 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import logging, sys, argparse, ConfigParser, datetime
 from geoalchemy2.functions import ST_Distance, ST_DWithin
+from geoalchemy2.functions import ST_Intersects, GenericFunction
+from geoalchemy2 import Geography
 import os
+from copy import copy
 
 
 def init_logging():
@@ -101,6 +104,9 @@ def retrieve_mis_capabilities(db_session):
         except Exception as e:
             logging.error("get_capabilties request to <%s> failed: %s", mis.api_url, e)
 
+class ST_GeogFromText(GenericFunction):
+    name = 'ST_GeogFromText'
+    type = Geography
 
 """
 Retrieve all stops from Mis APIs and update database accordingly (add new stops
@@ -115,6 +121,22 @@ def retrieve_all_stops(db_session, stats):
         try:
             logging.info("From <%s>...", mis.name)
             all_stops[mis.id] = MisApi(mis.api_url, mis.api_key).get_stops()
+
+            shape = MisApi(mis.api_url, mis.api_key).get_shape(mis.name)
+            if shape:
+                # Check if stops are included in MIS shape
+                stops = copy(all_stops[mis.id])
+                nb_ignored = 0
+                for s in stops:
+                    intersect = db_session.query(ST_Intersects(
+                                        ST_GeogFromText('POINT(%s %s)' \
+                                            % (s.long, s.lat)),
+                                        ST_GeogFromText(shape))).one()[0]
+                    if not intersect:
+                        nb_ignored += 1
+                        all_stops[mis.id].remove(s)
+                logging.info("Ignored %s stops not in shape %s", nb_ignored, shape)
+
             logging.info("OK")
         except Exception as e:
             logging.error("get_stops request to <%s> failed: %s", mis.api_url, e)
