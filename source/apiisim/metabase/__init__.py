@@ -59,7 +59,8 @@ class Stop(Base):
     quay_type = Column(String(255))
     geog = Column(Geography(geometry_type="POINT", srid=4326,
                             spatial_index=True))
-    geom = Column(Geometry)
+    geom = Column(Geometry(geometry_type="GEOMETRY", srid=4326,
+                           spatial_index=True))
     created_at = Column(TIMESTAMP)
     updated_at = Column(TIMESTAMP)
 

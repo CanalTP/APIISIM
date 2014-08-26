@@ -36,7 +36,7 @@ CREATE TABLE stop(
     quay_type varchar(255),
     -- We'll use PostGIS geography type to calculate distance between stop points.
     geog GEOGRAPHY(Point),
-    geom geometry,
+    geom geometry(Geometry, 4326),
     created_at timestamp,
     updated_at timestamp,
     UNIQUE(code, mis_id)
