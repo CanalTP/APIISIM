@@ -8,6 +8,8 @@ class MisApiDateOutOfScopeException(MisApiException):
     error_code = StatusCodeEnum.DATE_OUT_OF_SCOPE
 class MisApiBadRequestException(MisApiException):
     error_code = StatusCodeEnum.BAD_REQUEST
+class MisApiUnknownObjectException(MisApiException):
+    error_code = StatusCodeEnum.BAD_REQUEST
 class MisApiUnauthorizedException(MisApiException):
     error_code = StatusCodeEnum.INTERNAL_ERROR
 class MisApiInternalErrorException(MisApiException):

@@ -3,7 +3,7 @@
 from base import MisApiBase, MisApiException, \
                  MisApiDateOutOfScopeException, MisApiBadRequestException, \
                  MisApiInternalErrorException, MisApiUnauthorizedException, \
-                 MisCapabilities
+                 MisCapabilities, MisApiUnknownObjectException
 import json, httplib2, logging, urllib
 from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
                                          EndPointType, StepEndPointType, StepType, \
@@ -443,6 +443,15 @@ def get_location_id(location):
         or "%s;%s" % (location.Position.Longitude, location.Position.Latitude)
 
 
+# We need that to be able to remove duplicated stops easily (in get_stops()).
+class _StopPlaceType(StopPlaceType):
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
+
+
 class MisApi(MisApiBase):
 
     def __init__(self, config, api_key=""):
@@ -487,6 +496,8 @@ class MisApi(MisApiBase):
         if resp.status == 404:
             if error_id == 'date_out_of_bounds':
                 raise MisApiDateOutOfScopeException(exc_msg)
+            if error_id == 'unknown_object':
+                raise MisApiUnknownObjectException(exc_msg)
         elif resp.status == 400:
             raise MisApiBadRequestException(exc_msg)
         elif resp.status == 401:
@@ -498,9 +509,9 @@ class MisApi(MisApiBase):
     def get_capabilities(self):
         return MisCapabilities(True, True, [TransportModeEnum.ALL])
 
-    def get_stops(self):
+    def _get_stops_by_mode(self, physical_mode):
         ret = []
-        base_url = self._api_url + "/stop_areas"
+        base_url = self._api_url + ("/physical_modes/%s/stop_areas" % physical_mode)
         params = {"count" : ITEMS_PER_PAGE}
         max_pages = 0
         pages_read = 0
@@ -511,7 +522,7 @@ class MisApi(MisApiBase):
             content = json.loads(content)
             for s in content["stop_areas"]:
                 ret.append(
-                    StopPlaceType(
+                    _StopPlaceType(
                         id=s["id"],
                         quays=[QuayType(
                                 id=s["id"],
@@ -522,11 +533,12 @@ class MisApi(MisApiBase):
                                                         Longitude=s["coord"]["lon"],
                                                         Latitude=s["coord"]["lat"])))]))
 
+            next_base_url = None
             for s in  content["links"]:
                 if "type" in s and s['type'] == "next":
                     next_base_url = s["href"]
 
-            if base_url == next_base_url:
+            if (not next_base_url) or (base_url == next_base_url):
                 # We have read all pages, quit
                 break
             else:
@@ -537,6 +549,23 @@ class MisApi(MisApiBase):
                 pages_read += 1
                 if pages_read > max_pages:
                     break
+
+        return ret
+
+    def get_stops(self):
+        ret = []
+        for mode in ["physical_mode:Coach", "physical_mode:LocalTrain",
+                     "physical_mode:LongDistanceTrain", "physical_mode:Train",
+                     "physical_mode:Ferry", "physical_mode:Air",
+                     "physical_mode:RapidTransit"]:
+            try:
+                ret += self._get_stops_by_mode(mode)
+            except MisApiUnknownObjectException:
+                # Some physical modes may not be not supported by the MIS, just
+                # ignore them.
+                pass
+
+        ret = list(set(ret))
 
         return ret
 
