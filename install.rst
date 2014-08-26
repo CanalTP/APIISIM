@@ -76,7 +76,7 @@ to match your setup.
 
    ``cd /usr/local/lib/python2.7/dist-packages/apiisim-0.1-py2.7.egg/apiisim/mis_translator/``
 
-   ``nohup python run.py &``
+   ``nohup python run.py --log /var/log/apiisim/mis_translator.log &``
 
 #. Launch back_office
 
