@@ -68,7 +68,6 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
             self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Longitude, \
                               request.Arrival.Position.Longitude)
             self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Latitude, \
-
                               request.Arrival.Position.Latitude)
 
             # Check that departure/arrival MISes are correct.

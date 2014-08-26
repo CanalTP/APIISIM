@@ -373,8 +373,8 @@ class PlanTripCalculator(object):
 
 
     def _single_mis_trip(self, mis_id, trace_id, providers):
-        # Return best trip, which is a list of partial trips.
-        ret = [] #  [DetailedTrip]
+        # Return best "meta-trip", which is a list of detailed trips.
+        ret = [] #  [(mis_api, DetailedTrip)]
 
         detailed_request = ItineraryRequestType()
         self._init_request(detailed_request)
@@ -473,8 +473,8 @@ class PlanTripCalculator(object):
         # Minimum arrival_time to arrival
         best_arrival_time = None
 
-        # Return best trip, which is a list of partial trips.
-        ret = [] #  [DetailedTrip]
+        # Return best "meta-trip", which is a list of detailed trips.
+        ret = [] #  [(mis_api, DetailedTrip)]
 
         summed_up_request = SummedUpItinerariesRequestType()
         self._init_request(summed_up_request)
@@ -595,8 +595,8 @@ class PlanTripCalculator(object):
         # Maximum departure_time drom departure
         best_departure_time = None
 
-        # Return best trip, which is a list of partial trips.
-        ret = [] #  [DetailedTrip]
+        # Return best "meta-trip", which is a list of detailed trips.
+        ret = [] #  [(mis_api, DetailedTrip)]
 
         summed_up_request = SummedUpItinerariesRequestType()
         self._init_request(summed_up_request)
