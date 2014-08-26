@@ -13,8 +13,9 @@ TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
 
 
 class _TestPlannerMisStubsBase(unittest.TestCase):
-
-    MIS_TRANSLATOR_CONF_FILE = ""
+    MIS_TRANSLATOR_CONF_CONTENT = \
+                    ("[General]\n"
+                     "enable_stub_mis_apis = true\n")
 
     def setUp(self):
         try:
@@ -22,7 +23,12 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
         except:
             pass
         tests.create_db(populate_script=self.DB_POPULATE_SCRIPT)
-        self._mis_translator_process = tests.launch_mis_translator(self.MIS_TRANSLATOR_CONF_FILE)
+
+        mis_translator_conf_file = "/tmp/%s.conf" % self.__class__.__name__
+        with open(mis_translator_conf_file, "w+") as f:
+            f.write(self.MIS_TRANSLATOR_CONF_CONTENT)
+        self._mis_translator_process = tests.launch_mis_translator(mis_translator_conf_file)
+
         tests.launch_back_office(TEST_DIR + "test_planner_mis_stubs.conf")
         self._planner = Planner("postgresql+psycopg2://%s:%s@localhost/%s" % \
                                 (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME))
@@ -134,9 +140,6 @@ class TestPlannerMisStubs3Mis(_TestPlannerMisStubsBase):
     EXPECTED_TRACES = [[1, 3], [2, 3], [2, 1, 3]]
     MAX_TRACE_LENGTH = 3
 
-    def setUp(self):
-        super(TestPlannerMisStubs3Mis, self).setUp()
-
 class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs_4_mis.sql"
     EXPECTED_TRACES = [[4], [1, 3], [1, 4], [1, 2, 3], [1, 2, 4],
@@ -146,24 +149,46 @@ class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
                        [4, 1, 2, 3], [4, 2, 3], [4, 2, 1, 3]]
     MAX_TRACE_LENGTH = 4
 
-    def setUp(self):
-        super(TestPlannerMisStubs4Mis, self).setUp()
-
 class _TestPlannerMisStubs3MisLight(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs_light.sql"
     MAX_TRACE_LENGTH = 3
 
-    def setUp(self):
-        super(_TestPlannerMisStubs3MisLight, self).setUp()
 
 class TestPlannerMisStubsEmptyTrips(TestPlannerMisStubs3Mis):
-    def setUp(self):
-        self.MIS_TRANSLATOR_CONF_FILE = "/tmp/TestPlannerMisStubsEmptyTrips.conf"
-        with open(self.MIS_TRANSLATOR_CONF_FILE, "w+") as f:
-            f.write("[Stub]\n" \
-                    "stub_mis_api_class = _EmptyTripsMisApi")
-        super(TestPlannerMisStubsEmptyTrips, self).setUp()
+    MIS_TRANSLATOR_CONF_CONTENT = \
+                    ("[General]\n"
+                     "enable_stub_mis_apis = true\n"
+                     "[Stub]\n"
+                     "stub_mis_api_class = _EmptyTripsMisApi")
 
+# class TestPlannerMisStubsSwitchPoints(TestPlannerMisStubs3Mis):
+#     MIS_TRANSLATOR_CONF_CONTENT = \
+#                     ("[General]\n" \
+#                     "enable_stub_mis_apis = true\n" \
+#                     "[Stub]\n" \
+#                     "stub_mis_api_class = _SwitchPointsMisApi")
+
+# class TestPlannerMisStubsSwitchTimes(TestPlannerMisStubs3Mis):
+#     MIS_TRANSLATOR_CONF_CONTENT = \
+#                     ("[General]\n" \
+#                     "enable_stub_mis_apis = true\n" \
+#                     "[Stub]\n" \
+#                     "stub_mis_api_class = _SwitchTimesMisApi")
+
+
+# class TestPlannerMisStubsNoArrival(TestPlannerMisStubs3Mis):
+#     MIS_TRANSLATOR_CONF_CONTENT = \
+#                     ("[General]\n"
+#                      "enable_stub_mis_apis = true\n"
+#                      "[Stub]\n"
+#                      "stub_mis_api_class = _NoArrivalMisApi")
+
+# class TestPlannerMisStubsNoDeparture(TestPlannerMisStubs3Mis):
+#     MIS_TRANSLATOR_CONF_CONTENT = \
+#                     ("[General]\n"
+#                      "enable_stub_mis_apis = true\n"
+#                      "[Stub]\n"
+#                      "stub_mis_api_class = _NoDepartureMisApi")
 
 
 """
@@ -248,12 +273,11 @@ class TestPlannerMisStubsDuplicatedPoints(_TestPlannerMisStubs3MisLight):
     EXPECTED_TRACES = [[1], [2], [3], [1, 2], [1, 3], [1, 2, 3], [1, 3, 2], [2, 1], 
                        [2, 3], [2, 1, 3], [2, 3, 1], [3, 1], [3, 2], [3, 1, 2], [3, 2, 1]]
 
-    def setUp(self):
-        self.MIS_TRANSLATOR_CONF_FILE = "/tmp/TestPlannerMisStubsConsistencyChecks.conf"
-        with open(self.MIS_TRANSLATOR_CONF_FILE, "w+") as f:
-            f.write("[Stub]\n" \
-                    "stub_mis_api_class = _ConsistencyChecksMisApi")
-        super(TestPlannerMisStubsDuplicatedPoints, self).setUp()
+    MIS_TRANSLATOR_CONF_CONTENT = \
+                    ("[General]\n"
+                     "enable_stub_mis_apis = true\n"
+                     "[Stub]\n"
+                     "stub_mis_api_class = _ConsistencyChecksMisApi")
 
     def _new_request(self):
         request = PlanTripRequestType(clientRequestId="test_id")

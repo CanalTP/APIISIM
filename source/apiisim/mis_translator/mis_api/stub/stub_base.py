@@ -173,18 +173,15 @@ def location_to_end_point(location, departure_time=None, arrival_time=None):
 
     return ret
 
-class _MisApi(MisApiBase):
-    _STOPS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/" + "stub_base_stops.json"
-    _STOPS_FIELD = "stop_areas"
-    _DB_NAME = "stub_base_db"
+class _StubMisApi(object):
     _initialized = False
 
-    def __init__(self, api_key=""):
+    def __init__(self, stops_file, stops_field, db_name):
         if not self._initialized:
-            create_db(self._DB_NAME)
-            populate_db(self._DB_NAME, self._STOPS_FILE, self._STOPS_FIELD)
+            create_db(db_name)
+            populate_db(db_name, stops_file, stops_field)
             self.__class__._initialized = True
-        self._db_session = connect_db(self._DB_NAME)
+        self._db_session = connect_db(db_name)
 
     def _generate_detailed_trip(self, departures, arrivals, departure_time, arrival_time):
         return None
@@ -308,7 +305,7 @@ def generate_section(leg=False):
     return ret
 
 # Return random itineraries.
-class _RandomMisApi(_MisApi):
+class _RandomMisApi(_StubMisApi):
     def _generate_detailed_trip(self, departures, arrivals, departure_time, arrival_time):
         if len(departures) > 1 and len(arrivals) > 1:
             raise Exception("<generate_detailed_trip> only supports 1-n requests")
@@ -357,7 +354,7 @@ class _RandomMisApi(_MisApi):
 
 
 # Return itineraries based on "as the crow flies" distance between stops.
-class _SimpleMisApi(_MisApi):
+class _SimpleMisApi(_StubMisApi):
     # Return closest location to loc.
     def _get_closest_location(self, loc, locations):
         distances = [] # [(LocationContextType, distance to loc (in meters))]
@@ -479,59 +476,61 @@ class _ConsistencyChecksMisApi(_SimpleMisApi):
                         algorithm, modes, self_drive_conditions,
                         accessibility_constraint, language, options)
 
-class _NoDepartureMisApi(_SimpleMisApi):
-    def _generate_summed_up_trip(self, *args, **kwargs):
-        ret = super(_NoDepartureMisApi, self)._generate_summed_up_trip(*args, **kwargs)
-        ret.Departure = None
-        return None
+# class _NoDepartureMisApi(_SimpleMisApi):
+#     def _generate_summed_up_trip(self, *args, **kwargs):
+#         ret = super(_NoDepartureMisApi, self)._generate_summed_up_trip(*args, **kwargs)
+#         ret.Departure = None
+#         return None
 
-class _NoArrivalMisApi(_SimpleMisApi):
-    def _generate_summed_up_trip(self, *args, **kwargs):
-        ret = super(_NoArrivalMisApi, self)._generate_summed_up_trip(*args, **kwargs)
-        ret.Arrival = None
-        return ret
+# class _NoArrivalMisApi(_SimpleMisApi):
+#     def _generate_summed_up_trip(self, *args, **kwargs):
+#         ret = super(_NoArrivalMisApi, self)._generate_summed_up_trip(*args, **kwargs)
+#         ret.Arrival = None
+#         return ret
 
-class _SwitchPointsMisApi(_SimpleMisApi):
-    def _generate_summed_up_trip(self, *args, **kwargs):
-        ret = super(_SwitchPointsMisApi, self)._generate_summed_up_trip(*args, **kwargs)
-        # Switch arrival and departure points
-        stop_tmp = ret.Departure
-        ret.Departure = ret.Arrival
-        ret.Arrival = stop_tmp
-        return ret
+# class _SwitchPointsMisApi(_SimpleMisApi):
+#     def _generate_summed_up_trip(self, *args, **kwargs):
+#         ret = super(_SwitchPointsMisApi, self)._generate_summed_up_trip(*args, **kwargs)
+#         # Switch arrival and departure points
+#         stop_tmp = ret.Departure
+#         ret.Departure = ret.Arrival
+#         ret.Arrival = stop_tmp
+#         return ret
 
-class _SwitchTimesMisApi(_SimpleMisApi):
-    def _generate_summed_up_trip(self, *args, **kwargs):
-        ret = super(_SwitchTimesMisApi, self)._generate_summed_up_trip(*args, **kwargs)
-        # Switch arrival and departure times
-        date_tmp = ret.Departure.DateTime
-        ret.Departure.DateTime = ret.Arrival.DateTime
-        ret.Arrival.DateTime = date_tmp
-        return ret
-
-class StopPointsMisApi(_MisApi):
-    _STOPS_FIELD = "stop_points"
+# class _SwitchTimesMisApi(_SimpleMisApi):
+#     def _generate_summed_up_trip(self, *args, **kwargs):
+#         ret = super(_SwitchTimesMisApi, self)._generate_summed_up_trip(*args, **kwargs)
+#         # Switch arrival and departure times
+#         date_tmp = ret.Departure.DateTime
+#         ret.Departure.DateTime = ret.Arrival.DateTime
+#         ret.Arrival.DateTime = date_tmp
+#         return ret
 
 
-def get_config():
-    if len(sys.argv) < 2:
-        return None
+# This class is a factory that instantiates a particular MIS API class based on 
+# the given config. It is useful for unit tests as we can choose what type of stub
+# we use depending on test case.
+class MisApi(object):
+    # Values of these 3 attributes are dummy, they must just be overriden by 
+    # the "real" stub API.
+    _STOPS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/" + "stub_base_stops.json"
+    _STOPS_FIELD = "stop_areas"
+    _DB_NAME = "stub_base_db"
 
-    conf_file = sys.argv[1]
-    parser = ConfigParser.RawConfigParser()
-    parser.read(conf_file)
-    return parser
+    def __new__(cls, config, api_key=""):
+        if not config.has_section("Stub"):
+            return _SimpleMisApi(cls._STOPS_FILE, cls._STOPS_FIELD, cls._DB_NAME)
 
+        if config.has_option('Stub', 'db_admin_name'):
+            DB_ADMIN_NAME = config.get('Stub', 'db_admin_name')
+        if config.has_option('Stub', 'db_admin_pass'):
+            DB_ADMIN_PASS = config.get('Stub', 'db_admin_pass')
+        if config.has_option('Stub', 'stub_mis_api_class'):
+            return eval(config.get('Stub', 'stub_mis_api_class'))(cls._STOPS_FILE,
+                                                                  cls._STOPS_FIELD,
+                                                                  cls._DB_NAME)
+        else:
+            return _SimpleMisApi(cls._STOPS_FILE, cls._STOPS_FIELD, cls._DB_NAME)
 
-MisApi = _SimpleMisApi
-config = get_config()
-if config:
-    DB_ADMIN_NAME = config.get('Stub', 'db_admin_name') or DB_ADMIN_NAME
-    DB_ADMIN_PASS = config.get('Stub', 'db_admin_pass') or DB_ADMIN_PASS
-    # Useful for unit tests. We can choose what type of stub we use
-    # depending on test case.
-    stub_mis_api_class = config.get('Stub', 'stub_mis_api_class')
-    if stub_mis_api_class:
-        MisApi = eval(stub_mis_api_class)
-
-logging.info("Using Stub MIS API class <%s>", MisApi.__name__)
+    def __init__(self, config, api_key=""):
+        pass

@@ -15,10 +15,11 @@ from apiisim.common.marshalling import DATE_FORMAT
 from apiisim.planner import benchmark, PlanTripCancellationResponse, BadRequestException, \
                             Planner
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
+from logging.handlers import RotatingFileHandler
 
 
 def init_logging(log_file):
-    handler = logging.FileHandler(log_file)
+    handler = RotatingFileHandler(log_file, maxBytes=8*1024*1024, backupCount=3)
     formatter = logging.Formatter('%(asctime)s <%(thread)d> [%(levelname)s] %(message)s')
     handler.setFormatter(formatter)
     root_logger = logging.getLogger()

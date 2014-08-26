@@ -445,7 +445,7 @@ def get_location_id(location):
 
 class MisApi(MisApiBase):
 
-    def __init__(self, api_key=""):
+    def __init__(self, config, api_key=""):
         # self._api_url = "http://api.navitia.io/v1/coverage/paris"
         self._api_url = "http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/"
         self._api_key = api_key

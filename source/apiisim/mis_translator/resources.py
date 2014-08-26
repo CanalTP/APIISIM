@@ -28,14 +28,21 @@ STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien",
                                      "stub_pays_de_la_loire_light", "stub_bourgogne_light",
                                      "stub_back_office_test1", "stub_back_office_test2"])
 mis_api_mapping = {} # Mis name : MisApi Class
+mis_api_config = None
 
 """
 Load all available Mis APIs modules and populate mis_api_mapping dict so that
 we can easily instanciate a MisApi object based on the Mis name.
 """
-def load_mis_apis():
-    for package, mis_apis in [("mis_api", MIS_APIS_AVAILABLE),
-                              ("mis_api.stub", STUB_MIS_APIS_AVAILABLE)]:
+def load_mis_apis(config):
+    global mis_api_config
+
+    mis_api_config = config
+    to_load = [("mis_api", MIS_APIS_AVAILABLE)]
+    if mis_api_config.getboolean("General", "enable_stub_mis_apis"):
+        to_load.append(("mis_api.stub", STUB_MIS_APIS_AVAILABLE))
+
+    for package, mis_apis in to_load:
         try:
             exec ("import %s" % (package))
         except ImportError as e:
@@ -58,7 +65,7 @@ Return new MisApi object based on given mis_name.
 """
 def get_mis_api(mis_name, api_key=""):
     if mis_api_mapping.has_key(mis_name):
-        return mis_api_mapping[mis_name](api_key)
+        return mis_api_mapping[mis_name](mis_api_config, api_key)
     else:
         return None
 

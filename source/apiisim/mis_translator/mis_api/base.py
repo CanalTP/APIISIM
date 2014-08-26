@@ -27,7 +27,7 @@ class MisCapabilities(object):
 
 class MisApiBase(object):
 
-    def __init__(self, api_key=""):
+    def __init__(self, config, api_key=""):
         self._api_key = api_key
 
     """

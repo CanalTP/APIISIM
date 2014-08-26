@@ -719,7 +719,7 @@ class TestBackOfficeChangeTransferMaxDistance(unittest.TestCase):
         except:
             pass
         tests.create_db(populate_script=TEST_DIR + "test_back_office.sql")
-        self._mis_translator_process = tests.launch_mis_translator()
+        self._mis_translator_process = tests.launch_mis_translator(TEST_DIR + "mis_translator.conf")
 
     def test(self):
         for conf_file, ref_dump_file in \
