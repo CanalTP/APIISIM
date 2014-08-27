@@ -11,11 +11,13 @@ from apiisim.common.plan_trip import PlanTripRequestType, \
                                      AbstractNotificationResponseType, StepEndPointType, \
                                      EndPointType, TripStopPlaceType, LocationStructure, \
                                      TripType, StepType, PTRideType, LegType, SectionType, \
-                                     PartialTripType, ComposedTripType, ProviderType
+                                     PartialTripType, ComposedTripType, ProviderType, \
+                                     partialTripsType, sectionsType, stepsType
 from apiisim.common.mis_plan_summed_up_trip import LocationContextType, \
                                                    SummedUpItinerariesResponseType, \
                                                    StatusType, SummedUpTripType, \
-                                                   SummedUpItinerariesRequestType
+                                                   SummedUpItinerariesRequestType, \
+                                                   summedUpTripsType
 from apiisim.common import OUTPUT_ENCODING, StatusCodeEnum, xsd_duration_to_timedelta, \
                            TypeOfPlaceEnum
 from apiisim.common.marshalling import marshal, itinerary_request_type, \
@@ -152,7 +154,7 @@ def parse_detailed_trip(trip):
     ret.Distance = trip.get("Distance", 0)
     ret.Disrupted = trip.get("Disrupted", False)
     ret.InterchangeNumber = trip.get("InterchangeNumber", 0)
-    ret.sections = parse_sections(trip["sections"])
+    ret.sections = sectionsType(Section=parse_sections(trip["sections"]["Section"]))
 
     return ret
 
@@ -199,7 +201,7 @@ def parse_sections(sections):
             ptr.Duration = xsd_duration_to_timedelta(p["Duration"])
             ptr.Distance = p.get("Distance", None)
             ptr.StopHeadSign = p.get("StopHeadSign", None)
-            ptr.steps = parse_steps(p["steps"])
+            ptr.steps = stepsType(Step=parse_steps(p.get("steps", {}).get("Step", [])))
         elif "Leg" in section:
             l = section["Leg"]
             leg = LegType()
@@ -237,12 +239,12 @@ def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
         composed_trip.Duration = sum([x[1].Duration for x in full_trip], timedelta())
         composed_trip.InterchangeNumber = sum([x[1].InterchangeNumber for x in full_trip])
         composed_trip.Distance = sum([x[1].Distance for x in full_trip])
-        composed_trip.sections = []
-        composed_trip.partialTrips = []
+        composed_trip.sections = sectionsType(Section=[])
+        partial_trips = []
         for mis_api, trip in full_trip:
-            for s in trip.sections:
+            for s in trip.sections.Section:
                 s.PartialTripId = mis_api.get_name()
-            composed_trip.sections.extend(trip.sections)
+            composed_trip.sections.Section.extend(trip.sections.Section)
             partial_trip = PartialTripType()
             partial_trip.id = mis_api.get_name()
             partial_trip.Provider = ProviderType(
@@ -252,7 +254,8 @@ def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
             partial_trip.Arrival = trip.Arrival
             partial_trip.Duration = trip.Duration
             partial_trip.Distance = trip.Distance
-            composed_trip.partialTrips.append(partial_trip)
+            partial_trips.append(partial_trip)
+        composed_trip.partialTrips = partialTripsType(PartialTrip=partial_trips)
 
     return PlanTripNotificationResponseType(
                 RequestId=request_id,
@@ -355,8 +358,8 @@ class MisApi(object):
 
         # data = {"SummedUpItinerariesRequestType" : request.marshal()}
         # Remove duplicates
-        request.departures = list(set(request.departures))
-        request.arrivals = list(set(request.arrivals))
+        request.departures.Departure = list(set(request.departures.Departure))
+        request.arrivals.Arrival = list(set(request.arrivals.Arrival))
         data = request.marshal()
         _, content = self._send_request("summed_up_itineraries", data)
         # TODO error handling
@@ -366,16 +369,16 @@ class MisApi(object):
                                 content["Status"].get("RuntimeDuration", 0))
         if ret.Status.Code != StatusCodeEnum.OK:
             raise Exception("<get_summed_up_itineraries> %s" % ret.Status.Code)
-        ret.summedUpTrips = parse_summed_up_trips(content.get("summedUpTrips", []))
+        ret.summedUpTrips = summedUpTripsType(SummedUpTrip=parse_summed_up_trips(content.get("summedUpTrips", {}).get("SummedUpTrip", [])))
 
         if must_be_complete:
             if request.DepartureTime:
-                nb_expected = len(request.arrivals)
+                nb_expected = len(request.arrivals.Arrival)
             else:
-                nb_expected = len(request.departures)
-            if len(ret.summedUpTrips) < nb_expected:
+                nb_expected = len(request.departures.Departure)
+            if len(ret.summedUpTrips.SummedUpTrip) < nb_expected:
                 raise Exception("Incomplete MIS reply: expected %s itineraries, got %s"
-                                % (nb_expected, len(ret.summedUpTrips)))
+                                % (nb_expected, len(ret.summedUpTrips.SummedUpTrip)))
 
         return ret
 

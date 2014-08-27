@@ -41,8 +41,8 @@ class MisApi(object):
         stops = []
         content = json.loads(content)
         logging.debug(content)
-        for s in content["StopsResponseType"]["stopPlaces"]:
-            quay = s["quays"][0]
+        for s in content["StopsResponseType"]["stopPlaces"]["StopPlace"]:
+            quay = s["quays"]["Quay"][0]
             stops.append(
                 Stop(code=quay["PrivateCode"],
                      name=quay["Name"],

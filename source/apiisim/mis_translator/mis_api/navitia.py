@@ -9,9 +9,10 @@ from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
                                          EndPointType, StepEndPointType, StepType, \
                                          QuayType, CentroidType, TripType, \
                                          SectionType, PTRideType, LegType, \
-                                         LineType, PTNetworkType
+                                         LineType, PTNetworkType, stepsType, quaysType
 from apiisim.common.mis_collect_stops import StopPlaceType
-from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
+from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, \
+                                                   SummedUpTripType, sectionsType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
                    TransportModeEnum, PublicTransportModeEnum, PlanSearchOptions
 from datetime import datetime, timedelta
@@ -160,7 +161,7 @@ def parse_stop_times(stop_times):
 
 
     if not stop_times or len(stop_times) < 2:
-        return None
+        return []
 
     steps = []
     for i in range(0, len(stop_times) - 1):
@@ -221,7 +222,7 @@ def journey_to_detailed_trip(journey):
     trip.InterchangeNumber = journey["nb_transfers"]
     trip.CarFootprint = None
 
-    trip.sections = []
+    trip.sections = sectionsType(Section=[])
     sections = journey['sections']
     for s in sections:
         section = SectionType()
@@ -254,8 +255,8 @@ def journey_to_detailed_trip(journey):
             ptr.Duration = timedelta(seconds=s["duration"])
             # TODO remove that hard coded 0 index
             ptr.Distance = s["geojson"]["properties"][0]["length"]
+            ptr.steps = stepsType(Step=parse_stop_times(s.get("stop_date_times", [])))
             ptr.StopHeadSign = s["display_informations"].get("headsign", None)
-            ptr.steps = parse_stop_times(s.get("stop_date_times", None))
             section.PTRide = ptr
         else: # Consider section as LegType
             # TODO handle waiting status 
@@ -272,15 +273,15 @@ def journey_to_detailed_trip(journey):
                                     SelfDriveModeEnum.FOOT)
             section.Leg = leg
 
-        trip.sections.append(section)
+        trip.sections.Section.append(section)
 
 
     # Navitia doesn't send global departure and arrival items, we have to get 
     # them from sections.
-    if trip.sections:
+    if trip.sections.Section:
         l = lambda obj, attr1, attr2: getattr(obj, attr1) or getattr(obj, attr2)
-        trip.Departure = l(trip.sections[0], 'PTRide', 'Leg').Departure
-        trip.Arrival = l(trip.sections[-1], 'PTRide', 'Leg').Arrival
+        trip.Departure = l(trip.sections.Section[0], 'PTRide', 'Leg').Departure
+        trip.Arrival = l(trip.sections.Section[-1], 'PTRide', 'Leg').Arrival
 
     return trip
 
@@ -524,14 +525,14 @@ class MisApi(MisApiBase):
                 ret.append(
                     _StopPlaceType(
                         id=s["id"],
-                        quays=[QuayType(
-                                id=s["id"],
-                                Name=s["name"],
-                                PrivateCode=s["id"],
-                                Centroid=CentroidType(
-                                            Location=LocationStructure(
+                        quays=quaysType(Quay=[QuayType(
+                                                id=s["id"],
+                                                Name=s["name"],
+                                                PrivateCode=s["id"],
+                                                Centroid=CentroidType(
+                                                Location=LocationStructure(
                                                         Longitude=s["coord"]["lon"],
-                                                        Latitude=s["coord"]["lat"])))]))
+                                                        Latitude=s["coord"]["lat"])))])))
 
             next_base_url = None
             for s in  content["links"]:

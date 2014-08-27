@@ -66,32 +66,32 @@ url = base_url + "/itineraries"
 data1 = {"multiDepartures" : {"Departure" : departures,
                               "Arrival"   : a1},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.ALL]}
+         "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
 data2 = {"multiArrivals" : {"Departure" : d1,
                             "Arrival"   : arrivals},
          "ArrivalTime" : arrival_time,
-         "modes" : [TransportModeEnum.ALL]}
+         "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
 data2_error = {"multiArrivals" : {"Departure" : d1,
                                   "Arrival"   : arrivals},
          "ArrivalTime" : arrival_time_out_of_scope,
-         "modes" : [TransportModeEnum.ALL]}
+         "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
 # send_request(data1)
 # send_request(data2)
 # send_request(data2_error)
 
 url = base_url + "/summed_up_itineraries"
-data3 = {"Departures" : departures,
-         "Arrivals" : arrivals,
+data3 = {"departures" : {"Departure" : departures},
+         "arrivals" : {"Arrival" : arrivals},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.ALL]}
+         "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
-data4 = {"Departures" : departures,
-         "Arrivals" : arrivals,
+data4 = {"departures" : {"Departure" : departures},
+         "arrivals" : {"Arrival" : arrivals},
          "ArrivalTime" : arrival_time,
-         "modes" : [TransportModeEnum.ALL]}
+         "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
 # send_request(data3)
 # send_request(data4)
@@ -154,29 +154,29 @@ url = base_url + "/itineraries"
 data1 = {"multiDepartures" : {"Departure" : [d1],
                               "Arrival"   : a1},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.ALL]}
+         "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
 data2 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.ALL],
+         "modes" : {"Mode" : [TransportModeEnum.ALL]},
          "Algorithm" : AlgorithmEnum.FASTEST}
 
 data3 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.ALL],
+         "modes" : {"Mode" : [TransportModeEnum.ALL]},
          "Algorithm" : AlgorithmEnum.SHORTEST}
 
 data4 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
          "ArrivalTime" : arrival_time,
-         "modes" : [TransportModeEnum.ALL]}
+         "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
 data5 = {"multiArrivals" : {"Departure" : d2,
                             "Arrival"   : [a1, a2, a3]},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.ALL]}
+         "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
 data6 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
@@ -186,26 +186,27 @@ data6 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
 data7 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a1},
          "DepartureTime" : departure_time,
-         "selfDriveConditions" : [{"TripPart" : "DEPARTURE", "SelfDriveMode" : "bicycle"},
-                                  {"TripPart" : "ARRIVAL", "SelfDriveMode" : "bicycle"}]
+         "selfDriveConditions" : {"SelfDriveCondition" :
+                                    [{"TripPart" : "DEPARTURE", "SelfDriveMode" : "bicycle"},
+                                     {"TripPart" : "ARRIVAL", "SelfDriveMode" : "bicycle"}]}
          }
 
 data8 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.BUS]}
+         "modes" : {"Mode" : [TransportModeEnum.BUS]}}
 
 
 data9 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                               "Arrival"   : a2},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.BUS, TransportModeEnum.TRAM]}
+         "modes" : {"Mode" : [TransportModeEnum.BUS, TransportModeEnum.TRAM]}}
 
 
 data10 = {"multiDepartures" : {"Departure" : [d1, d2, d3],
                                "Arrival"   : a2},
          "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.METRO]}
+         "modes" : {"Mode" : [TransportModeEnum.METRO]}}
 
 send_request(data1)
 send_request(data2)
@@ -220,42 +221,42 @@ send_request(data10)
 
 
 url = base_url + "/summed_up_itineraries"
-data11 = {"departures" : [d1, d2, d3],
-          "arrivals" : [a1, a4, a3],
+data11 = {"departures" : {"Departure" : [d1, d2, d3]},
+          "arrivals" : {"Arrival" : [a1, a4, a3]},
           "DepartureTime" : departure_time,
-          "modes" : [TransportModeEnum.ALL]}
+          "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
-data12 = {"departures" : [d1, d2, d3],
-          "arrivals" : [a1, a4, a3],
+data12 = {"departures" : {"Departure" : [d1, d2, d3]},
+          "arrivals" : {"Arrival" : [a1, a4, a3]},
           "ArrivalTime" : arrival_time,
-          "modes" : [TransportModeEnum.ALL]}
+          "modes" : {"Mode" : [TransportModeEnum.ALL]}}
 
-data13 = {"departures" : [d1, d2, d3],
-          "arrivals" : [a1, a4, a3],
+data13 = {"departures" : {"Departure" : [d1, d2, d3]},
+          "arrivals" : {"Arrival" : [a1, a4, a3]},
           "DepartureTime" : departure_time,
-          "modes" : [TransportModeEnum.ALL],
+          "modes" : {"Mode" : [TransportModeEnum.ALL]},
           "Algorithm" : AlgorithmEnum.FASTEST}
 
-data14 = {"departures" : [d1, d2, d3],
-          "arrivals" : [a1, a4, a3],
+data14 = {"departures" : {"Departure" : [d1, d2, d3]},
+          "arrivals" : {"Arrival" : [a1, a4, a3]},
           "DepartureTime" : departure_time,
-          "modes" : [TransportModeEnum.ALL],
+          "modes" : {"Mode" : [TransportModeEnum.ALL]},
           "Algorithm" : AlgorithmEnum.MINCHANGES}
 
-data15 = {"departures" : [d1, d2, d3],
-          "arrivals" :   [a2],
+data15 = {"departures" : {"Departure" : [d1, d2, d3]},
+          "arrivals" :  {"Arrival" : [a2]},
           "DepartureTime" : departure_time,
-          "modes" : [TransportModeEnum.BUS]}
+          "modes" : {"Mode" : [TransportModeEnum.BUS]}}
 
-data16 = {"departures" : [d1, d2, d3],
-          "arrivals" :   [a2, a3],
+data16 = {"departures" : {"Departure" : [d1, d2, d3]},
+          "arrivals" :   {"Arrival" : [a2, a3]},
           "DepartureTime" : departure_time,
-          "modes" : [TransportModeEnum.BUS]}
+          "modes" : {"Mode" : [TransportModeEnum.BUS]}}
 
-data17 = {"departures" : [d1, d2, d3],
-          "arrivals" :   [a2],
+data17 = {"departures" : {"Departure" : [d1, d2, d3]},
+          "arrivals" :  {"Arrival" : [a2]},
           "DepartureTime" : departure_time,
-          "options" : ["DEPARTURE_ARRIVAL_OPTIMIZED"]
+          "options" : {"Option" : ["DEPARTURE_ARRIVAL_OPTIMIZED"]}
           }
 
 send_request(data11)

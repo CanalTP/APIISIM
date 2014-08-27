@@ -105,6 +105,14 @@ multi_arrivals_type = {
     'Arrival' : fields.List(NonNullNested(location_context_type)),
 }
 
+modes_type = {
+    'Mode' : fields.List(fields.String),
+}
+
+self_drive_conditions_type = {
+    'SelfDriveCondition' : fields.List(NonNullNested(self_drive_condition_type))
+}
+
 itinerary_request_type = {
     'id' : fields.String,
     'multiDepartures' : NonNullNested(multi_departures_type),
@@ -112,25 +120,36 @@ itinerary_request_type = {
     'DepartureTime' : _DateTime,
     'ArrivalTime' : _DateTime,
     'Algorithm' : fields.String,
-    'modes' : fields.List(fields.String),
-    'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
-    # 'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
+    'modes' : NonNullNested(modes_type),
+    'selfDriveConditions' : NonNullNested(self_drive_conditions_type),
     'AccessibilityConstraint' : fields.Boolean,
     'Language' : fields.String,
 }
 
+departures_type = {
+    'Departure' : fields.List(NonNullNested(location_context_type))
+}
+
+arrivals_type = {
+    'Arrival' : fields.List(NonNullNested(location_context_type))
+}
+
+options_type = {
+    'Option' : fields.List(fields.String)
+}
+
 summed_up_itineraries_request_type = {
     'id' : fields.String,
-    'departures' : fields.List(NonNullNested(location_context_type)),
-    'arrivals' : fields.List(NonNullNested(location_context_type)),
+    'departures' : NonNullNested(departures_type),
+    'arrivals' : NonNullNested(arrivals_type),
     'DepartureTime' : _DateTime,
     'ArrivalTime' : _DateTime,
     'Algorithm' : fields.String,
-    'modes' : fields.List(fields.String),
-    'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
+    'modes' : NonNullNested(modes_type),
+    'selfDriveConditions' : NonNullNested(self_drive_conditions_type),
     'AccessibilityConstraint' : fields.Boolean,
     'Language' : fields.String,
-    'options' : fields.List(fields.String),
+    'options' : NonNullNested(options_type),
 }
 
 location_point_type = {
@@ -162,6 +181,10 @@ provider_type = {
     'Url' : fields.String,
 }
 
+providers_type = {
+    'Provider' : fields.List(NonNullNested(provider_type)),
+}
+
 plan_trip_existence_notification_response_type = {
     'RequestId' : fields.String,
     'ComposedTripId' : fields.String,
@@ -170,7 +193,7 @@ plan_trip_existence_notification_response_type = {
     'Duration' : _Duration,
     'Departure' : NonNullNested(location_point_type),
     'Arrival' : NonNullNested(location_point_type),
-    'providers' : fields.List(NonNullNested(provider_type)),
+    'providers' : NonNullNested(providers_type),
 }
 
 step_end_point_type = {
@@ -184,6 +207,10 @@ step_type = {
     'Departure' : NonNullNested(step_end_point_type),
     'Arrival' : NonNullNested(step_end_point_type),
     'Duration' : _Duration
+}
+
+steps_type = {
+    'Step' : fields.List(NonNullNested(step_type))
 }
 
 pt_network_type = {
@@ -206,10 +233,10 @@ pt_ride_type = {
     'Arrival' : NonNullNested(end_point_type),
     'Duration' : _Duration,
     'Distance' : fields.Integer,
+    'steps' : NonNullNested(steps_type),
     'PTNetwork' : NonNullNested(pt_network_type),
     'Line' : NonNullNested(line_type),
     'StopHeadSign' : fields.String,
-    'steps' : fields.List(NonNullNested(step_type))
 }
 
 leg_type = {
@@ -225,6 +252,10 @@ section_type = {
     'Leg' : NonNullNested(leg_type)
 }
 
+sections_type = {
+    'Section' : fields.List(NonNullNested(section_type))
+}
+
 trip_type = {
     'id' : fields.String,
     'Departure' : NonNullNested(end_point_type),
@@ -232,7 +263,7 @@ trip_type = {
     'Duration' : _Duration,
     'Distance' : fields.Integer,
     'InterchangeNumber' : fields.Integer,
-    'sections' : fields.List(NonNullNested(section_type))
+    'sections' : NonNullNested(sections_type),
 }
 
 partial_trip_type = {
@@ -244,6 +275,10 @@ partial_trip_type = {
     'Duration' : _Duration,
 }
 
+partials_trip_type = {
+    'PartialTrip' : fields.List(NonNullNested(partial_trip_type))
+}
+
 composed_trip_type = {
     'id' : fields.String,
     'Departure' : NonNullNested(end_point_type),
@@ -251,8 +286,8 @@ composed_trip_type = {
     'Duration' : _Duration,
     'Distance' : fields.Integer,
     'InterchangeNumber' : fields.Integer,
-    'sections' : fields.List(NonNullNested(section_type)),
-    'partialTrips' : fields.List(NonNullNested(partial_trip_type)),
+    'sections' : NonNullNested(sections_type),
+    'partialTrips' : NonNullNested(partials_trip_type),
 }
 
 plan_trip_notification_response_type = {
@@ -287,10 +322,14 @@ summed_up_trip_type = {
     'InterchangeDuration' : fields.Integer
 }
 
+summed_up_trips_type = {
+    'SummedUpTrip' : fields.List(NonNullNested(summed_up_trip_type))
+}
+
 summed_up_itineraries_response_type = {
     'RequestId' : fields.String,
     'Status' : NonNullNested(status_type),
-    'summedUpTrips' : fields.List(NonNullNested(summed_up_trip_type))
+    'summedUpTrips' : NonNullNested(summed_up_trips_type)
 }
 
 plan_trip_request_type = {
@@ -301,8 +340,8 @@ plan_trip_request_type = {
     'ArrivalTime' : _DateTime,
     'MaxTrips' : fields.Integer,
     'Algorithm' : fields.String,
-    'modes' : fields.List(fields.String),
-    'selfDriveConditions' : fields.List(NonNullNested(self_drive_condition_type)),
+    'modes' : NonNullNested(modes_type),
+    'selfDriveConditions' : NonNullNested(self_drive_conditions_type),
     'AccessibilityConstraint' : fields.Boolean,
     'Language' : fields.String,
 }
@@ -312,10 +351,14 @@ error_type = {
     'Message' : fields.String,
 }
 
+errors_type = {
+    'Error' : fields.List(NonNullNested(error_type))
+}
+
 plan_trip_response_type = {
     'clientRequestId' : fields.String,
     'Status' : fields.String,
-    'errors' : fields.List(NonNullNested(error_type)),
+    'errors' : NonNullNested(errors_type),
 }
 
 ending_search_type = {
@@ -345,14 +388,22 @@ quay_type = {
     'Centroid' : NonNullNested(centroid_type)
 }
 
+quays_type = {
+    'Quay' : fields.List(NonNullNested(quay_type)),
+}
+
 stop_place_type = {
     'id' : fields.String,
-    'quays' : fields.List(NonNullNested(quay_type)),
+    'quays' : NonNullNested(quays_type),
+}
+
+stop_places_type = {
+    'StopPlace' : fields.List(NonNullNested(stop_place_type)),
 }
 
 stops_response_type = {
     'Status' : NonNullNested(status_type),
-    'stopPlaces' : fields.List(NonNullNested(stop_place_type)),
+    'stopPlaces' : NonNullNested(stop_places_type),
 }
 
 capabilities_response_type = {

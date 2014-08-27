@@ -8,8 +8,9 @@ from geoalchemy2 import Geography
 from geoalchemy2.functions import ST_DWithin, GenericFunction
 from geoalchemy2.functions import ST_Intersects
 from apiisim.common.plan_trip import PlanTripExistenceNotificationResponseType, \
-                                     ProviderType
-from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesRequestType
+                                     ProviderType, providersType
+from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesRequestType, \
+                                                   departuresType, arrivalsType, optionsType
 from apiisim.common.mis_plan_trip import ItineraryRequestType, multiDeparturesType, \
                                          multiArrivalsType
 from apiisim.common import TransportModeEnum, PlanSearchOptions
@@ -180,13 +181,13 @@ class PlanTripCalculator(object):
         return ret
 
     def _get_providers(self, mis_trace):
-        ret = [] # [ProviderType]
+        providers = [] # [ProviderType]
         for mis_id in mis_trace:
             mis_api = MisApi(self._db_session, mis_id)
-            ret.append(ProviderType(
+            providers.append(ProviderType(
                             Name=mis_api.get_name(),
                             Url=mis_api.get_api_url()))
-        return ret
+        return providersType(Provider=providers)
 
     def _filter_traces(self, traces):
         # For each trace, check that MISes that are 'in the middle' of the trace,
@@ -211,9 +212,9 @@ class PlanTripCalculator(object):
         arrival_mises = self._get_surrounding_mises(self._params.Arrival.Position, date)
 
         # Filter out Mis that don't support at least one of the requested modes
-        if self._params.modes and not TransportModeEnum.ALL in self._params.modes:
-            departure_mises = set([x for x in departure_mises if (set(self._params.modes) & self._get_mis_modes(x))])
-            arrival_mises = set([x for x in arrival_mises if (set(self._params.modes) & self._get_mis_modes(x))])
+        if self._params.modes and not TransportModeEnum.ALL in self._params.modes.Mode:
+            departure_mises = set([x for x in departure_mises if (set(self._params.modes.Mode) & self._get_mis_modes(x))])
+            arrival_mises = set([x for x in arrival_mises if (set(self._params.modes.Mode) & self._get_mis_modes(x))])
 
         logging.debug("departure_mises %s", departure_mises)
         logging.debug("arrival_mises %s", arrival_mises)
@@ -482,8 +483,8 @@ class PlanTripCalculator(object):
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
-            summed_up_request.departures = departures
-            summed_up_request.arrivals = arrivals
+            summed_up_request.departures.Departure = departures
+            summed_up_request.arrivals.Arrival = arrivals
             if not summed_up_request.DepartureTime:
                 summed_up_request.DepartureTime = self._params.DepartureTime
             else:
@@ -491,9 +492,9 @@ class PlanTripCalculator(object):
                 for d in departures:
                     d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
             summed_up_request.ArrivalTime = None
-            summed_up_request.options = []
+            summed_up_request.options = optionsType(Option=[])
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
-            self._update_arrivals(arrivals, linked_stops, resp.summedUpTrips)
+            self._update_arrivals(arrivals, linked_stops, resp.summedUpTrips.SummedUpTrip)
 
             # To have linked_stops arrival_time, just add transfer time to request results
             for a, l, t in zip(arrivals, linked_stops, transfer_durations):
@@ -501,16 +502,16 @@ class PlanTripCalculator(object):
 
         # Do non-detailed optimized request (only one, always)
         mis_api, departures, arrivals, _, _ = detailed_trace[-1]
-        summed_up_request.departures = departures
-        summed_up_request.arrivals = arrivals
+        summed_up_request.departures.Departure = departures
+        summed_up_request.arrivals.Arrival = arrivals
         summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
         for d in departures:
             d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
         summed_up_request.ArrivalTime = None
-        summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
+        summed_up_request.options = optionsType(Option=[PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED])
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
-        self._update_departures(departures, detailed_trace[-2][2], resp.summedUpTrips)
-        best_arrival_time = min([x.Arrival.DateTime for x in resp.summedUpTrips])
+        self._update_departures(departures, detailed_trace[-2][2], resp.summedUpTrips.SummedUpTrip)
+        best_arrival_time = min([x.Arrival.DateTime for x in resp.summedUpTrips.SummedUpTrip])
 
         # Substract transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
@@ -530,15 +531,15 @@ class PlanTripCalculator(object):
         if len(detailed_trace) > 2:
             for i in reversed(range(1, len(detailed_trace) - 1)):
                 mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[i]
-                summed_up_request.departures = departures
-                summed_up_request.arrivals = arrivals
+                summed_up_request.departures.Departure = departures
+                summed_up_request.arrivals.Arrival = arrivals
                 summed_up_request.DepartureTime = None
                 summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
                 for a in arrivals:
                     a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
-                summed_up_request.options = []
+                summed_up_request.options = optionsType(Option=[])
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
-                self._update_departures(departures, detailed_trace[i-1][2], resp.summedUpTrips)
+                self._update_departures(departures, detailed_trace[i-1][2], resp.summedUpTrips.SummedUpTrip)
 
                 # Substract transfer time from previous request results
                 _, _, arrivals, linked_stops, transfer_durations = detailed_trace[i-1]
@@ -604,8 +605,8 @@ class PlanTripCalculator(object):
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
-            summed_up_request.departures = departures
-            summed_up_request.arrivals = arrivals
+            summed_up_request.departures.Departure = departures
+            summed_up_request.arrivals.Arrival = arrivals
             if not summed_up_request.ArrivalTime:
                 summed_up_request.ArrivalTime = self._params.ArrivalTime
             else:
@@ -613,9 +614,9 @@ class PlanTripCalculator(object):
                 for a in arrivals:
                     a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
             summed_up_request.DepartureTime = None
-            summed_up_request.options = []
+            summed_up_request.options = optionsType(Option=[])
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
-            self._update_departures(departures, linked_stops, resp.summedUpTrips)
+            self._update_departures(departures, linked_stops, resp.summedUpTrips.SummedUpTrip)
 
             # To have linked_stops departure_time, just substract transfer time
             # from request results.
@@ -624,16 +625,16 @@ class PlanTripCalculator(object):
 
         # Do non-detailed optimized request (only one, always)
         mis_api, departures, arrivals, _, _ = detailed_trace[-1]
-        summed_up_request.departures = departures
-        summed_up_request.arrivals = arrivals
+        summed_up_request.departures.Departure = departures
+        summed_up_request.arrivals.Arrival = arrivals
         summed_up_request.ArrivalTime = min([x.departure_time for x in arrivals])
         for a in arrivals:
             a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
         summed_up_request.DepartureTime = None
-        summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
+        summed_up_request.options = optionsType(Option=[PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED])
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
-        self._update_arrivals(arrivals, detailed_trace[-2][1], resp.summedUpTrips)
-        best_departure_time = max([x.Departure.DateTime for x in resp.summedUpTrips])
+        self._update_arrivals(arrivals, detailed_trace[-2][1], resp.summedUpTrips.SummedUpTrip)
+        best_departure_time = max([x.Departure.DateTime for x in resp.summedUpTrips.SummedUpTrip])
 
         # Add transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
@@ -653,15 +654,15 @@ class PlanTripCalculator(object):
         if len(detailed_trace) > 2:
             for i in reversed(range(1, len(detailed_trace) - 1)):
                 mis_api, departures, arrivals, _, _ = detailed_trace[i]
-                summed_up_request.departures = departures
-                summed_up_request.arrivals = arrivals
+                summed_up_request.departures.Departure = departures
+                summed_up_request.arrivals.Arrival = arrivals
                 summed_up_request.ArrivalTime = None
                 summed_up_request.DepartureTime = min([x.arrival_time for x in departures])
                 for d in departures:
                     d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
-                summed_up_request.options = []
+                summed_up_request.options = optionsType(Option=[])
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
-                self._update_arrivals(arrivals, detailed_trace[i-1][1], resp.summedUpTrips)
+                self._update_arrivals(arrivals, detailed_trace[i-1][1], resp.summedUpTrips.SummedUpTrip)
 
                 # Add transfer time from previous request results
                 _, departures, _, linked_stops, transfer_durations = detailed_trace[i-1]
@@ -720,6 +721,8 @@ class PlanTripCalculator(object):
         request.selfDriveConditions = self._params.selfDriveConditions
         request.AccessibilityConstraint = self._params.AccessibilityConstraint
         request.Language = self._params.Language
+        request.departures = departuresType()
+        request.arrivals = arrivalsType()
 
 
     @benchmark

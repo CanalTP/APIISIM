@@ -4,14 +4,15 @@ from flask import request, Response
 from apiisim.common.mis_plan_trip import LocationContextType, LocationStructure, \
                                   ItineraryResponseType, StatusType, \
                                   SelfDriveConditionType
-from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
+from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, \
+                                                   summedUpTripsType
 from apiisim.common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, TripPartEnum, \
                    TransportModeEnum, PlanSearchOptions, string_to_bool, \
                    xsd_duration_to_timedelta, parse_location_context
 from apiisim.common.marshalling import DATE_FORMAT, marshal, itinerary_response_type, \
                                        summed_up_itineraries_response_type, \
                                        stops_response_type, capabilities_response_type
-from apiisim.common.mis_collect_stops import StopsResponseType
+from apiisim.common.mis_collect_stops import StopsResponseType, stopPlacesType
 from apiisim.common.mis_capabilities import CapabilitiesResponseType
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
                          MisApiBadRequestException, MisApiInternalErrorException
@@ -131,9 +132,9 @@ def parse_itinerary_request(request, summed_up_itineraries=False):
     departures = []
     arrivals = []
     if summed_up_itineraries:
-        for d in request.json["departures"]:
+        for d in request.json["departures"]["Departure"]:
             departures.append(parse_location_context(d))
-        for a in request.json["arrivals"]:
+        for a in request.json["arrivals"]["Arrival"]:
             arrivals.append(parse_location_context(a))
     else:
         if "multiDepartures" in request.json:
@@ -155,14 +156,14 @@ def parse_itinerary_request(request, summed_up_itineraries=False):
         logging.error("Invalid algorithm")
         abort(400)
 
-    params.modes = request.json.get('modes', [TransportModeEnum.ALL])
+    params.modes = request.json.get('modes', {}).get('Mode', [TransportModeEnum.ALL])
     for m in params.modes:
         if not TransportModeEnum.validate(m):
             logging.error("Invalid transport mode")
             abort(400)
 
     params.self_drive_conditions = []
-    for c in request.json.get('selfDriveConditions', []):
+    for c in request.json.get('selfDriveConditions', {}).get('SelfDriveCondition', []):
         condition = SelfDriveConditionType(TripPart=c.get("TripPart", ""),
                                 SelfDriveMode=c.get("SelfDriveMode", ""))
         if not TripPartEnum.validate(condition.TripPart) or \
@@ -173,7 +174,7 @@ def parse_itinerary_request(request, summed_up_itineraries=False):
 
     params.accessibility_constraint = string_to_bool(request.json.get('AccessibilityConstraint', "False"))
     params.language = request.json.get('Language', "")
-    params.options = request.json.get("options", [])
+    params.options = request.json.get("options", {}).get("Option", [])
     if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in params.options \
         and len(departures) > 1 and len(arrivals) > 1:
         logging.error("DEPARTURE_ARRIVAL_OPTIMIZED option only available with 1-n itineraries")
@@ -255,7 +256,7 @@ class SummedUpItinerariesRequestProcessor(RequestProcessor):
         return SummedUpItinerariesResponseType()
 
     def _mis_request(self, params):
-        self._resp.summedUpTrips = \
+        self._resp.summedUpTrips = summedUpTripsType(SummedUpTrip= \
                 self._mis.get_summed_up_itineraries(
                         params.departures, 
                         params.arrivals, 
@@ -266,7 +267,7 @@ class SummedUpItinerariesRequestProcessor(RequestProcessor):
                         self_drive_conditions=params.self_drive_conditions,
                         accessibility_constraint=params.accessibility_constraint,
                         language=params.language,
-                        options=params.options)
+                        options=params.options))
 
     def _marshal_response(self):
         return {'SummedUpItinerariesResponseType' : \
@@ -275,7 +276,7 @@ class SummedUpItinerariesRequestProcessor(RequestProcessor):
 
 class StopsRequestProcessor(RequestProcessor):
     def _mis_request(self, params):
-        self._resp.stopPlaces = self._mis.get_stops()
+        self._resp.stopPlaces = stopPlacesType(StopPlace=self._mis.get_stops())
 
     def _new_response(self):
         return StopsResponseType()

@@ -3,7 +3,8 @@
 from websocket import create_connection
 from apiisim.common import AlgorithmEnum, TransportModeEnum
 from apiisim.common.plan_trip import PlanTripRequestType, LocationPointType, LocationStructure, \
-                                     PlanTripCancellationRequest
+                                     PlanTripCancellationRequest, modesType, \
+                                     selfDriveConditionsType, SelfDriveConditionType
 from apiisim.common.marshalling import marshal, plan_trip_request_type
 from apiisim.common import formats
 from random import randint
@@ -45,8 +46,11 @@ def new_request(departure, arrival):
 
     ret.MaxTrips = 10
     ret.Algorithm = AlgorithmEnum.CLASSIC
-    ret.modes = [TransportModeEnum.ALL]
-    ret.selfDriveConditions = []
+    ret.modes = modesType(Mode=[TransportModeEnum.ALL])
+    ret.selfDriveConditions = None
+    # ret.selfDriveConditions = selfDriveConditionsType(SelfDriveCondition= \
+    #     [SelfDriveConditionType(TripPart="DEPARTURE",
+    #                             SelfDriveMode="foot")])
     ret.AccessibilityConstraint = False
     ret.Language = ""
 

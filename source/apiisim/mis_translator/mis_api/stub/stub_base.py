@@ -19,8 +19,9 @@ from apiisim.common.mis_collect_stops import StopPlaceType, QuayType, CentroidTy
 from apiisim.common.mis_plan_trip import ItineraryResponseType, EndPointType, \
                                  TripStopPlaceType, TripType, SectionType, \
                                  PTRideType, LegType, StepEndPointType, StepType, \
-                                 LineType, PTNetworkType
-from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
+                                 LineType, PTNetworkType, stepsType, quaysType
+from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, \
+                                                   SummedUpTripType, sectionsType
 from apiisim.common import PlanSearchOptions, PublicTransportModeEnum, SelfDriveModeEnum, \
                    TypeOfPlaceEnum
 from apiisim import metabase
@@ -196,14 +197,14 @@ class _StubMisApi(object):
             ret.append(
                 StopPlaceType(
                     id=s.code,
-                    quays=[QuayType(
-                            id=s.code,
-                            Name=s.name,
-                            PrivateCode=s.code,
-                            Centroid=CentroidType(
-                                        Location=LocationStructure(
+                    quays=quaysType(Quay=[QuayType(
+                                            id=s.code,
+                                            Name=s.name,
+                                            PrivateCode=s.code,
+                                            Centroid=CentroidType(
+                                            Location=LocationStructure(
                                                     Longitude=s.long,
-                                                    Latitude=s.lat)))]))
+                                                    Latitude=s.lat)))])))
 
         return ret
 
@@ -275,8 +276,8 @@ def generate_section(leg=False):
         ptr.Arrival.DateTime = datetime(year=2014, month=3, day=7)
         ptr.Duration = timedelta(seconds=20)
         ptr.Distance = 100
+        ptr.steps = stepsType(Step=[])
         ptr.StopHeadSign = "Head Sign 387"
-        ptr.steps = []
         step_end_point = StepEndPointType(
                             TripStopPlace=TripStopPlaceType(
                                                 id="stop_id",
@@ -289,7 +290,7 @@ def generate_section(leg=False):
             step.Departure.DateTime = datetime(year=2014, month=3, day=7)
             step.Arrival.DateTime = datetime(year=2014, month=3, day=7)
             step.Duration = timedelta(seconds=10)
-            ptr.steps.append(step)
+            ptr.steps.Step.append(step)
 
         ret.PTRide = ptr
     else:
@@ -316,7 +317,7 @@ class _RandomMisApi(_StubMisApi):
         ret.Distance = randint(0, 10000)
         ret.Disrupted = False
         ret.InterchangeNumber = randint(0, 10)
-        ret.sections = []
+        ret.sections = sectionsType(Section=[])
 
         if len(departures) > 1:
             departure = departures[randint(0, len(departures) - 1)]
@@ -328,7 +329,7 @@ class _RandomMisApi(_StubMisApi):
             ret.Arrival = location_to_end_point(arrival, ret.Departure.DateTime, arrival_time)
 
         for i in range(0, randint(0,3)):
-            ret.sections.append(generate_section(leg=True if i else False))
+            ret.sections.Section.append(generate_section(leg=True if i else False))
 
         return ret
 
@@ -389,7 +390,7 @@ class _SimpleMisApi(_StubMisApi):
         ret.id = "detailed_trip_id"
         ret.Disrupted = False
         ret.InterchangeNumber = 4
-        ret.sections = []
+        ret.sections = sectionsType(Section=[])
 
         if len(departures) > 1:
             best_departure, distance = self._get_closest_location(arrivals[0], departures)
@@ -411,7 +412,7 @@ class _SimpleMisApi(_StubMisApi):
         ret.Distance = distance
         ret.Duration = duration
         for i in range(0, 3):
-            ret.sections.append(generate_section(leg=True if i else False))
+            ret.sections.Section.append(generate_section(leg=True if i else False))
         # logging.debug("Departure %s %s", ret.Departure.TripStopPlace.id, ret.Departure.DateTime)
         # logging.debug("Arrival %s %s", ret.Arrival.TripStopPlace.id, ret.Arrival.DateTime)
 

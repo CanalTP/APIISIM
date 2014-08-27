@@ -36,12 +36,19 @@ error_format =  {'type': 'object',
         'required': ['Field', 'Message']
 }
 
+errors_format = {'type': 'object',
+        'properties': {
+            'Error': {'type' : 'array',
+                      'items': [error_format]}
+        },
+        'required': ['Error'],
+}
+
 plan_trip_response_format = {'type': 'object',
         'properties': {
             'clientRequestId': {'type': 'string'},
             'Status': {'enum': ['0', '1', '2']},
-            'errors': {'type' : 'array',
-                       'items':[error_format]}
+            'errors': errors_format
         },
         'required': ['clientRequestId', 'Status'],
 }
@@ -90,6 +97,14 @@ provider_format = {'type': 'object',
         'required': ['Name'],
 }
 
+providers_format = {'type': 'object',
+        'properties': {
+            'Provider': {'type' : 'array',
+                         'items': [provider_format]}
+        },
+        'required': ['Provider'],
+}
+
 plan_trip_existence_notification_format = {'type': 'object',
         'properties': {
             'RequestId': {'type': 'string'},
@@ -101,8 +116,7 @@ plan_trip_existence_notification_format = {'type': 'object',
             'Duration': {'type': 'string', 'pattern': duration_pattern},
             'Departure': location_point_format,
             'Arrival': location_point_format,
-            'providers': {'type' : 'array',
-                          'items':[provider_format]},
+            'providers': providers_format,
         },
         'required': ['RequestId', 'DepartureTime', 'ArrivalTime', 'ComposedTripId',
                      'Duration', 'Departure', 'Arrival', 'providers'],
@@ -148,6 +162,14 @@ line_format = {'type': 'object',
         'required': ['id', 'Name'],
 }
 
+steps_format = {'type': 'object',
+        'properties': {
+            'Step': {'type' : 'array',
+                     'items': [step_format]}
+        },
+        'required': ['Step'],
+}
+
 pt_ride_format = {'type': 'object',
         'properties': {
             'PublicTransportMode': {'enum': [x for x in TransportModeEnum.values()]},
@@ -158,8 +180,7 @@ pt_ride_format = {'type': 'object',
             'PTNetwork': pt_network_format,
             'Line': line_format,
             'StopHeadSign': {'type': 'string'},
-            'steps': {'type' : 'array',
-                      'items':[step_format]},
+            'steps': steps_format,
         },
         'required': ['PublicTransportMode', 'Departure',
                      'Arrival', 'Duration', 'steps'],
@@ -196,6 +217,14 @@ partial_trip_format = {'type': 'object',
         'required': ['id', 'Departure', 'Arrival', 'Duration', 'Provider'],
 }
 
+sections_format = {'type': 'object',
+        'properties': {
+            'Section': {'type' : 'array',
+                        'items': [section_format]}
+        },
+        'required': ['Section'],
+}
+
 trip_format = {'type': 'object',
         'properties': {
             'id': {'type': 'string'},
@@ -204,15 +233,21 @@ trip_format = {'type': 'object',
             'Duration': {'type': 'string', 'pattern': duration_pattern},
             'Distance': {'type': 'integer'},
             'InterchangeNumber': {'type': 'integer'},
-            'sections': {'type' : 'array',
-                         'items':[section_format]},
+            'sections': sections_format,
         },
         'required': ['Departure', 'Arrival', 'Duration', 'sections'],
 }
 
+partial_trips_format = {'type': 'object',
+        'properties': {
+            'PartialTrip': {'type' : 'array',
+                         'items': [partial_trip_format]}
+        },
+        'required': ['PartialTrip'],
+}
+
 composed_trip_format = deepcopy(trip_format)
-composed_trip_format['properties']['partialTrips'] = {'type' : 'array',
-                                                      'items':[partial_trip_format]}
+composed_trip_format['properties']['partialTrips'] = partial_trips_format
 composed_trip_format['required'].append('partialTrips')
 
 plan_trip_notification_response_format = {'type': 'object',
@@ -245,12 +280,19 @@ summed_up_trip_format =  {'type': 'object',
                      'InterchangeDuration']
 }
 
+summed_up_trips_format = {'type': 'object',
+        'properties': {
+            'SummedUpTrip': {'type' : 'array',
+                             'items': [summed_up_trip_format]}
+        },
+        'required': ['SummedUpTrip'],
+}
+
 summed_up_itineraries_response_format = {'type': 'object',
         'properties': {
             'RequestId': {'type': 'string'},
             'Status': status_format,
-            'summedUpTrips': {'type' : 'array',
-                             'items':[summed_up_trip_format]},
+            'summedUpTrips': summed_up_trips_format,
         },
         'required': ['RequestId', 'Status'],
 }

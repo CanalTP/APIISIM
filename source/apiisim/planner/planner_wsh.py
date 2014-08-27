@@ -8,7 +8,8 @@ from mod_python import apache
 from apiisim.common.plan_trip import PlanTripRequestType, SelfDriveConditionType, \
                                      EndingSearch, PlanTripNotificationResponseType, \
                                      PlanTripExistenceNotificationResponseType, \
-                                     PlanTripResponse, StartingSearch, ErrorType
+                                     PlanTripResponse, StartingSearch, ErrorType, \
+                                     errorsType, modesType, selfDriveConditionsType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
                            TransportModeEnum, PlanTripStatusEnum, parse_location_context
 from apiisim.common.marshalling import DATE_FORMAT
@@ -98,19 +99,21 @@ def parse_request(request):
     if not AlgorithmEnum.validate(ret.Algorithm):
         raise BadRequestException("Invalid algorithm", "Algorithm")
 
-    ret.modes = request.get('modes', [TransportModeEnum.ALL])
-    for m in ret.modes:
+    modes = request.get('modes', {}).get('Mode', [TransportModeEnum.ALL])
+    for m in modes:
         if not TransportModeEnum.validate(m):
             raise BadRequestException("Invalid transport mode: %s" % m, "modes")
+    ret.modes = modesType(Mode=modes)
 
-    ret.selfDriveConditions = []
-    for c in request.get('selfDriveConditions', []):
+    conditions = []
+    for c in request.get('selfDriveConditions', {}).get('SelfDriveCondition', []):
         condition = SelfDriveConditionType(TripPart=c.get("TripPart", ""),
                                 SelfDriveMode=c.get("SelfDriveMode", ""))
         if not TripPartEnum.validate(condition.TripPart) or \
            not SelfDriveModeEnum.validate(condition.SelfDriveMode):
            raise BadRequestException("Invalid self drive condition", "selfDriveConditions")
-        ret.selfDriveConditions.append(condition)
+        conditions.append(condition)
+    ret.selfDriveConditions = selfDriveConditionsType(SelfDriveCondition=conditions)
 
     ret.AccessibilityConstraint = string_to_bool(request.get('AccessibilityConstraint', "False"))
     ret.Language = request.get('Language', "")
@@ -227,7 +230,7 @@ class ConnectionHandler(object):
         notif.Status = status
         notif.clientRequestId = self._request_id
         if error:
-            notif.errors = [error]
+            notif.errors = errorsType(Error=[error])
         self._notif_queue.put(notif)
 
     @log_error

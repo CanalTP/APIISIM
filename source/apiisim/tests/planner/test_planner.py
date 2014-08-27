@@ -269,7 +269,7 @@ class TestPlanner(unittest.TestCase):
     def testGetProviders(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
-        providers = calculator._get_providers([2, 1, 3])
+        providers = calculator._get_providers([2, 1, 3]).Provider
         self.assertEquals(providers[0].Name, "mis2")
         self.assertEquals(providers[1].Name, "mis1")
         self.assertEquals(providers[2].Name, "mis3")
@@ -277,7 +277,7 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(providers[1].Url, "mis1_url")
         self.assertEquals(providers[2].Url, "mis3_url")
         self.assertEquals(len(providers), 3)
-        providers = calculator._get_providers([])
+        providers = calculator._get_providers([]).Provider
         self.assertEquals(providers, [])
 
     def testGenerateTraceId(self):
