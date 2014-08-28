@@ -195,15 +195,13 @@ class _StubMisApi(object):
         for s in stops:
             ret.append(
                 StopPlaceType(
-                    id=s.code,
-                    quays=[QuayType(
-                            id=s.code,
+                    quay=QuayType(
                             Name=s.name,
                             PrivateCode=s.code,
                             Centroid=CentroidType(
                                         Location=LocationStructure(
                                                     Longitude=s.long,
-                                                    Latitude=s.lat)))]))
+                                                    Latitude=s.lat)))))
 
         return ret
 

@@ -523,15 +523,13 @@ class MisApi(MisApiBase):
             for s in content["stop_areas"]:
                 ret.append(
                     _StopPlaceType(
-                        id=s["id"],
-                        quays=[QuayType(
-                                id=s["id"],
+                        quay=QuayType(
                                 Name=s["name"],
                                 PrivateCode=s["id"],
                                 Centroid=CentroidType(
                                             Location=LocationStructure(
                                                         Longitude=s["coord"]["lon"],
-                                                        Latitude=s["coord"]["lat"])))]))
+                                                        Latitude=s["coord"]["lat"])))))
 
             next_base_url = None
             for s in  content["links"]:
