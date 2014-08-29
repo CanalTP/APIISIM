@@ -519,6 +519,9 @@ class MisApi(object):
     _DB_NAME = "stub_base_db"
 
     def __new__(cls, config, api_key=""):
+        global DB_ADMIN_NAME
+        global DB_ADMIN_PASS
+
         if not config.has_section("Stub"):
             return _SimpleMisApi(cls._STOPS_FILE, cls._STOPS_FIELD, cls._DB_NAME)
 
