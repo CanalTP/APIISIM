@@ -174,13 +174,13 @@ def location_to_end_point(location, departure_time=None, arrival_time=None):
     return ret
 
 class _StubMisApi(object):
-    _initialized = False
+    _initialized_databases = set([])
 
     def __init__(self, stops_file, stops_field, db_name):
-        if not self._initialized:
+        if not (db_name in self._initialized_databases):
             create_db(db_name)
             populate_db(db_name, stops_file, stops_field)
-            self.__class__._initialized = True
+            self.__class__._initialized_databases.add(db_name)
         self._db_session = connect_db(db_name)
 
     def _generate_detailed_trip(self, departures, arrivals, departure_time, arrival_time):
