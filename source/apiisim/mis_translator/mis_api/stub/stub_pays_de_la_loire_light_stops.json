@@ -1,0 +1,6 @@
+# Subset of http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/paysdelaloire/stop_areas?count=10000
+
+{"stop_areas": [
+        {"comment": "", "name": "Le-Mee-Noctilien", "coord": {"lat": "48.539939", "lon": "2.624046"}, "id": "stop_area:SNC:SA:SAOCE87590554"},
+        {"comment": "", "name": "gare de Le Mée", "coord": {"lat": "48.539939", "lon": "2.624046"}, "id": "stop_area:SNC:SA:SAOCE87682179"},
+        {"comment": "", "name": "Langevine", "coord": {"lat": "47.477831", "lon": "-0.692067"}, "id": "stop_area:ANG:SA:1211"}]}

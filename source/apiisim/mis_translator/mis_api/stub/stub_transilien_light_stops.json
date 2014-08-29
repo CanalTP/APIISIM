@@ -1,0 +1,6 @@
+# Subset of http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/stop_areas?count=10000
+
+{"stop_areas": [
+        {"comment": "", "name": "Jean-Jacques ROUSSEAU", "coord": {"lat": "48.743411", "lon": "2.402955"}, "id": "stop_area:DUA:SA:4:57"},
+        {"comment": "", "name": "LE MEE", "coord": {"lat": "48.540187", "lon": "2.624123"}, "id": "stop_area:DUA:SA:8768217"},  
+        {"comment": "", "name": "Fer \u00e0 Cheval", "coord": {"lat": "48.74469", "lon": "2.407157"}, "id": "stop_area:DUA:SA:8749573"}]}
