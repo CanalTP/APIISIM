@@ -446,10 +446,10 @@ def get_location_id(location):
 # We need that to be able to remove duplicated stops easily (in get_stops()).
 class _StopPlaceType(StopPlaceType):
     def __eq__(self, other):
-        return self.id == other.id
+        return self.quay.PrivateCode == other.quay.PrivateCode
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(self.quay.PrivateCode)
 
 
 class MisApi(MisApiBase):
