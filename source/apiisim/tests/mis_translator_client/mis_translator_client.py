@@ -24,81 +24,18 @@ def send_request(data):
         validate(content["ItineraryResponseType"], itinerary_response_format)
 
 
-base_url = "http://127.0.0.1:5000/navitia/v0"
 h = httplib2.Http()
+# Choose if you want to request stub or real Navitia MIS.
+# base_url = "http://127.0.0.1:5000/stub_pays_de_la_loire/v0"
+base_url = "http://127.0.0.1:5000/pays_de_la_loire/v0"
 
 headers = {'Content-type': 'application/json',
            'Authorization' : '77bca947-ca67-4f17-92a3-92b716fc3d82'}
 
-################################################################################
-# Paris region ("http://api.navitia.io/v1/coverage/paris")
-d1 = {"AccessTime" : "PT1M40S",
-     "Position" : {"Latitude" : 48.84556,
-                   "Longitude" : 2.373449},
-     "PlaceTypeId" : "stop_area:RTP:SA:1955"}
-
-d2 = {"AccessTime" : "PT50S",
-     "Position" : {"Latitude" : 48.843414,
-                   "Longitude" : 2.364188},
-     "PlaceTypeId" : "stop_area:RTP:SA:1951"}
-
-a1 = {"AccessTime" : "PT1M10S",
-     "Position" : {"Latitude" : 48.883456,
-                   "Longitude" : 2.327375},
-     "PlaceTypeId" : "stop_area:RTP:SA:1795"}
-
-a2 = {"AccessTime" : "PT2M",
-      "Position" : {"Latitude" : 48.897512, "Longitude" : 2.329022},
-      "PlaceTypeId" : "stop_area:RTP:SA:2426"}
-
-departures = []
-arrivals = []
-departures.append(d1)
-departures.append(d2)
-arrivals.append(a1)
-arrivals.append(a2)
-
 departure_time = datetime.datetime.now().strftime(DATE_FORMAT)
 arrival_time = (datetime.datetime.now() + timedelta(hours=24)).strftime(DATE_FORMAT)
-arrival_time_out_of_scope = (datetime.datetime.now() + timedelta(days=20000)).strftime(DATE_FORMAT)
-
-url = base_url + "/itineraries"
-data1 = {"multiDepartures" : {"Departure" : departures,
-                              "Arrival"   : a1},
-         "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.ALL]}
-
-data2 = {"multiArrivals" : {"Departure" : d1,
-                            "Arrival"   : arrivals},
-         "ArrivalTime" : arrival_time,
-         "modes" : [TransportModeEnum.ALL]}
-
-data2_error = {"multiArrivals" : {"Departure" : d1,
-                                  "Arrival"   : arrivals},
-         "ArrivalTime" : arrival_time_out_of_scope,
-         "modes" : [TransportModeEnum.ALL]}
-
-# send_request(data1)
-# send_request(data2)
-# send_request(data2_error)
-
-url = base_url + "/summed_up_itineraries"
-data3 = {"Departures" : departures,
-         "Arrivals" : arrivals,
-         "DepartureTime" : departure_time,
-         "modes" : [TransportModeEnum.ALL]}
-
-data4 = {"Departures" : departures,
-         "Arrivals" : arrivals,
-         "ArrivalTime" : arrival_time,
-         "modes" : [TransportModeEnum.ALL]}
-
-# send_request(data3)
-# send_request(data4)
-
 
 ################################################################################
-# http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/
 # gare SNCF et routière Angers-St-Laud
 d1 = {"AccessTime" : "PT2M",
       "Position" : {"Latitude" : 47.464722,
@@ -147,9 +84,6 @@ a5 = {"AccessTime" : "PT10S",
                     "Longitude" : 6.177203},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87192039"}
 
-# http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/
-# journeys?from=stop_area:SNC:SA:SAOCE87484006&to=stop_area:SNC:SA:SAOCE87471003
-# &datetime=...
 url = base_url + "/itineraries"
 data1 = {"multiDepartures" : {"Departure" : [d1],
                               "Arrival"   : a1},
