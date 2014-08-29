@@ -19,8 +19,8 @@ Dependencies
 #. Other
 
    * apache2
-   * postgresql (9.1+)
-   * postgis (1.5+)
+   * postgresql (9.3+)
+   * postgis (2+)
 
 You can use the given *install_deps.sh* script that will install all required
 dependencies (tested on Debian 7 only).
@@ -28,13 +28,29 @@ dependencies (tested on Debian 7 only).
 Build & Install
 ===============
 
+#. Firstly, install git
+
+   ``apt-get install git``
+
 #. Get the source from git
 
    ``git clone https://github.com/CanalTP/APIISIM/ -b dev /tmp/apiisim``
 
-#. Build and install the package
+#. Install all required dependencies (you must have root privileges)
 
    ``cd /tmp/apiisim/source``
+
+   ``./install_deps.sh``
+
+#. If postgresql wasn't previously installed, you need to set a password for the "postgres" user (you must have root privileges)
+
+   ``su postgres``
+
+   ``psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"``
+
+   ``exit``
+
+#. Build and install the package (you must have root privileges)
 
    ``./install.sh``
 
@@ -65,7 +81,7 @@ to match your setup.
 
    ``cd apiisim/metabase/sql_scripts/``
 
-   ``./create_db.sh navitia.conf``
+   ``./create_db.sh navitia_no_prompt.conf``
 
 #. Launch mis_translator
 
