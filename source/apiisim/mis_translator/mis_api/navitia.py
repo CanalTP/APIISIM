@@ -10,7 +10,7 @@ from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
                                          QuayType, CentroidType, TripType, \
                                          SectionType, PTRideType, LegType, \
                                          LineType, PTNetworkType
-from apiisim.common.mis_collect_stops import StopPlaceType
+from apiisim.common.mis_collect_stops import StopPlaceType, quaysType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
                    TransportModeEnum, PublicTransportModeEnum, PlanSearchOptions
@@ -446,10 +446,10 @@ def get_location_id(location):
 # We need that to be able to remove duplicated stops easily (in get_stops()).
 class _StopPlaceType(StopPlaceType):
     def __eq__(self, other):
-        return self.quay.PrivateCode == other.quay.PrivateCode
+        return self.id == other.id
 
     def __hash__(self):
-        return hash(self.quay.PrivateCode)
+        return hash(self.id)
 
 
 class MisApi(MisApiBase):
@@ -523,13 +523,15 @@ class MisApi(MisApiBase):
             for s in content["stop_areas"]:
                 ret.append(
                     _StopPlaceType(
-                        quay=QuayType(
-                                Name=s["name"],
-                                PrivateCode=s["id"],
-                                Centroid=CentroidType(
-                                            Location=LocationStructure(
-                                                        Longitude=s["coord"]["lon"],
-                                                        Latitude=s["coord"]["lat"])))))
+                        id=s["id"],
+                        quays=[QuayType(
+                              id=s["id"],
+                              Name=s["name"],
+                              PrivateCode=s["id"],
+                              Centroid=CentroidType(
+                                  Location=LocationStructure(
+                                      Longitude=s["coord"]["lon"],
+                                      Latitude=s["coord"]["lat"])))]))
 
             next_base_url = None
             for s in  content["links"]:

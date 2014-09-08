@@ -339,13 +339,15 @@ centroid_type = {
 }
 
 quay_type = {
+    'id': fields.String,
     'Name' : fields.String,
     'PrivateCode' : fields.String,
     'Centroid' : NonNullNested(centroid_type)
 }
 
 stop_place_type = {
-    'quay' : NonNullNested(quay_type),
+    'id' : fields.String,
+    'quays' : fields.List( NonNullNested(quay_type))
 }
 
 stops_response_type = {

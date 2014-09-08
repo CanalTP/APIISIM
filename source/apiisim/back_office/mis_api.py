@@ -1,4 +1,6 @@
 import httplib2, json, logging
+from inspect import getmembers
+from pprint import pprint
 
 HTTP_OK = 200
 
@@ -42,7 +44,7 @@ class MisApi(object):
         content = json.loads(content)
         logging.debug(content)
         for s in content["StopsResponseType"]["stopPlaces"]:
-            quay = s["quay"]
+            quay = s["quays"][0]
             stops.append(
                 Stop(code=quay["PrivateCode"],
                      name=quay["Name"],
