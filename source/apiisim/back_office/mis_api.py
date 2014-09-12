@@ -43,13 +43,15 @@ class MisApi(object):
         stops = []
         content = json.loads(content)
         logging.debug(content)
-        for s in content["StopsResponseType"]["stopPlaces"]:
+        for s in content["StopsResponse"]["PublicationDelivery"]["dataObjects"]["CompositeFrame"]["frames"]["SiteFrame"]["stopPlaces"]:
             quay = s["quays"][0]
-            stops.append(
-                Stop(code=quay["PrivateCode"],
-                     name=quay["Name"],
-                     lat=float(quay["Centroid"]["Location"]["Latitude"]),
-                     long=float(quay["Centroid"]["Location"]["Longitude"])))
+            # skip empty Centroid
+            if "Latitude" in quay["Centroid"]["Location"]:
+                stops.append(
+                    Stop(code=quay["PrivateCode"],
+                         name=quay["Name"],
+                         lat=float(quay["Centroid"]["Location"]["Latitude"]),
+                         long=float(quay["Centroid"]["Location"]["Longitude"])))
 
         return stops
 

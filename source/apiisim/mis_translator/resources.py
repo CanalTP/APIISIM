@@ -11,7 +11,8 @@ from apiisim.common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, Tri
 from apiisim.common.marshalling import DATE_FORMAT, marshal, itinerary_response_type, \
                                        summed_up_itineraries_response_type, \
                                        stops_response_type, capabilities_response_type
-from apiisim.common.mis_collect_stops import StopsResponseType
+from apiisim.common.mis_collect_stops import StopsResponseType, \
+    PublicationDeliveryType, dataObjectsType, CompositeFrameType, framesType, SiteFrameType, stopPlacesType
 from apiisim.common.mis_capabilities import CapabilitiesResponseType
 from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
                          MisApiBadRequestException, MisApiInternalErrorException
@@ -275,13 +276,18 @@ class SummedUpItinerariesRequestProcessor(RequestProcessor):
 
 class StopsRequestProcessor(RequestProcessor):
     def _mis_request(self, params):
-        self._resp.stopPlaces = self._mis.get_stops()
+        self._resp.PublicationDelivery = PublicationDeliveryType()
+        self._resp.PublicationDelivery.dataObjects = dataObjectsType()
+        self._resp.PublicationDelivery.dataObjects.CompositeFrame = CompositeFrameType()
+        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames = framesType()
+        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames.SiteFrame = SiteFrameType()
+        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames.SiteFrame.stopPlaces = self._mis.get_stops()
 
     def _new_response(self):
         return StopsResponseType()
 
     def _marshal_response(self):
-        return {'StopsResponseType' : marshal(self._resp, stops_response_type)}
+        return {'StopsResponse' : marshal(self._resp, stops_response_type)}
 
 class CapabilitiesRequestProcessor(RequestProcessor):
     def _mis_request(self, params):

@@ -350,9 +350,29 @@ stop_place_type = {
     'quays' : fields.List( NonNullNested(quay_type))
 }
 
+site_frame_type = {
+    'stopPlaces' : fields.List(NonNullNested(stop_place_type)),
+}
+
+frames_type = {
+    'SiteFrame' : NonNullNested(site_frame_type)
+}
+
+composite_frame_type = {
+    'frames' : NonNullNested(frames_type)
+}
+
+data_objects_type = {
+    'CompositeFrame' : NonNullNested(composite_frame_type)
+}
+
+publication_delivery_type = {
+    'dataObjects' : NonNullNested(data_objects_type)
+}
+
 stops_response_type = {
     'Status' : NonNullNested(status_type),
-    'stopPlaces' : fields.List(NonNullNested(stop_place_type)),
+    'PublicationDelivery' : NonNullNested(publication_delivery_type)
 }
 
 capabilities_response_type = {
