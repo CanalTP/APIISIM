@@ -331,7 +331,7 @@ class MisApi(object):
         ret = ItineraryResponseType()
 
         data = request.marshal()
-        _, content = self._send_request("itineraries", data)
+        _, content = self._send_request("itineraries", {'ItineraryRequest': data})
         # TODO error handling
         content = content["ItineraryResponseType"]
         ret.RequestId = content["RequestId"]
@@ -358,7 +358,7 @@ class MisApi(object):
         request.departures = list(set(request.departures))
         request.arrivals = list(set(request.arrivals))
         data = request.marshal()
-        _, content = self._send_request("summed_up_itineraries", data)
+        _, content = self._send_request("summed_up_itineraries", {'SummedUpItinerariesRequest': data})
         # TODO error handling
         content = content["SummedUpItinerariesResponseType"]
         ret.RequestId = content["RequestId"]

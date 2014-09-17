@@ -105,21 +105,29 @@ def parse_itinerary_request(request, summed_up_itineraries=False):
         abort(400)
 
     if summed_up_itineraries:
-        if ("DepartureTime" not in request.json) and ("ArrivalTime" not in request.json):
+        if not "SummedUpItinerariesRequest" in request.json:
+            logging.error("Missing SummedUpItinerariesRequest header in JSON request")
+            abort(400)
+        req = request.json["SummedUpItinerariesRequest"]
+        if ("DepartureTime" not in req) and ("ArrivalTime" not in req):
             logging.error("No departure/arrival time given")
             abort(400)
     else:
-        if ("DepartureTime" not in request.json and "ArrivalTime" not in request.json) \
-            or ("multiDepartures" not in request.json and "multiArrivals" not in request.json) \
-            or ("multiDepartures" in request.json and "multiArrivals" in request.json):
+        if not "ItineraryRequest" in request.json:
+            logging.error("Missing ItineraryRequest header in JSON request")
+            abort(400)
+        req = request.json["ItineraryRequest"]
+        if ("DepartureTime" not in req and "ArrivalTime" not in req) \
+            or ("multiDepartures" not in req and "multiArrivals" not in req) \
+            or ("multiDepartures" in req and "multiArrivals" in req):
             logging.error("Invalid itinerary request")
             abort(400)
 
     # Required
     # TODO send error if no ID given
-    params.id = request.json.get("id", "default_id")
-    departure_time = request.json.get("DepartureTime", "")
-    arrival_time = request.json.get("ArrivalTime", "")
+    params.id = req.get("id", "default_id")
+    departure_time = req.get("DepartureTime", "")
+    arrival_time = req.get("ArrivalTime", "")
     try:
         if departure_time:
             params.departure_time = datetime.datetime.strptime(departure_time, DATE_FORMAT)
@@ -132,38 +140,38 @@ def parse_itinerary_request(request, summed_up_itineraries=False):
     departures = []
     arrivals = []
     if summed_up_itineraries:
-        for d in request.json["departures"]:
+        for d in req["departures"]:
             departures.append(parse_location_context(d))
-        for a in request.json["arrivals"]:
+        for a in req["arrivals"]:
             arrivals.append(parse_location_context(a))
     else:
-        if "multiDepartures" in request.json:
-            for d in request.json["multiDepartures"]["Departure"]:
+        if "multiDepartures" in req:
+            for d in req["multiDepartures"]["Departure"]:
                 departures.append(parse_location_context(d))
-            a = request.json["multiDepartures"]["Arrival"]
+            a = req["multiDepartures"]["Arrival"]
             arrivals.append(parse_location_context(a))
-        if "multiArrivals" in request.json:
-            for a in request.json["multiArrivals"]["Arrival"]:
+        if "multiArrivals" in req:
+            for a in req["multiArrivals"]["Arrival"]:
                 arrivals.append(parse_location_context(a))
-            d = request.json["multiArrivals"]["Departure"]
+            d = req["multiArrivals"]["Departure"]
             departures.append(parse_location_context(d))
     params.departures = departures
     params.arrivals = arrivals
 
     # Optional
-    params.algorithm = request.json.get('Algorithm', AlgorithmEnum.CLASSIC)
+    params.algorithm = req.get('Algorithm', AlgorithmEnum.CLASSIC)
     if not AlgorithmEnum.validate(params.algorithm):
         logging.error("Invalid algorithm")
         abort(400)
 
-    params.modes = request.json.get('modes', [TransportModeEnum.ALL])
+    params.modes = req.get('modes', [TransportModeEnum.ALL])
     for m in params.modes:
         if not TransportModeEnum.validate(m):
             logging.error("Invalid transport mode")
             abort(400)
 
     params.self_drive_conditions = []
-    for c in request.json.get('selfDriveConditions', []):
+    for c in req.get('selfDriveConditions', []):
         condition = SelfDriveConditionType(TripPart=c.get("TripPart", ""),
                                 SelfDriveMode=c.get("SelfDriveMode", ""))
         if not TripPartEnum.validate(condition.TripPart) or \
@@ -172,9 +180,9 @@ def parse_itinerary_request(request, summed_up_itineraries=False):
            abort(400)
         params.self_drive_conditions.append(condition)
 
-    params.accessibility_constraint = string_to_bool(request.json.get('AccessibilityConstraint', "False"))
-    params.language = request.json.get('Language', "")
-    params.options = request.json.get("options", [])
+    params.accessibility_constraint = string_to_bool(req.get('AccessibilityConstraint', "False"))
+    params.language = req.get('Language', "")
+    params.options = req.get("options", [])
     if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in params.options \
         and len(departures) > 1 and len(arrivals) > 1:
         logging.error("DEPARTURE_ARRIVAL_OPTIMIZED option only available with 1-n itineraries")
