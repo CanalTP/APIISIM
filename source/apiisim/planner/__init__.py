@@ -220,8 +220,8 @@ def stop_to_trace_stop(stop):
     ret.AccessTime = timedelta()
     ret.PlaceTypeId = stop.code
     l = LocationStructure()
-    l.Longitude = stop.lat
-    l.Latitude  = stop.long
+    l.Longitude = stop.long
+    l.Latitude  = stop.lat
     ret.Position = l
 
     return ret
