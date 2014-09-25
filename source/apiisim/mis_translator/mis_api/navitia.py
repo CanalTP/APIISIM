@@ -5,6 +5,7 @@ from base import MisApiBase, MisApiException, \
                  MisApiInternalErrorException, MisApiUnauthorizedException, \
                  MisCapabilities, MisApiUnknownObjectException
 import json, httplib2, logging, urllib
+from urllib import urlencode
 from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
                                          EndPointType, StepEndPointType, StepType, \
                                          QuayType, CentroidType, TripType, \
@@ -416,10 +417,8 @@ def params_set_datetime(params, departure_time, arrival_time, departure, arrival
 
 def params_set_modes(params, modes, self_drive_conditions):
     params["forbidden_uris[]"] = modes_to_forbidden_uris(modes)
-    params["first_section_mode[]"] = list(
-                                        SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.FOOT])
-    params["last_section_mode[]"] = list(
-                                        SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.FOOT])
+    params["first_section_mode[]"] = list(SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.FOOT])
+    params["last_section_mode[]"] = list(SELF_DRIVE_MODE_MAPPING[SelfDriveModeEnum.FOOT])
 
     for c in self_drive_conditions:
         if c.TripPart == TripPartEnum.DEPARTURE:
@@ -451,39 +450,18 @@ class _StopPlaceType(StopPlaceType):
     def __hash__(self):
         return hash(self.id)
 
-
 class MisApi(MisApiBase):
 
     def __init__(self, config, api_key=""):
-        # self._api_url = "http://api.navitia.io/v1/coverage/paris"
-        self._api_url = "http://navitia2-ws.ctp.dev.canaltp.fr//v1/coverage/paysdelaloire/"
+        self._api_url = "http://navitia2-ws.ctp.xxx.canaltp.fr//v1/coverage/yyy/"
         self._api_key = api_key
         self._http = None
 
-    def _journeys_request(self, params):
-        url = self._api_url + "/journeys" + '?' + urllib.urlencode(params, True)
-        resp, content = self._send_request(url)
-
-        # Navitia may give us multiple journeys, we retrieve them all and then 
-        # choose the best according to request parameters.
-        content = json.loads(content)
-        logging.debug("NB JOURNEYS: %s", len(content.get("journeys", [])))
-        return [x for x in content.get("journeys", [])]
-
-
-    def _send_request(self, url):
-        if not self._http:
-            self._http = httplib2.Http()
-
-        logging.debug("NAVITIA URL %s", url)
-
-        headers = {'Authorization' : self._api_key}
-
-        resp, content = self._http.request(url, "GET", headers=headers)
+    def _check_answer(self, resp, content, get_or_post_str):
         if resp.status == 200:
-            return resp, content
+            return
 
-        exc_msg = "GET <%s> FAILED: %s" % (url, resp.status)
+        exc_msg = "%s <%s> FAILED: %s" % (get_or_post_str, url, resp.status)
         try:
             content = json.loads(content)
         except:
@@ -505,6 +483,47 @@ class MisApi(MisApiBase):
         elif resp.status == 500:
             raise MisApiInternalErrorException(exc_msg)
         raise MisApiException(exc_msg)
+
+    def _send_request(self, url, json_data = None):
+        if not self._http:
+            self._http = httplib2.Http()
+
+        #logging.debug("NAVITIA Authorization: %s", self._api_key)
+        logging.debug("NAVITIA URL %s", url)
+
+        headers = {'Authorization' : self._api_key}
+        if json_data is not None:
+            headers['Content-type'] = 'application/json'
+
+        if json_data is None:
+            resp, content = self._http.request(url, "GET", headers=headers)
+        else:
+            logging.debug("NAVITIA JSON POST %s", json.dumps(json_data))
+            resp, content = self._http.request(url, "POST", body=json.dumps(json_data).encode("ASCII","replace"), headers=headers)
+
+        logging.debug("NAVITIA RESP %s", content)
+        self._check_answer(resp, content, "GET" if (json_data is None) else "POST")
+        return resp, content
+
+    def _journeys_request(self, params):
+        url = self._api_url + "/journeys" + '?' + urllib.urlencode(params, True)
+        resp, content = self._send_request(url)
+
+        # Navitia may give us multiple journeys, we retrieve them all and then
+        # choose the best according to request parameters.
+        content = json.loads(content)
+        logging.debug("NB JOURNEYS: %s", len(content.get("journeys", [])))
+        return [x for x in content.get("journeys", [])]
+
+    def _nm_journeys_request(self, params):
+        url = self._api_url + "/journeys"
+        resp, content = self._send_request(url, json_data = params)
+
+        # Navitia may give us multiple journeys, we retrieve them all and then
+        # choose the best according to request parameters.
+        content = json.loads(content)
+        logging.debug("NB JOURNEYS: %s", len(content.get("journeys", [])))
+        return [x for x in content.get("journeys", [])]
 
     def get_capabilities(self):
         return MisCapabilities(True, True, [TransportModeEnum.ALL])
@@ -595,7 +614,7 @@ class MisApi(MisApiBase):
         return journey_to_detailed_trip(best_journey)
 
 
-    def get_summed_up_itineraries(self, departures, arrivals, departure_time, 
+    def get_emulated_summed_up_itineraries(self, departures, arrivals, departure_time,
                                   arrival_time, algorithm, 
                                   modes, self_drive_conditions,
                                   accessibility_constraint,
@@ -649,3 +668,93 @@ class MisApi(MisApiBase):
         logging.debug("Summed up trips (%s) : %s", len(ret), ret)
 
         return ret
+
+    def get_hardcoded_summed_up_itineraries(self, departures, arrivals, departure_time,
+                                           arrival_time, algorithm,
+                                           modes, self_drive_conditions,
+                                           accessibility_constraint,
+                                           language, options):
+        params = {}
+        params_set_modes(params, modes, self_drive_conditions)
+
+        # fix json format issues
+        params["forbidden_uris[]"] = list(params["forbidden_uris[]"])
+        params["first_section_mode[]"] = "walking"
+        params["last_section_mode[]"] = "walking"
+
+        ret = []
+
+        # Request itinerary for every departure/arrival pair and then
+        # choose best.
+
+        params['from'] = []
+        for d in departures:
+            params['from'].append({"uri" : get_location_id(d), "access_duration" : int(d.AccessTime.total_seconds() // 60)})
+
+        params['to' ] = []
+        for a in arrivals:
+            params['to'].append({"uri" : get_location_id(a), "access_duration" : int(a.AccessTime.total_seconds() // 60)})
+
+        if departure_time:
+            params['datetime_represents'] = 'departure'
+            params['datetime'] = departure_time.strftime(DATE_FORMAT)
+        else:
+            params['datetime_represents'] = 'arrival'
+            params['datetime'] = arrival_time.strftime(DATE_FORMAT)
+
+        params['count'] = 1
+
+        journeys = []
+        for j in self._nm_journeys_request(params):
+            d = [x for x in departures if x.PlaceTypeId == j["sections"][0]["from"]["id"]]
+            a = [x for x in arrivals if x.PlaceTypeId == j["sections"][-1]["to"]["id"]]
+            if len(d) == 0 or len(a) == 0:
+                continue
+            journeys.append((d[0], a[0], j))
+            logging.debug("Found result for %s -> %s", d[0].PlaceTypeId, a[0].PlaceTypeId)
+
+        if not journeys:
+            # No journey found, no need to go further, just return empty list.
+            return []
+
+        best_journeys = []
+        if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in options:
+            for d in departures:
+                for a in arrivals:
+                    j = [x[2] for x in journeys if x[0] == d and x[1] == a]
+                    if not j:
+                        continue
+                    best_journeys.append(
+                        choose_best_journey(j, algorithm, bool(departure_time)))
+        else:
+            if departure_time:
+                for a in arrivals:
+                    journeys_to_arrival = [x[2] for x in journeys if x[1] == a]
+                    if not j:
+                        continue
+                    best_journeys.append(
+                            choose_best_journey(journeys_to_arrival, algorithm))
+            else:
+                for d in departures:
+                    journeys_from_departure = [x[2] for x in journeys if x[0] == d]
+                    if not j:
+                        continue
+                    best_journeys.append(
+                            choose_best_journey(journeys_from_departure, algorithm,
+                                                departure_at=False))
+
+        ret = [journey_to_summed_up_trip(x) for x in best_journeys if x]
+        logging.debug("Summed up trips (%s) : %s", len(ret), ret)
+
+        return ret
+
+    def get_summed_up_itineraries(self, departures, arrivals, departure_time,
+                                  arrival_time, algorithm,
+                                  modes, self_drive_conditions,
+                                  accessibility_constraint,
+                                  language, options):
+        return self.get_emulated_summed_up_itineraries(departures, arrivals, departure_time,
+                                                        arrival_time, algorithm,
+                                                        modes, self_drive_conditions,
+                                                        accessibility_constraint,
+                                                        language, options)
