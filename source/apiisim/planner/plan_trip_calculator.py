@@ -468,13 +468,14 @@ class PlanTripCalculator(object):
             - If departure time is higher than the best arrival time, this stop
               (and its linked stops) are removed from the whole "meta-trip".
     """
-    def _remove_departures_of_bad_trips(self, departures, linked_stops, best_arrival_time):
-        logging.debug(">>> debug ludo")
 
+    def _remove_departures_at_bad_trips(self, departures, linked_stops, trips, best_arrival_time):
         to_del = []
         for stop in departures:
-            if stop.departure_time > best_arrival_time:
-                to_del.extend([i for i, x in enumerate(departures) if x == stop])
+            for trip in trips:
+                if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
+                    if trip.Arrival.DateTime > best_arrival_time:
+                        to_del.extend([i for i, x in enumerate(departures) if x == stop])
 
         to_del = set(to_del)
         for i in sorted(to_del, reverse=True):
@@ -541,8 +542,8 @@ class PlanTripCalculator(object):
         self._update_departures(departures, detailed_trace[-2][2], resp.summedUpTrips)
 
         best_arrival_time = min([x.Arrival.DateTime for x in resp.summedUpTrips])
-        self._remove_departures_of_bad_trips(departures, detailed_trace[-2][2], best_arrival_time)
-
+        self._remove_departures_at_bad_trips(departures, detailed_trace[-2][2], resp.summedUpTrips, best_arrival_time)
+        
         # Substract transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
         for a, l, t in zip(arrivals, linked_stops, transfer_durations):
