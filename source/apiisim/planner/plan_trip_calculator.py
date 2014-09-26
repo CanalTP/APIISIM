@@ -34,6 +34,7 @@ class PlanTripCalculator(object):
         self._db_session = self._planner.create_db_session()
         self._params = params
         self._notif_queue = notif_queue
+        self._cancelled = False
 
 
     @benchmark
@@ -405,36 +406,53 @@ class PlanTripCalculator(object):
         return "_".join(map(str, mis_trace))
 
     """
+        Update transition stops after receiving itinerary results from a MIS.
+            - Departure/Arrival time is updated according to trips data.
+            - If no itinerary is found from/to a given departure/arrival stop, this stop (and
+              its linked stops) are removed from the whole "meta-trip".
+    """
+    def _update_transtion_stops(self, transition_stops, linked_stops, stop_field, trips, trip_field):
+        logging.debug(">>> debug ludo")
+        logging.debug("Requested %d %s", len(transition_stops), trip_field)
+        for stop in transition_stops:
+            logging.debug(". Req %s %s", trip_field, stop.PlaceTypeId)
+        logging.debug("Navitia found %d trips", len(trips))
+        for trip in trips:
+            logging.debug(". Nav %s %s", trip_field, getattr(trip, trip_field).TripStopPlace.id)
+        logging.debug("<<< debug ludo")
+
+        to_del = []
+        for stop in transition_stops:
+            found = False
+            for trip in trips:
+                if stop.PlaceTypeId == getattr(trip, trip_field).TripStopPlace.id:
+                    setattr(stop, stop_field, getattr(trip, trip_field).DateTime)
+                    found = True
+                    break
+            if not found:
+                # No itinerary found from/to this transition point, so remove this point
+                # from the trip, along with its linked stops.
+                to_del.extend([i for i, x in enumerate(transition_stops) if x == stop])
+
+        to_del = set(to_del)
+        for i in sorted(to_del, reverse=True):
+            deleted_stop = transition_stops.pop(i)
+            logging.debug("No itinerary found using stop point %s, deleting it", deleted_stop)
+            if linked_stops:
+                deleted_stop = linked_stops.pop(i)
+                logging.debug("Also deleting its linked stop point %s", deleted_stop)
+
+        if not transition_stops:
+            raise NoItineraryFoundException()
+
+    """
         Update arrival stops after receiving itinerary results from a MIS.
             - Arrival time is updated according to trips data.
             - If no itinerary is found to a given arrival stop, this stop (and
               its linked stops) are removed from the whole "meta-trip".
     """
     def _update_arrivals(self, arrivals, linked_stops, trips):
-        to_del = []
-        for stop in arrivals:
-            found = False
-            for trip in trips:
-                if stop.PlaceTypeId == trip.Arrival.TripStopPlace.id:
-                    stop.arrival_time = trip.Arrival.DateTime
-                    found = True
-                    break
-            if not found:
-                # No itinerary found to this arrival point, so remove this point
-                # from the trip, along with its linked stops.
-                to_del.extend([i for i, x in enumerate(arrivals) if x == stop])
-
-        to_del = set(to_del)
-        for i in sorted(to_del, reverse=True):
-            deleted_stop = arrivals.pop(i)
-            logging.debug("No itinerary found to stop point %s, deleting it", deleted_stop)
-            if linked_stops:
-                deleted_stop = linked_stops.pop(i)
-                logging.debug("Also deleting its linked stop point %s", deleted_stop)
-
-        if not arrivals:
-            raise NoItineraryFoundException()
-
+        self._update_transtion_stops(arrivals, linked_stops, "arrival_time", trips, "Arrival")
 
     """
         Update departure stops after receiving itinerary results from a MIS.
@@ -443,31 +461,32 @@ class PlanTripCalculator(object):
               (and its linked stops) are removed from the whole "meta-trip".
     """
     def _update_departures(self, departures, linked_stops, trips):
+        self._update_transtion_stops(departures, linked_stops, "departure_time", trips, "Departure")
+
+    """
+        Check departure time in comparison with the best arrival time
+            - If departure time is higher than the best arrival time, this stop
+              (and its linked stops) are removed from the whole "meta-trip".
+    """
+    def _remove_departures_of_bad_trips(self, departures, linked_stops, best_arrival_time):
+        logging.debug(">>> debug ludo")
+
         to_del = []
         for stop in departures:
-            found = False
-            for trip in trips:
-                if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
-                    stop.departure_time = trip.Departure.DateTime
-                    found = True
-                    break
-            if not found:
-                # No itinerary found from this departure point, so remove this
-                # point from the "meta-trip", along with its linked stops.
+            if stop.departure_time > best_arrival_time:
                 to_del.extend([i for i, x in enumerate(departures) if x == stop])
 
         to_del = set(to_del)
         for i in sorted(to_del, reverse=True):
             deleted_stop = departures.pop(i)
-            logging.debug("No itinerary found from stop point %s, deleting it", deleted_stop)
+            logging.debug("Bad itinerary using stop point %s, deleting it", deleted_stop)
             if linked_stops:
                 deleted_stop = linked_stops.pop(i)
                 logging.debug("Also deleting its linked stop point %s", deleted_stop)
 
-        if not departures:
-            raise NoItineraryFoundException()
-
-
+    """
+        Compute a trip according to the detailed_trace provided
+    """
     def _departure_at_trip(self, detailed_trace, trace_id, providers):
         # Minimum arrival_time to arrival
         best_arrival_time = None
@@ -479,6 +498,8 @@ class PlanTripCalculator(object):
         self._init_request(summed_up_request)
         detailed_request = ItineraryRequestType()
         self._init_request(detailed_request)
+
+        logging.debug("Step 1: first pass (left->right), optimize arrival time on all MIS except the last one")
 
         # Do all non detailed requests
         for mis_api, departures, arrivals, linked_stops, transfer_durations in detailed_trace[0:-1]:
@@ -492,12 +513,18 @@ class PlanTripCalculator(object):
                     d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
             summed_up_request.ArrivalTime = None
             summed_up_request.options = []
+            if self._cancelled:
+                raise CancelledRequestException()
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
             self._update_arrivals(arrivals, linked_stops, resp.summedUpTrips)
 
             # To have linked_stops arrival_time, just add transfer time to request results
             for a, l, t in zip(arrivals, linked_stops, transfer_durations):
                 l.arrival_time = a.arrival_time + t
+
+            logging.debug("summary for step 1 at %s : departure %s arrival %s", mis_api, summed_up_request.DepartureTime, min([x.arrival_time for x in arrivals]))
+
+        logging.debug("Step 2: first pass (left->right), optimize departure and arrival time on the last MIS")
 
         # Do non-detailed optimized request (only one, always)
         mis_api, departures, arrivals, _, _ = detailed_trace[-1]
@@ -508,14 +535,20 @@ class PlanTripCalculator(object):
             d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
         summed_up_request.ArrivalTime = None
         summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
+        if self._cancelled:
+            raise CancelledRequestException()
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
         self._update_departures(departures, detailed_trace[-2][2], resp.summedUpTrips)
+
         best_arrival_time = min([x.Arrival.DateTime for x in resp.summedUpTrips])
+        self._remove_departures_of_bad_trips(departures, detailed_trace[-2][2], best_arrival_time)
 
         # Substract transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
         for a, l, t in zip(arrivals, linked_stops, transfer_durations):
             a.departure_time = l.departure_time - t
+
+        # tell the client that we have found the best arrival time
         notif = PlanTripExistenceNotificationResponseType(
                     RequestId=self._params.clientRequestId,
                     ComposedTripId=trace_id,
@@ -525,6 +558,10 @@ class PlanTripCalculator(object):
                     providers=providers,
                     Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
+
+        logging.debug("summary for step 2 at %s : departure %s arrival %s", mis_api, summed_up_request.DepartureTime, best_arrival_time)
+
+        logging.debug("Step 3: second pass (right->left), optimize departure time on the MIS of the middle")
 
         # Do arrival_at non-detailed requests
         if len(detailed_trace) > 2:
@@ -537,6 +574,8 @@ class PlanTripCalculator(object):
                 for a in arrivals:
                     a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
                 summed_up_request.options = []
+                if self._cancelled:
+                    raise CancelledRequestException()
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
                 self._update_departures(departures, detailed_trace[i-1][2], resp.summedUpTrips)
 
@@ -544,6 +583,10 @@ class PlanTripCalculator(object):
                 _, _, arrivals, linked_stops, transfer_durations = detailed_trace[i-1]
                 for a, l, t in zip(arrivals, linked_stops, transfer_durations):
                     a.departure_time = l.departure_time - t
+
+                logging.debug("summary for step 3 at %s : departure %s arrival %s", mis_api, min([x.departure_time for x in departures]), summed_up_request.ArrivalTime)
+
+        logging.debug("Step 4: third pass (left->right), details the optimal trip")
 
         # Do all detailed requests.
         # Best arrival stop from previous request, will become the departure
@@ -557,7 +600,7 @@ class PlanTripCalculator(object):
                 detailed_request.DepartureTime = None
                 detailed_request.ArrivalTime = min([x.departure_time for x in arrivals])
                 for a in arrivals:
-                   a.AccessTime = a.departure_time - detailed_request.ArrivalTime
+                    a.AccessTime = a.departure_time - detailed_request.ArrivalTime
             else:
                 # All other requests are departure_at requests.
                 detailed_request.DepartureTime = prev_stop.departure_time
@@ -566,6 +609,8 @@ class PlanTripCalculator(object):
             detailed_request.multiArrivals = multiArrivalsType()
             detailed_request.multiArrivals.Departure = prev_stop
             detailed_request.multiArrivals.Arrival = list(set(arrivals))
+            if self._cancelled:
+                raise CancelledRequestException()
             resp = mis_api.get_itinerary(detailed_request)
             if not resp.DetailedTrip:
                 raise NoItineraryFoundException()
@@ -586,6 +631,11 @@ class PlanTripCalculator(object):
             # the one which has best departure_time.
             best_stops.sort(key=lambda x: x.departure_time)
             prev_stop = best_stops[0]
+
+            if detailed_request.DepartureTime:
+                logging.debug("summary for step 4 at %s : departure %s arrival %s", mis_api, detailed_request.DepartureTime, min([x.arrival_time for x in arrivals]))
+            else:
+                logging.debug("summary for step 4 at %s : departure None arrival %s", mis_api, min([x.arrival_time for x in arrivals]))
 
         return ret
 
@@ -614,6 +664,8 @@ class PlanTripCalculator(object):
                     a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
             summed_up_request.DepartureTime = None
             summed_up_request.options = []
+            if self._cancelled:
+                raise CancelledRequestException()
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
             self._update_departures(departures, linked_stops, resp.summedUpTrips)
 
@@ -631,6 +683,8 @@ class PlanTripCalculator(object):
             a.AccessTime = a.departure_time - summed_up_request.ArrivalTime
         summed_up_request.DepartureTime = None
         summed_up_request.options = [PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED]
+        if self._cancelled:
+            raise CancelledRequestException()
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
         self._update_arrivals(arrivals, detailed_trace[-2][1], resp.summedUpTrips)
         best_departure_time = max([x.Departure.DateTime for x in resp.summedUpTrips])
@@ -660,6 +714,8 @@ class PlanTripCalculator(object):
                 for d in departures:
                     d.AccessTime = d.arrival_time - summed_up_request.DepartureTime
                 summed_up_request.options = []
+                if self._cancelled:
+                    raise CancelledRequestException()
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
                 self._update_arrivals(arrivals, detailed_trace[i-1][1], resp.summedUpTrips)
 
@@ -689,6 +745,8 @@ class PlanTripCalculator(object):
             detailed_request.multiDepartures = multiDeparturesType()
             detailed_request.multiDepartures.Departure = list(set(departures))
             detailed_request.multiDepartures.Arrival = prev_stop
+            if self._cancelled:
+                raise CancelledRequestException()
             resp = mis_api.get_itinerary(detailed_request)
             if not resp.DetailedTrip:
                 raise NoItineraryFoundException()
@@ -754,6 +812,10 @@ class PlanTripCalculator(object):
         self._notif_queue.put(notif)
 
         return ret
+
+
+    def stop(self):
+        self._cancelled = True
 
 
     def __del__(self):
