@@ -457,7 +457,7 @@ class MisApi(MisApiBase):
         self._api_key = api_key
         self._http = None
 
-    def _check_answer(self, resp, content, get_or_post_str):
+    def _check_answer(self, resp, content, get_or_post_str, url):
         if resp.status == 200:
             return
 
@@ -502,7 +502,7 @@ class MisApi(MisApiBase):
             resp, content = self._http.request(url, "POST", body=json.dumps(json_data).encode("ASCII","replace"), headers=headers)
 
         logging.debug("NAVITIA RESP %s", content)
-        self._check_answer(resp, content, "GET" if (json_data is None) else "POST")
+        self._check_answer(resp, content, "GET" if (json_data is None) else "POST", url)
         return resp, content
 
     def _journeys_request(self, params):
