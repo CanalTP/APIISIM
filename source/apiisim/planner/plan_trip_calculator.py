@@ -412,14 +412,13 @@ class PlanTripCalculator(object):
               its linked stops) are removed from the whole "meta-trip".
     """
     def _update_transtion_stops(self, transition_stops, linked_stops, stop_field, trips, trip_field):
-        logging.debug(">>> debug ludo")
-        logging.debug("Requested %d %s", len(transition_stops), trip_field)
+        logging.debug("Updating transition stops...")
+        logging.debug("Requested: %d %s", len(transition_stops), trip_field)
         for stop in transition_stops:
             logging.debug(". Req %s %s", trip_field, stop.PlaceTypeId)
-        logging.debug("Navitia found %d trips", len(trips))
+        logging.debug("Returned by MIS: %d trips", len(trips))
         for trip in trips:
-            logging.debug(". Nav %s %s", trip_field, getattr(trip, trip_field).TripStopPlace.id)
-        logging.debug("<<< debug ludo")
+            logging.debug(". Ret %s %s", trip_field, getattr(trip, trip_field).TripStopPlace.id)
 
         to_del = []
         for stop in transition_stops:
@@ -543,7 +542,7 @@ class PlanTripCalculator(object):
 
         best_arrival_time = min([x.Arrival.DateTime for x in resp.summedUpTrips])
         self._remove_departures_at_bad_trips(departures, detailed_trace[-2][2], resp.summedUpTrips, best_arrival_time)
-        
+
         # Substract transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
         for a, l, t in zip(arrivals, linked_stops, transfer_durations):

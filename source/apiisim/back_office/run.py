@@ -102,7 +102,7 @@ def retrieve_mis_capabilities(db_session):
             mis.geographic_position_compliant = capabilities.geographic_position_compliant
             logging.info("OK")
         except Exception as e:
-            logging.error("get_capabilties request to <%s> failed: %s", mis.api_url, e)
+            logging.error("get_capabilities request to <%s> failed: %s", mis.api_url, e)
 
 class ST_GeogFromText(GenericFunction):
     name = 'ST_GeogFromText'

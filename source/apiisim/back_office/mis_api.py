@@ -31,7 +31,10 @@ class MisApi(object):
         url = self._api_url + resource
 
         logging.debug(url)
-        resp, content = h.request(url, "GET", headers=headers)
+        if self._api_key:
+            resp, content = h.request(url, "GET", headers=headers)
+        else:
+            resp, content = h.request(url, "GET")
         if resp.status != HTTP_OK:
             raise Exception("[FAIL]: GET %s: %s" % (url, resp.status))
 
@@ -39,7 +42,7 @@ class MisApi(object):
 
     # Return a list with all stop points from this mis
     def get_stops(self):
-        resp, content = self._http_request("stops")
+        resp, content = self._http_request("stops.json")
         stops = []
         content = json.loads(content)
         logging.debug(content)
@@ -56,10 +59,10 @@ class MisApi(object):
         return stops
 
     def get_capabilties(self):
-        resp, content = self._http_request("capabilities")
+        resp, content = self._http_request("capabilities.json")
         content = json.loads(content)
         logging.debug(content)
-        content = content["CapabilitiesResponseType"]
+        content = content["CapabilitiesResponse"]
 
         return MisCapabilities(content["MultipleStartsAndArrivals"],
                                content["GeographicPositionCompliant"])

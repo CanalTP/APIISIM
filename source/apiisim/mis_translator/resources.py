@@ -253,7 +253,7 @@ class ItineraryRequestProcessor(RequestProcessor):
                         options=params.options)
 
     def _marshal_response(self):
-        return {'ItineraryResponseType' : marshal(self._resp, itinerary_response_type)}
+        return {'ItineraryResponse' : marshal(self._resp, itinerary_response_type)}
 
 
 class SummedUpItinerariesRequestProcessor(RequestProcessor):
@@ -278,7 +278,7 @@ class SummedUpItinerariesRequestProcessor(RequestProcessor):
                         options=params.options)
 
     def _marshal_response(self):
-        return {'SummedUpItinerariesResponseType' : \
+        return {'SummedUpItinerariesResponse' : \
                 marshal(self._resp, summed_up_itineraries_response_type)}
 
 
@@ -307,7 +307,7 @@ class CapabilitiesRequestProcessor(RequestProcessor):
         return CapabilitiesResponseType()
 
     def _marshal_response(self):
-        return {'CapabilitiesResponseType' : marshal(self._resp, capabilities_response_type)}
+        return {'CapabilitiesResponse' : marshal(self._resp, capabilities_response_type)}
 
 
 class Stops(Resource):

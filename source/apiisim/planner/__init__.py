@@ -41,6 +41,9 @@ class BadRequestException(PlannerException):
     def __init__(self, message, field=""):
         PlannerException.__init__(self, message)
         self.field = field
+class CancelledRequestException(PlannerException):
+    def __init__(self):
+        PlannerException.__init__(self, "PlanTripCancellationRequest received")
 
 ################################################################################
 
@@ -331,9 +334,9 @@ class MisApi(object):
         ret = ItineraryResponseType()
 
         data = request.marshal()
-        _, content = self._send_request("itineraries", {'ItineraryRequest': data})
+        _, content = self._send_request("itineraries.json", {'ItineraryRequest': data})
         # TODO error handling
-        content = content["ItineraryResponseType"]
+        content = content["ItineraryResponse"]
         ret.RequestId = content["RequestId"]
         ret.Status = StatusType(content["Status"]["Code"],
                                 content["Status"].get("RuntimeDuration", 0))
@@ -358,9 +361,9 @@ class MisApi(object):
         request.departures = list(set(request.departures))
         request.arrivals = list(set(request.arrivals))
         data = request.marshal()
-        _, content = self._send_request("summed_up_itineraries", {'SummedUpItinerariesRequest': data})
+        _, content = self._send_request("summed_up_itineraries.json", {'SummedUpItinerariesRequest': data})
         # TODO error handling
-        content = content["SummedUpItinerariesResponseType"]
+        content = content["SummedUpItinerariesResponse"]
         ret.RequestId = content["RequestId"]
         ret.Status = StatusType(content["Status"]["Code"],
                                 content["Status"].get("RuntimeDuration", 0))
