@@ -18,6 +18,8 @@ from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeO
 from datetime import datetime, timedelta
 from random import randint
 from operator import itemgetter
+from copy import deepcopy
+import threading
 
 NAME = "navitia"
 ITEMS_PER_PAGE = 1000
@@ -455,7 +457,6 @@ class MisApi(MisApiBase):
     def __init__(self, config, api_key=""):
         self._api_url = "http://navitia2-ws.ctp.xxx.canaltp.fr//v1/coverage/yyy/"
         self._api_key = api_key
-        self._http = None
 
     def _check_answer(self, resp, content, get_or_post_str, url):
         if resp.status == 200:
@@ -485,8 +486,7 @@ class MisApi(MisApiBase):
         raise MisApiException(exc_msg)
 
     def _send_request(self, url, json_data = None):
-        if not self._http:
-            self._http = httplib2.Http()
+        http = httplib2.Http()
 
         #logging.debug("NAVITIA Authorization: %s", self._api_key)
         logging.debug("NAVITIA URL %s", url)
@@ -496,10 +496,10 @@ class MisApi(MisApiBase):
             headers['Content-type'] = 'application/json'
 
         if json_data is None:
-            resp, content = self._http.request(url, "GET", headers=headers)
+            resp, content = http.request(url, "GET", headers=headers)
         else:
             logging.debug("NAVITIA JSON POST %s", json.dumps(json_data))
-            resp, content = self._http.request(url, "POST", body=json.dumps(json_data).encode("ASCII","replace"), headers=headers)
+            resp, content = http.request(url, "POST", body=json.dumps(json_data).encode("ASCII","replace"), headers=headers)
 
         logging.debug("NAVITIA RESP %s", content)
         self._check_answer(resp, content, "GET" if (json_data is None) else "POST", url)
@@ -614,11 +614,31 @@ class MisApi(MisApiBase):
         return journey_to_detailed_trip(best_journey)
 
 
+    class ThreadSummedUpItinerary(threading.Thread):
+        def __init__(self, threadID, caller, journeys, params, d, a, departure_time, arrival_time):
+            threading.Thread.__init__(self)
+            self.threadID = threadID
+            self.caller = caller
+            self.journeys = journeys
+            self.params = deepcopy(params)
+            self.d = d
+            self.a = a
+            self.departure_time = departure_time
+            self.arrival_time = arrival_time
+        def run(self):
+            self.params['from'] = get_location_id(self.d)
+            self.params['to'] = get_location_id(self.a)
+            params_set_datetime(self.params, self.departure_time, self.arrival_time, self.d, self.a)
+            for j in self.caller._journeys_request(self.params):
+                self.caller.threadLock.acquire()
+                self.journeys.append((self.d, self.a, j))
+                self.caller.threadLock.release()
+
     def get_emulated_summed_up_itineraries(self, departures, arrivals, departure_time,
-                                  arrival_time, algorithm, 
-                                  modes, self_drive_conditions,
-                                  accessibility_constraint,
-                                  language, options):
+                                           arrival_time, algorithm,
+                                           modes, self_drive_conditions,
+                                           accessibility_constraint,
+                                           language, options, multithreaded=False):
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
         ret = []
@@ -626,13 +646,27 @@ class MisApi(MisApiBase):
         # Request itinerary for every departure/arrival pair and then
         # choose best.
         journeys = []
-        for d in departures:
-            for a in arrivals:
-                params['from'] = get_location_id(d)
-                params['to'] = get_location_id(a)
-                params_set_datetime(params, departure_time, arrival_time, d, a)
-                for j in self._journeys_request(params):
-                    journeys.append((d, a, j))
+        if multithreaded:
+            threads = []
+            count = 1
+            self.threadLock = threading.Lock()
+            for d in departures:
+                for a in arrivals:
+                    thread = self.ThreadSummedUpItinerary(count, self, journeys, params, d, a, departure_time,
+                                                          arrival_time)
+                    thread.start()
+                    threads.append(thread)
+                    count += 1
+            for thread in threads:
+                thread.join()
+        else:
+            for d in departures:
+                for a in arrivals:
+                    params['from'] = get_location_id(d)
+                    params['to'] = get_location_id(a)
+                    params_set_datetime(params, departure_time, arrival_time, d, a)
+                    for j in self._journeys_request(params):
+                        journeys.append((d, a, j))
 
         if not journeys:
             # No journey found, no need to go further, just return empty list.
@@ -651,14 +685,14 @@ class MisApi(MisApiBase):
             if departure_time:
                 for a in arrivals:
                     journeys_to_arrival = [x[2] for x in journeys if x[1] == a]
-                    if not j:
+                    if not journeys_to_arrival:
                         continue
                     best_journeys.append(
                             choose_best_journey(journeys_to_arrival, algorithm))
             else:
                 for d in departures:
                     journeys_from_departure = [x[2] for x in journeys if x[0] == d]
-                    if not j:
+                    if not journeys_from_departure:
                         continue
                     best_journeys.append(
                             choose_best_journey(journeys_from_departure, algorithm,
@@ -757,4 +791,4 @@ class MisApi(MisApiBase):
                                                         arrival_time, algorithm,
                                                         modes, self_drive_conditions,
                                                         accessibility_constraint,
-                                                        language, options)
+                                                        language, options, multithreaded=True)
