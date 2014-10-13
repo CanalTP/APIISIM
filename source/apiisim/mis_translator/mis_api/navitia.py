@@ -639,6 +639,13 @@ class MisApi(MisApiBase):
                                            modes, self_drive_conditions,
                                            accessibility_constraint,
                                            language, options, multithreaded=False):
+
+        # Limit size of departures and arrivals
+        if departure_time:
+            arrivals = arrivals[0:30]
+        if arrival_time:
+            departures = departures[0:30]
+
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
         ret = []

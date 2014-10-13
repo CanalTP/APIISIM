@@ -25,9 +25,6 @@ class PlanTripCalculator(object):
     # Maximum MIS trace length
     MAX_TRACE_LENGTH = 3
     SURROUNDING_MISES_MAX_DISTANCE = 400 # In meters
-    # Maximum number of transfers between 2 MIS. We need that limit to have acceptable
-    # performance when using MIS that don't support n-m itineraries requests.
-    MAX_TRANSFERS = 20
 
     def __init__(self, planner, params, notif_queue):
         self._planner = planner
@@ -50,7 +47,6 @@ class PlanTripCalculator(object):
                                                          metabase.TransferMis.mis2_id==mis1_id))) \
                                         .filter(metabase.TransferMis.transfer_active==True) \
                                         .order_by(metabase.TransferMis.transfer_id) \
-                                        .limit(self.MAX_TRANSFERS) \
                                         .subquery()
         # logging.debug("transfers_ids : %s", transfers_ids)
         s1 = aliased(metabase.Stop)
@@ -773,6 +769,7 @@ class PlanTripCalculator(object):
 
 
     def _init_request(self, request):
+        request.id = self._params.clientRequestId
         request.Algorithm = self._params.Algorithm
         request.modes = self._params.modes
         request.selfDriveConditions = self._params.selfDriveConditions
