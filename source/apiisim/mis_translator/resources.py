@@ -21,7 +21,7 @@ from traceback import format_exc
 
 # Lists of enabled Mis APIs modules
 MIS_APIS_AVAILABLE = frozenset(["navitia", "pays_de_la_loire", "bretagne",
-                                "bourgogne", "transilien", "sncf_national"])
+                                "bourgogne", "champagne_ardenne", "transilien", "sncf_national"])
 
 STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien",
                                      "stub_pays_de_la_loire", "stub_bourgogne",
