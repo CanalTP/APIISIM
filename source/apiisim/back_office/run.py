@@ -187,6 +187,8 @@ def retrieve_all_stops(db_session, stats):
         nb_new_stops += len(new_stop_codes)
         nb_extra_stops += len(extra_stop_codes)
 
+    db_session.execute("update stop set geom=ST_SetSRID(ST_MakePoint(long, lat), 4326);")
+
     logging.info("%s stops", nb_stops)
     logging.info("%s new stops", nb_new_stops)
     logging.info("%s deleted stops", nb_extra_stops)
