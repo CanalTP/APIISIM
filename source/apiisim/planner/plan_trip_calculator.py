@@ -459,26 +459,24 @@ class PlanTripCalculator(object):
         self._update_transtion_stops(departures, linked_stops, "departure_time", trips, "Departure")
 
     """
-        Check departure time in comparison with the best arrival time
-            - If departure time is higher than the best arrival time, this stop
-              (and its linked stops) are removed from the whole "meta-trip".
+        Keep the best trip from SIM response
     """
-
-    def _remove_departures_at_bad_trips(self, departures, linked_stops, trips, best_arrival_time):
-        to_del = []
-        for stop in departures:
-            for trip in trips:
-                if stop.PlaceTypeId == trip.Departure.TripStopPlace.id:
-                    if trip.Arrival.DateTime > best_arrival_time:
-                        to_del.extend([i for i, x in enumerate(departures) if x == stop])
+    def _filter_best_trip_response(self, resp, clockwise):
+        if len(resp.summedUpTrips) == 0:
+            return
+        if clockwise:
+            best_time = min([x.Arrival.DateTime for x in resp.summedUpTrips])
+            to_del = [i for i, x in enumerate(resp.summedUpTrips) if x.Arrival.DateTime != best_time]
+        else:
+            best_time = max([x.Departure.DateTime for x in resp.summedUpTrips])
+            to_del = [i for i, x in enumerate(resp.summedUpTrips) if x.Departure.DateTime != best_time]
 
         to_del = set(to_del)
         for i in sorted(to_del, reverse=True):
-            deleted_stop = departures.pop(i)
-            logging.debug("Bad itinerary using stop point %s, deleting it", deleted_stop)
-            if linked_stops:
-                deleted_stop = linked_stops.pop(i)
-                logging.debug("Also deleting its linked stop point %s", deleted_stop)
+            trip = resp.summedUpTrips[i]
+            logging.debug("Remove bad trip from MIS response %s (%s) -> %s (%s)", trip.Departure.TripStopPlace.id, \
+                          trip.Departure.DateTime, trip.Arrival.TripStopPlace.id, trip.Arrival.DateTime)
+            dummy = resp.summedUpTrips.pop(i)
 
     """
         Compute a trip according to the detailed_trace provided
@@ -513,6 +511,8 @@ class PlanTripCalculator(object):
                 raise CancelledRequestException()
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
             self._update_arrivals(arrivals, linked_stops, resp.summedUpTrips)
+            if len(arrivals) == 0:
+                raise NoItineraryFoundException()
 
             # To have linked_stops arrival_time, just add transfer time to request results
             for a, l, t in zip(arrivals, linked_stops, transfer_durations):
@@ -534,10 +534,12 @@ class PlanTripCalculator(object):
         if self._cancelled:
             raise CancelledRequestException()
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
+        self._filter_best_trip_response(resp, True)
         self._update_departures(departures, detailed_trace[-2][2], resp.summedUpTrips)
+        if len(departures) == 0:
+            raise NoItineraryFoundException()
 
         best_arrival_time = min([x.Arrival.DateTime for x in resp.summedUpTrips])
-        self._remove_departures_at_bad_trips(departures, detailed_trace[-2][2], resp.summedUpTrips, best_arrival_time)
 
         # Substract transfer time from previous request results
         mis_api, departures, arrivals, linked_stops, transfer_durations = detailed_trace[-2]
