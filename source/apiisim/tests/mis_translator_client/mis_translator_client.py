@@ -27,7 +27,6 @@ def send_request(data):
 h = httplib2.Http()
 
 # Choose if you want to request stub or real Navitia MIS.
-# base_url = "http://127.0.0.1:5000/stub_pays_de_la_loire/v0"
 base_url = "http://127.0.0.1:5000/pays_de_la_loire/v0"
 
 headers = {'Content-type': 'application/json',
@@ -86,7 +85,7 @@ a5 = {"AccessTime" : "PT10S",
                     "Longitude" : 6.177203},
       "PlaceTypeId" : "stop_area:SNC:SA:SAOCE87192039"}
 
-url = base_url + "/itineraries"
+url = base_url + "/itineraries.json"
 
 data1 = { "ItineraryRequest" : {"multiDepartures" : {"Departure" : [d1],
                               "Arrival"   : a1},
@@ -155,7 +154,7 @@ send_request(data8)
 send_request(data9)
 send_request(data10)
 
-url = base_url + "/summed_up_itineraries"
+url = base_url + "/summed_up_itineraries.json"
 
 data11 = { "SummedUpItinerariesRequest" : {"departures" : [d1, d2, d3],
           "arrivals" : [a1, a4, a3],
