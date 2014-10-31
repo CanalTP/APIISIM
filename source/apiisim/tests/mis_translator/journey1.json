@@ -1,0 +1,1816 @@
+{
+    "fare": {
+        "found": false,
+        "total": {
+            "currency": "",
+            "value": "0.0"
+        },
+        "links": [ ]
+    },
+    "sections": [
+        {
+            "links": [ ],
+            "departure_date_time": "20140930T034953",
+            "duration": 146,
+            "path": [
+                {
+                    "duration": 79,
+                    "length": 88,
+                    "direction": 0,
+                    "name": "Rue des Halles"
+                },
+                {
+                    "duration": 56,
+                    "length": 62,
+                    "direction": -42,
+                    "name": "Rue de Rivoli"
+                },
+                {
+                    "duration": 5,
+                    "length": 5,
+                    "direction": 83,
+                    "name": "Boulevard de Sébastopol"
+                },
+                {
+                    "duration": 6,
+                    "length": 6,
+                    "direction": -84,
+                    "name": "Rue de Rivoli"
+                }
+            ],
+            "id": "section_8_0",
+            "from": {
+                "embedded_type": "address",
+                "address": {
+                    "id": "2.3468313805225653;48.859484964845606",
+                    "house_number": 9,
+                    "name": "Rue des Halles",
+                    "administrative_regions": [
+                        {
+                            "id": "admin:7444",
+                            "level": 8,
+                            "name": "Paris",
+                            "coord": {
+                                "lat": "48.856506",
+                                "lon": "2.352133"
+                            },
+                            "zip_code": ""
+                        }
+                    ],
+                    "coord": {
+                        "lat": "48.859484964845606",
+                        "lon": "2.3468313805225653"
+                    }
+                },
+                "quality": 0,
+                "id": "2.3468313805225653;48.859484964845606",
+                "name": "9 Rue des Halles (Paris)"
+            },
+            "arrival_date_time": "20140930T035219",
+            "additional_informations": [
+                "regular"
+            ],
+            "geojson": {
+                "type": "LineString",
+                "properties": [
+                    {
+                        "length": 163
+                    }
+                ],
+                "coordinates": [
+                    [
+                        2.3468313805225653,
+                        48.859484964845606
+                    ],
+                    [
+                        2.3468313805225653,
+                        48.859484964845606
+                    ],
+                    [
+                        2.346834,
+                        48.859409
+                    ],
+                    [
+                        2.347127,
+                        48.859353
+                    ],
+                    [
+                        2.347448,
+                        48.858801
+                    ],
+                    [
+                        2.347605,
+                        48.858748
+                    ],
+                    [
+                        2.34823,
+                        48.858539
+                    ],
+                    [
+                        2.348204,
+                        48.858491
+                    ],
+                    [
+                        2.348295,
+                        48.858462
+                    ],
+                    [
+                        2.348763379199763,
+                        48.85831098914398
+                    ],
+                    [
+                        2.348755,
+                        48.858285
+                    ]
+                ]
+            },
+            "to": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "CHATELET",
+                    "coord": {
+                        "lat": "48.858285",
+                        "lon": "2.348755"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:7444",
+                            "level": 8,
+                            "name": "Paris",
+                            "coord": {
+                                "lat": "48.856506",
+                                "lon": "2.352133"
+                            },
+                            "zip_code": ""
+                        }
+                    ],
+                    "address": {
+                        "id": "2.348755;48.858285",
+                        "house_number": 92,
+                        "name": "Rue de Rivoli",
+                        "administrative_regions": [
+                            {
+                                "id": "admin:7444",
+                                "level": 8,
+                                "name": "Paris",
+                                "coord": {
+                                    "lat": "48.856506",
+                                    "lon": "2.352133"
+                                },
+                                "zip_code": ""
+                            }
+                        ],
+                        "coord": {
+                            "lat": "48.858285",
+                            "lon": "2.348755"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8797807",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "CHATELET LES HALLES",
+                        "coord": {
+                            "lat": "48.858319",
+                            "lon": "2.348388"
+                        },
+                        "administrative_regions": [
+                            {
+                                "coord": {
+                                    "lat": "48.856506",
+                                    "lon": "2.352133"
+                                },
+                                "zip_code": "",
+                                "id": "admin:7444",
+                                "name": "Paris",
+                                "level": 8
+                            }
+                        ],
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8775860"
+                    }
+                },
+                "address": {
+                    "id": "2.348755;48.858285",
+                    "house_number": 92,
+                    "name": "Rue de Rivoli",
+                    "administrative_regions": [
+                        {
+                            "id": "admin:7444",
+                            "level": 8,
+                            "name": "Paris",
+                            "coord": {
+                                "lat": "48.856506",
+                                "lon": "2.352133"
+                            },
+                            "zip_code": ""
+                        }
+                    ],
+                    "coord": {
+                        "lat": "48.858285",
+                        "lon": "2.348755"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8797807",
+                "name": "CHATELET"
+            },
+            "mode": "walking",
+            "type": "street_network"
+        },
+        {
+            "links": [
+                {
+                    "type": "vehicle_journey",
+                    "id": "vehicle_journey:DUA:SN010106R01001366095_dst_1"
+                },
+                {
+                    "type": "line",
+                    "id": "line:DUA:800987016"
+                },
+                {
+                    "type": "route",
+                    "id": "route:DUA:8009870160001"
+                },
+                {
+                    "type": "commercial_mode",
+                    "id": "commercial_mode:coach"
+                },
+                {
+                    "type": "physical_mode",
+                    "id": "physical_mode:Coach"
+                },
+                {
+                    "type": "network",
+                    "id": "network:DUA987"
+                }
+            ],
+            "departure_date_time": "20140930T035300",
+            "duration": 4500,
+            "id": "section_9_0",
+            "from": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "CHATELET",
+                    "coord": {
+                        "lat": "48.858285",
+                        "lon": "2.348755"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:7444",
+                            "level": 8,
+                            "name": "Paris",
+                            "coord": {
+                                "lat": "48.856506",
+                                "lon": "2.352133"
+                            },
+                            "zip_code": ""
+                        }
+                    ],
+                    "address": {
+                        "id": "2.348755;48.858285",
+                        "house_number": 92,
+                        "name": "Rue de Rivoli",
+                        "coord": {
+                            "lat": "48.858285",
+                            "lon": "2.348755"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8797807",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "CHATELET LES HALLES",
+                        "coord": {
+                            "lat": "48.858319",
+                            "lon": "2.348388"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8775860"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8797807",
+                "name": "CHATELET"
+            },
+            "arrival_date_time": "20140930T050800",
+            "additional_informations": [
+                "regular"
+            ],
+            "geojson": {
+                "type": "LineString",
+                "properties": [
+                    {
+                        "length": 25528
+                    }
+                ],
+                "coordinates": [
+                    [
+                        2.348755,
+                        48.858285
+                    ],
+                    [
+                        2.343838,
+                        48.85345
+                    ],
+                    [
+                        2.319491,
+                        48.840507
+                    ],
+                    [
+                        2.278103,
+                        48.835775
+                    ],
+                    [
+                        2.244247,
+                        48.833687
+                    ],
+                    [
+                        2.214597,
+                        48.821311
+                    ],
+                    [
+                        2.202443,
+                        48.821172
+                    ],
+                    [
+                        2.19013,
+                        48.809896
+                    ],
+                    [
+                        2.188484,
+                        48.804788
+                    ],
+                    [
+                        2.176798,
+                        48.804135
+                    ],
+                    [
+                        2.171271,
+                        48.80091
+                    ],
+                    [
+                        2.162767,
+                        48.801104
+                    ],
+                    [
+                        2.15372,
+                        48.796876
+                    ],
+                    [
+                        2.135482,
+                        48.79557
+                    ],
+                    [
+                        2.128104,
+                        48.800078
+                    ],
+                    [
+                        2.105899,
+                        48.803299
+                    ],
+                    [
+                        2.07298,
+                        48.798926
+                    ],
+                    [
+                        2.044703,
+                        48.787966
+                    ]
+                ]
+            },
+            "display_informations": {
+                "direction": "LA VERRIERE NOCTILIEN (Coignières)",
+                "code": "N145",
+                "description": "",
+                "color": "000000",
+                "physical_mode": "Autocar",
+                "headsign": "10106",
+                "commercial_mode": "Car",
+                "equipments": [ ],
+                "network": "NOCTILIEN",
+                "label": "N145"
+            },
+            "to": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "ST QUENTIN EN YVELINES NOCTILIEN",
+                    "coord": {
+                        "lat": "48.787966",
+                        "lon": "2.044703"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:27811",
+                            "level": 8,
+                            "name": "Saint-Cyr-l'École",
+                            "coord": {
+                                "lat": "48.799709",
+                                "lon": "2.067213"
+                            },
+                            "zip_code": "78210"
+                        },
+                        {
+                            "id": "admin:30272",
+                            "level": 8,
+                            "name": "Guyancourt",
+                            "coord": {
+                                "lat": "48.7729",
+                                "lon": "2.075489"
+                            },
+                            "zip_code": "78280"
+                        },
+                        {
+                            "id": "admin:49538",
+                            "level": 8,
+                            "name": "Montigny-le-Bretonneux",
+                            "coord": {
+                                "lat": "48.775921",
+                                "lon": "2.024942"
+                            },
+                            "zip_code": "78180"
+                        }
+                    ],
+                    "address": {
+                        "id": "2.044703;48.787966",
+                        "house_number": 0,
+                        "name": "",
+                        "coord": {
+                            "lat": "48.787966",
+                            "lon": "2.044703"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8759185",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "SAINT-QUENTIN EN YVELINES",
+                        "coord": {
+                            "lat": "48.787721",
+                            "lon": "2.044546"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8739384"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8759185",
+                "name": "ST QUENTIN EN YVELINES NOCTILIEN"
+            },
+            "type": "public_transport",
+            "stop_date_times": [
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "CHATELET",
+                        "coord": {
+                            "lat": "48.858285",
+                            "lon": "2.348755"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8797807"
+                    },
+                    "arrival_date_time": "20140930T035300",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T035300"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "ST MICHEL NOTRE DAME NOCTILIEN",
+                        "coord": {
+                            "lat": "48.85345",
+                            "lon": "2.343838"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759114"
+                    },
+                    "arrival_date_time": "20140930T035600",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T035600"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "GARE MONTPARNASSE NOCTILIEN",
+                        "coord": {
+                            "lat": "48.840507",
+                            "lon": "2.319491"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759115"
+                    },
+                    "arrival_date_time": "20140930T040800",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T040800"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "BALARD",
+                        "coord": {
+                            "lat": "48.835775",
+                            "lon": "2.278103"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8741470"
+                    },
+                    "arrival_date_time": "20140930T041800",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T041800"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "MARCEL SEMBAT",
+                        "coord": {
+                            "lat": "48.833687",
+                            "lon": "2.244247"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8741471"
+                    },
+                    "arrival_date_time": "20140930T042400",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T042400"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "SEVRES RIVE GAUCHE NOCTILIEN",
+                        "coord": {
+                            "lat": "48.821311",
+                            "lon": "2.214597"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759116"
+                    },
+                    "arrival_date_time": "20140930T043100",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T043100"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "HOPITAL JEAN ROSTAND",
+                        "coord": {
+                            "lat": "48.821172",
+                            "lon": "2.202443"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8741458"
+                    },
+                    "arrival_date_time": "20140930T043300",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T043300"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "ATRIUM",
+                        "coord": {
+                            "lat": "48.809896",
+                            "lon": "2.19013"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8741461"
+                    },
+                    "arrival_date_time": "20140930T043500",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T043500"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "CHAVILLE RIVE GAUCHE NOCTILIEN",
+                        "coord": {
+                            "lat": "48.804788",
+                            "lon": "2.188484"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759178"
+                    },
+                    "arrival_date_time": "20140930T043700",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T043700"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "GRACE DE DIEU",
+                        "coord": {
+                            "lat": "48.804135",
+                            "lon": "2.176798"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8741460"
+                    },
+                    "arrival_date_time": "20140930T043900",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T043900"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "VIROFLAY RIVE GAUCHE NOCTILIEN",
+                        "coord": {
+                            "lat": "48.80091",
+                            "lon": "2.171271"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759179"
+                    },
+                    "arrival_date_time": "20140930T044100",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T044100"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "PIERRE EDOUARD",
+                        "coord": {
+                            "lat": "48.801104",
+                            "lon": "2.162767"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8741452"
+                    },
+                    "arrival_date_time": "20140930T044300",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T044300"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "PORCHEFONTAINE NOCTILIEN",
+                        "coord": {
+                            "lat": "48.796876",
+                            "lon": "2.15372"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759180"
+                    },
+                    "arrival_date_time": "20140930T044500",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T044500"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "VERSAILLES CHANTIERS NOCTILIEN",
+                        "coord": {
+                            "lat": "48.79557",
+                            "lon": "2.135482"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759181"
+                    },
+                    "arrival_date_time": "20140930T045000",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T045000"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "VERSAILLES RIVE GAUCHE NOCTILIEN",
+                        "coord": {
+                            "lat": "48.800078",
+                            "lon": "2.128104"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759182"
+                    },
+                    "arrival_date_time": "20140930T045400",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T045400"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "PORTE DES MATELOTS",
+                        "coord": {
+                            "lat": "48.803299",
+                            "lon": "2.105899"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8741451"
+                    },
+                    "arrival_date_time": "20140930T045800",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T045800"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "ST CYR NOCTILIEN",
+                        "coord": {
+                            "lat": "48.798926",
+                            "lon": "2.07298"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759183"
+                    },
+                    "arrival_date_time": "20140930T050200",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T050200"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "ST QUENTIN EN YVELINES NOCTILIEN",
+                        "coord": {
+                            "lat": "48.787966",
+                            "lon": "2.044703"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8759185"
+                    },
+                    "arrival_date_time": "20140930T050800",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T050800"
+                }
+            ]
+        },
+        {
+            "links": [ ],
+            "departure_date_time": "20140930T050800",
+            "duration": 120,
+            "id": "section_10_0",
+            "from": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "ST QUENTIN EN YVELINES NOCTILIEN",
+                    "coord": {
+                        "lat": "48.787966",
+                        "lon": "2.044703"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:27811",
+                            "level": 8,
+                            "name": "Saint-Cyr-l'École",
+                            "coord": {
+                                "lat": "48.799709",
+                                "lon": "2.067213"
+                            },
+                            "zip_code": "78210"
+                        },
+                        {
+                            "id": "admin:30272",
+                            "level": 8,
+                            "name": "Guyancourt",
+                            "coord": {
+                                "lat": "48.7729",
+                                "lon": "2.075489"
+                            },
+                            "zip_code": "78280"
+                        },
+                        {
+                            "id": "admin:49538",
+                            "level": 8,
+                            "name": "Montigny-le-Bretonneux",
+                            "coord": {
+                                "lat": "48.775921",
+                                "lon": "2.024942"
+                            },
+                            "zip_code": "78180"
+                        }
+                    ],
+                    "address": {
+                        "id": "2.044703;48.787966",
+                        "house_number": 0,
+                        "name": "",
+                        "coord": {
+                            "lat": "48.787966",
+                            "lon": "2.044703"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8759185",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "SAINT-QUENTIN EN YVELINES",
+                        "coord": {
+                            "lat": "48.787721",
+                            "lon": "2.044546"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8739384"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8759185",
+                "name": "ST QUENTIN EN YVELINES NOCTILIEN"
+            },
+            "arrival_date_time": "20140930T051000",
+            "additional_informations": [
+                "regular"
+            ],
+            "geojson": {
+                "type": "LineString",
+                "properties": [
+                    {
+                        "length": 64
+                    }
+                ],
+                "coordinates": [
+                    [
+                        2.044703,
+                        48.787966
+                    ],
+                    [
+                        2.044622,
+                        48.78739
+                    ]
+                ]
+            },
+            "to": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "SAINT-QUENTIN EN YVELINES",
+                    "coord": {
+                        "lat": "48.78739",
+                        "lon": "2.044622"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:49538",
+                            "level": 8,
+                            "name": "Montigny-le-Bretonneux",
+                            "coord": {
+                                "lat": "48.775921",
+                                "lon": "2.024942"
+                            },
+                            "zip_code": "78180"
+                        }
+                    ],
+                    "address": {
+                        "id": "2.044622;48.78739",
+                        "house_number": 0,
+                        "name": "",
+                        "coord": {
+                            "lat": "48.78739",
+                            "lon": "2.044622"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8739384",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "SAINT-QUENTIN EN YVELINES",
+                        "coord": {
+                            "lat": "48.787721",
+                            "lon": "2.044546"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8739384"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8739384",
+                "name": "SAINT-QUENTIN EN YVELINES"
+            },
+            "transfer_type": "walking",
+            "type": "transfer"
+        },
+        {
+            "links": [ ],
+            "departure_date_time": "20140930T051000",
+            "duration": 240,
+            "id": "section_11_0",
+            "arrival_date_time": "20140930T051400",
+            "additional_informations": [
+                "regular"
+            ],
+            "type": "waiting"
+        },
+        {
+            "links": [
+                {
+                    "type": "vehicle_journey",
+                    "id": "vehicle_journey:DUA:SN164348F01001389642_dst_1"
+                },
+                {
+                    "type": "line",
+                    "id": "line:DUA:800855048"
+                },
+                {
+                    "type": "route",
+                    "id": "route:DUA:8008550480001"
+                },
+                {
+                    "type": "commercial_mode",
+                    "id": "commercial_mode:Train"
+                },
+                {
+                    "type": "physical_mode",
+                    "id": "physical_mode:RapidTransit"
+                },
+                {
+                    "type": "network",
+                    "id": "network:DUA855"
+                }
+            ],
+            "departure_date_time": "20140930T051400",
+            "duration": 1380,
+            "id": "section_12_0",
+            "from": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "SAINT-QUENTIN EN YVELINES",
+                    "coord": {
+                        "lat": "48.78739",
+                        "lon": "2.044622"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:49538",
+                            "level": 8,
+                            "name": "Montigny-le-Bretonneux",
+                            "coord": {
+                                "lat": "48.775921",
+                                "lon": "2.024942"
+                            },
+                            "zip_code": "78180"
+                        }
+                    ],
+                    "address": {
+                        "id": "2.044622;48.78739",
+                        "house_number": 0,
+                        "name": "",
+                        "coord": {
+                            "lat": "48.78739",
+                            "lon": "2.044622"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8739384",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "SAINT-QUENTIN EN YVELINES",
+                        "coord": {
+                            "lat": "48.787721",
+                            "lon": "2.044546"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8739384"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8739384",
+                "name": "SAINT-QUENTIN EN YVELINES"
+            },
+            "arrival_date_time": "20140930T053700",
+            "additional_informations": [
+                "regular"
+            ],
+            "geojson": {
+                "type": "LineString",
+                "properties": [
+                    {
+                        "length": 15301
+                    }
+                ],
+                "coordinates": [
+                    [
+                        2.044622,
+                        48.78739
+                    ],
+                    [
+                        2.071847,
+                        48.798708
+                    ],
+                    [
+                        2.13605,
+                        48.79528
+                    ],
+                    [
+                        2.217621,
+                        48.846103
+                    ]
+                ]
+            },
+            "display_informations": {
+                "direction": "LA DEFENSE (Puteaux)",
+                "code": "U",
+                "description": "",
+                "color": "000000",
+                "physical_mode": "Train de banlieue / RER",
+                "headsign": "DEFI",
+                "commercial_mode": "Train",
+                "equipments": [ ],
+                "network": "La Verrière - La Défense",
+                "label": "U"
+            },
+            "to": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "SAINT-CLOUD",
+                    "coord": {
+                        "lat": "48.846103",
+                        "lon": "2.217621"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:72148",
+                            "level": 8,
+                            "name": "Saint-Cloud",
+                            "coord": {
+                                "lat": "48.842602",
+                                "lon": "2.20453"
+                            },
+                            "zip_code": "92210"
+                        }
+                    ],
+                    "address": {
+                        "id": "2.217621;48.846103",
+                        "house_number": 0,
+                        "name": "Quai 1-A",
+                        "coord": {
+                            "lat": "48.846103",
+                            "lon": "2.217621"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8738235",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "SAINT-CLOUD",
+                        "coord": {
+                            "lat": "48.845229",
+                            "lon": "2.217731"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8738235"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8738235",
+                "name": "SAINT-CLOUD"
+            },
+            "type": "public_transport",
+            "stop_date_times": [
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "SAINT-QUENTIN EN YVELINES",
+                        "coord": {
+                            "lat": "48.78739",
+                            "lon": "2.044622"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8739384"
+                    },
+                    "arrival_date_time": "20140930T051300",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T051400"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "SAINT-CYR",
+                        "coord": {
+                            "lat": "48.798708",
+                            "lon": "2.071847"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8739322"
+                    },
+                    "arrival_date_time": "20140930T051800",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T051800"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "VERSAILLES CHANTIERS",
+                        "coord": {
+                            "lat": "48.79528",
+                            "lon": "2.13605"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8739300"
+                    },
+                    "arrival_date_time": "20140930T052300",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T052500"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "SAINT-CLOUD",
+                        "coord": {
+                            "lat": "48.846103",
+                            "lon": "2.217621"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738235"
+                    },
+                    "arrival_date_time": "20140930T053700",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T053800"
+                }
+            ]
+        },
+        {
+            "links": [ ],
+            "departure_date_time": "20140930T053700",
+            "duration": 600,
+            "id": "section_13_0",
+            "arrival_date_time": "20140930T054700",
+            "additional_informations": [
+                "regular"
+            ],
+            "type": "waiting"
+        },
+        {
+            "links": [
+                {
+                    "type": "vehicle_journey",
+                    "id": "vehicle_journey:DUA:SN134508F01001389221_dst_1"
+                },
+                {
+                    "type": "line",
+                    "id": "line:DUA:800854041"
+                },
+                {
+                    "type": "route",
+                    "id": "route:DUA:8008540491005"
+                },
+                {
+                    "type": "commercial_mode",
+                    "id": "commercial_mode:Train"
+                },
+                {
+                    "type": "physical_mode",
+                    "id": "physical_mode:RapidTransit"
+                },
+                {
+                    "type": "network",
+                    "id": "network:DUA854"
+                }
+            ],
+            "departure_date_time": "20140930T054700",
+            "duration": 1260,
+            "id": "section_14_0",
+            "from": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "SAINT-CLOUD",
+                    "coord": {
+                        "lat": "48.846103",
+                        "lon": "2.217621"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:72148",
+                            "level": 8,
+                            "name": "Saint-Cloud",
+                            "coord": {
+                                "lat": "48.842602",
+                                "lon": "2.20453"
+                            },
+                            "zip_code": "92210"
+                        }
+                    ],
+                    "address": {
+                        "id": "2.217621;48.846103",
+                        "house_number": 0,
+                        "name": "Quai 1-A",
+                        "coord": {
+                            "lat": "48.846103",
+                            "lon": "2.217621"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8738235",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "SAINT-CLOUD",
+                        "coord": {
+                            "lat": "48.845229",
+                            "lon": "2.217731"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8738235"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8738235",
+                "name": "SAINT-CLOUD"
+            },
+            "arrival_date_time": "20140930T060800",
+            "additional_informations": [
+                "regular"
+            ],
+            "geojson": {
+                "type": "LineString",
+                "properties": [
+                    {
+                        "length": 13580
+                    }
+                ],
+                "coordinates": [
+                    [
+                        2.217621,
+                        48.846103
+                    ],
+                    [
+                        2.216572,
+                        48.85642
+                    ],
+                    [
+                        2.22103,
+                        48.871714
+                    ],
+                    [
+                        2.233692,
+                        48.883384
+                    ],
+                    [
+                        2.237018,
+                        48.892187
+                    ],
+                    [
+                        2.247943,
+                        48.898119
+                    ],
+                    [
+                        2.269965,
+                        48.905763
+                    ],
+                    [
+                        2.324806,
+                        48.875442
+                    ]
+                ]
+            },
+            "display_informations": {
+                "direction": "PARIS SAINT-LAZARE (Paris)",
+                "code": "J",
+                "description": "",
+                "color": "000000",
+                "physical_mode": "Train de banlieue / RER",
+                "headsign": "PORO",
+                "commercial_mode": "Train",
+                "equipments": [ ],
+                "network": "Paris St Lazare",
+                "label": "J"
+            },
+            "to": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "PARIS SAINT-LAZARE",
+                    "coord": {
+                        "lat": "48.875442",
+                        "lon": "2.324806"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:7444",
+                            "level": 8,
+                            "name": "Paris",
+                            "coord": {
+                                "lat": "48.856506",
+                                "lon": "2.352133"
+                            },
+                            "zip_code": ""
+                        }
+                    ],
+                    "address": {
+                        "id": "2.324806;48.875442",
+                        "house_number": 5,
+                        "name": "Rue Intérieure",
+                        "coord": {
+                            "lat": "48.875442",
+                            "lon": "2.324806"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8738400",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "PARIS SAINT-LAZARE",
+                        "coord": {
+                            "lat": "48.875673",
+                            "lon": "2.325413"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8738400"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8738400",
+                "name": "PARIS SAINT-LAZARE"
+            },
+            "type": "public_transport",
+            "stop_date_times": [
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "SAINT-CLOUD",
+                        "coord": {
+                            "lat": "48.846103",
+                            "lon": "2.217621"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738235"
+                    },
+                    "arrival_date_time": "20140930T054700",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T054700"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "LE VAL D'OR",
+                        "coord": {
+                            "lat": "48.85642",
+                            "lon": "2.216572"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738236"
+                    },
+                    "arrival_date_time": "20140930T054900",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T054900"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "SURESNES MONT VALERIEN",
+                        "coord": {
+                            "lat": "48.871714",
+                            "lon": "2.22103"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738237"
+                    },
+                    "arrival_date_time": "20140930T055100",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T055200"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "PUTEAUX",
+                        "coord": {
+                            "lat": "48.883384",
+                            "lon": "2.233692"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738238"
+                    },
+                    "arrival_date_time": "20140930T055400",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T055400"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "LA DEFENSE",
+                        "coord": {
+                            "lat": "48.892187",
+                            "lon": "2.237018"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738221"
+                    },
+                    "arrival_date_time": "20140930T055600",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T055700"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "COURBEVOIE",
+                        "coord": {
+                            "lat": "48.898119",
+                            "lon": "2.247943"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738220"
+                    },
+                    "arrival_date_time": "20140930T055800",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T055900"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "BECON LES BRUYERES",
+                        "coord": {
+                            "lat": "48.905763",
+                            "lon": "2.269965"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738200"
+                    },
+                    "arrival_date_time": "20140930T060100",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T060100"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "PARIS SAINT-LAZARE",
+                        "coord": {
+                            "lat": "48.875442",
+                            "lon": "2.324806"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738400"
+                    },
+                    "arrival_date_time": "20140930T060800",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T060800"
+                }
+            ]
+        },
+        {
+            "links": [ ],
+            "departure_date_time": "20140930T060800",
+            "duration": 780,
+            "id": "section_15_0",
+            "arrival_date_time": "20140930T062100",
+            "additional_informations": [
+                "regular"
+            ],
+            "type": "waiting"
+        },
+        {
+            "links": [
+                {
+                    "type": "vehicle_journey",
+                    "id": "vehicle_journey:DUA:SN130705F01006387650"
+                },
+                {
+                    "type": "line",
+                    "id": "line:DUA:800854041"
+                },
+                {
+                    "type": "route",
+                    "id": "route:DUA:8008540470002"
+                },
+                {
+                    "type": "commercial_mode",
+                    "id": "commercial_mode:Train"
+                },
+                {
+                    "type": "physical_mode",
+                    "id": "physical_mode:RapidTransit"
+                },
+                {
+                    "type": "network",
+                    "id": "network:DUA854"
+                }
+            ],
+            "departure_date_time": "20140930T062100",
+            "duration": 1500,
+            "id": "section_16_0",
+            "from": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "PARIS SAINT-LAZARE",
+                    "coord": {
+                        "lat": "48.875442",
+                        "lon": "2.324806"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:7444",
+                            "level": 8,
+                            "name": "Paris",
+                            "coord": {
+                                "lat": "48.856506",
+                                "lon": "2.352133"
+                            },
+                            "zip_code": ""
+                        }
+                    ],
+                    "address": {
+                        "id": "2.324806;48.875442",
+                        "house_number": 5,
+                        "name": "Rue Intérieure",
+                        "coord": {
+                            "lat": "48.875442",
+                            "lon": "2.324806"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8738400",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "PARIS SAINT-LAZARE",
+                        "coord": {
+                            "lat": "48.875673",
+                            "lon": "2.325413"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8738400"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8738400",
+                "name": "PARIS SAINT-LAZARE"
+            },
+            "arrival_date_time": "20140930T064600",
+            "additional_informations": [
+                "regular"
+            ],
+            "geojson": {
+                "type": "LineString",
+                "properties": [
+                    {
+                        "length": 24825
+                    }
+                ],
+                "coordinates": [
+                    [
+                        2.324806,
+                        48.875442
+                    ],
+                    [
+                        2.041072,
+                        48.933265
+                    ],
+                    [
+                        1.999604,
+                        48.939487
+                    ]
+                ]
+            },
+            "display_informations": {
+                "direction": "MANTES LA JOLIE (Mantes-la-Ville)",
+                "code": "J",
+                "description": "",
+                "color": "000000",
+                "physical_mode": "Train de banlieue / RER",
+                "headsign": "MALA",
+                "commercial_mode": "Train",
+                "equipments": [ ],
+                "network": "Paris St Lazare",
+                "label": "J"
+            },
+            "to": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "VILLENNES SUR SEINE",
+                    "coord": {
+                        "lat": "48.939487",
+                        "lon": "1.999604"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:947029",
+                            "level": 8,
+                            "name": "Villennes-sur-Seine",
+                            "coord": {
+                                "lat": "48.9366",
+                                "lon": "1.998459"
+                            },
+                            "zip_code": "78670"
+                        }
+                    ],
+                    "address": {
+                        "id": "1.999604;48.939487",
+                        "house_number": 0,
+                        "name": "Rue du Pont",
+                        "coord": {
+                            "lat": "48.939487",
+                            "lon": "1.999604"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8738664",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "VILLENNES SUR SEINE",
+                        "coord": {
+                            "lat": "48.939491",
+                            "lon": "1.999496"
+                        },
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8738664"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8738664",
+                "name": "VILLENNES SUR SEINE"
+            },
+            "type": "public_transport",
+            "stop_date_times": [
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "PARIS SAINT-LAZARE",
+                        "coord": {
+                            "lat": "48.875442",
+                            "lon": "2.324806"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738400"
+                    },
+                    "arrival_date_time": "20140930T062100",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T062100"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "POISSY",
+                        "coord": {
+                            "lat": "48.933265",
+                            "lon": "2.041072"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738657"
+                    },
+                    "arrival_date_time": "20140930T064100",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T064200"
+                },
+                {
+                    "stop_point": {
+                        "comment": "",
+                        "name": "VILLENNES SUR SEINE",
+                        "coord": {
+                            "lat": "48.939487",
+                            "lon": "1.999604"
+                        },
+                        "equipments": [ ],
+                        "id": "stop_point:DUA:SP:8738664"
+                    },
+                    "arrival_date_time": "20140930T064600",
+                    "additional_informations": [ ],
+                    "links": [ ],
+                    "departure_date_time": "20140930T064700"
+                }
+            ]
+        },
+        {
+            "links": [ ],
+            "departure_date_time": "20140930T064700",
+            "duration": 0,
+            "id": "section_17_0",
+            "from": {
+                "embedded_type": "stop_point",
+                "stop_point": {
+                    "comment": "",
+                    "name": "VILLENNES SUR SEINE",
+                    "coord": {
+                        "lat": "48.939487",
+                        "lon": "1.999604"
+                    },
+                    "equipments": [ ],
+                    "administrative_regions": [
+                        {
+                            "id": "admin:947029",
+                            "level": 8,
+                            "name": "Villennes-sur-Seine",
+                            "coord": {
+                                "lat": "48.9366",
+                                "lon": "1.998459"
+                            },
+                            "zip_code": "78670"
+                        }
+                    ],
+                    "address": {
+                        "id": "1.999604;48.939487",
+                        "house_number": 0,
+                        "name": "Rue du Pont",
+                        "administrative_regions": [
+                            {
+                                "id": "admin:947029",
+                                "level": 8,
+                                "name": "Villennes-sur-Seine",
+                                "coord": {
+                                    "lat": "48.9366",
+                                    "lon": "1.998459"
+                                },
+                                "zip_code": "78670"
+                            }
+                        ],
+                        "coord": {
+                            "lat": "48.939487",
+                            "lon": "1.999604"
+                        }
+                    },
+                    "id": "stop_point:DUA:SP:8738664",
+                    "stop_area": {
+                        "comment": "",
+                        "name": "VILLENNES SUR SEINE",
+                        "coord": {
+                            "lat": "48.939491",
+                            "lon": "1.999496"
+                        },
+                        "administrative_regions": [
+                            {
+                                "coord": {
+                                    "lat": "48.9366",
+                                    "lon": "1.998459"
+                                },
+                                "zip_code": "78670",
+                                "id": "admin:947029",
+                                "name": "Villennes-sur-Seine",
+                                "level": 8
+                            }
+                        ],
+                        "timezone": "Europe/Paris",
+                        "id": "stop_area:DUA:SA:8738664"
+                    }
+                },
+                "quality": 0,
+                "id": "stop_point:DUA:SP:8738664",
+                "name": "VILLENNES SUR SEINE"
+            },
+            "arrival_date_time": "20140930T064700",
+            "additional_informations": [
+                "regular"
+            ],
+            "to": {
+                "embedded_type": "stop_area",
+                "stop_area": {
+                    "comment": "",
+                    "name": "VILLENNES SUR SEINE",
+                    "coord": {
+                        "lat": "48.939491",
+                        "lon": "1.999496"
+                    },
+                    "administrative_regions": [
+                        {
+                            "id": "admin:947029",
+                            "level": 8,
+                            "name": "Villennes-sur-Seine",
+                            "coord": {
+                                "lat": "48.9366",
+                                "lon": "1.998459"
+                            },
+                            "zip_code": "78670"
+                        }
+                    ],
+                    "timezone": "Europe/Paris",
+                    "id": "stop_area:DUA:SA:8738664"
+                },
+                "quality": 0,
+                "id": "stop_area:DUA:SA:8738664",
+                "name": "VILLENNES SUR SEINE (Villennes-sur-Seine)"
+            },
+            "mode": "walking",
+            "type": "crow_fly"
+        }
+    ],
+    "tags": [
+        "standard"
+    ],
+    "departure_date_time": "20140930T034953",
+    "requested_date_time": "20140929T112016",
+    "duration": 10567,
+    "nb_transfers": 3,
+    "arrival_date_time": "20140930T064600",
+    "type": "best"
+}

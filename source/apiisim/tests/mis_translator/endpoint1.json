@@ -1,0 +1,28 @@
+{
+
+    "embedded_type": "address",
+    "address": {
+        "id": "2.3468313805225653;48.859484964845606",
+        "house_number": 9,
+        "name": "Rue des Halles",
+        "administrative_regions": [
+            {
+                "id": "admin:7444",
+                "level": 8,
+                "name": "Paris",
+                "coord": {
+                    "lat": "48.856506",
+                    "lon": "2.352133"
+                },
+                "zip_code": ""
+            }
+        ],
+        "coord": {
+            "lat": "48.859484964845606",
+            "lon": "2.3468313805225653"
+        }
+    },
+    "quality": 0,
+    "id": "2.3468313805225653;48.859484964845606",
+    "name": "9 Rue des Halles (Paris)"
+}

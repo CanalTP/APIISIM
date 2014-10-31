@@ -1,15 +1,16 @@
+#!/usr/bin/python
+# -*- encoding: utf8 -*-
 import os, sys
-
 import unittest, logging, datetime
+from random import randint
+from geoalchemy2.functions import ST_AsText
+from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from datetime import timedelta, date as date_type
 from apiisim import tests
-from random import randint
 from apiisim import metabase
-from geoalchemy2.functions import ST_AsText
-from sqlalchemy.exc import IntegrityError
 from apiisim.back_office.run import compute_transfers, compute_mis_connections, \
                                     mis_dates_overlap
-from sqlalchemy import or_
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
 
@@ -20,7 +21,6 @@ def new_stop(code ="stop_code", name="stop_name", mis_id=1):
     stop.name   = name
     stop.long   = 142.396624
     stop.lat    = 66.361493
-
     return stop
 
 def _compute_transfers(db_session, transfer_max_distance):
@@ -44,20 +44,22 @@ class TestBackOffice(unittest.TestCase):
         tests.create_db()
         self.db_session = tests.connect_db()
 
+    def tearDown(self):
+        tests.disconnect_db(self.db_session)
+        tests.drop_db()
+
     def add_mis(self, name="mis", url="mis_url"):
         mis = metabase.Mis()
         mis.name = name
         mis.api_url = url
         self.db_session.add(mis)
         self.db_session.flush()
-
         return mis.id
 
     def add_stop(self, code ="stop_code", name="stop_name", mis_id=1):
         stop = new_stop(code, name, mis_id)
         self.db_session.add(stop)
         self.db_session.flush()
-
         return stop.id
 
     def add_transfer(self, stop1_id, stop2_id):
@@ -70,7 +72,6 @@ class TestBackOffice(unittest.TestCase):
         transfer.modification_state = 'auto'
         self.db_session.add(transfer)
         self.db_session.flush()
-
         return transfer.id
 
     def add_mis_connection(self, mis1_id, mis2_id):
@@ -79,24 +80,19 @@ class TestBackOffice(unittest.TestCase):
         mis_connection.mis2_id = mis2_id
         self.db_session.add(mis_connection)
         self.db_session.flush()
-
         return mis_connection.id
-
 
     """
     Check that geog attribute is correctly set when a stop is inserted and
     when long/lat attributes are modified.
     """
     def test_geography_trigger(self):
-        self.db_session.query()
-
         mis_id = self.add_mis()
 
         stop = new_stop()
         stop.mis_id = mis_id
         self.db_session.add(stop)
         self.db_session.flush()
-
         point = self.db_session.query(ST_AsText(metabase.Stop.geog)).filter_by(id=stop.id).one()[0]
         self.assertEqual(point, u"POINT(%s %s)" % (stop.long, stop.lat),
                          "geog attribute not coherent with long/lat attributes")
@@ -118,7 +114,6 @@ class TestBackOffice(unittest.TestCase):
                          "geog attribute not coherent with long/lat attributes")
         logging.debug("POINT %s", point)
 
-
     """
     Check that we cannot create a Stop with no associated MIS.
     """
@@ -127,7 +122,6 @@ class TestBackOffice(unittest.TestCase):
         stop.mis_id = 37
         self.db_session.add(stop)
         self.assertRaises(IntegrityError, self.db_session.flush)
-
 
     """
     Check that we cannot have 2 stops with the same code and the same MIS.
@@ -138,17 +132,14 @@ class TestBackOffice(unittest.TestCase):
 
         stop1 = new_stop("code", "stop1")
         stop1.mis1_id = mis1_id
-
         stop2 = new_stop("code", "stop2")
         stop2.mis_id = mis2_id
-
         self.db_session.add(stop1)
         self.db_session.add(stop2)
         self.db_session.flush()
 
         stop2.mis_id = mis1_id
         self.assertRaises(IntegrityError, self.db_session.flush)
-
 
     """
     Check that transfer state is updated accordingly when one of its stop is moved.
@@ -245,7 +236,6 @@ class TestBackOffice(unittest.TestCase):
                                         .filter_by(id=mis_connection_id).one()[0],
                          mis2.start_date, "mis_connection start_date not OK")
 
-
     """
     Test transfer calculation feature by adding/deleting stops and changing
     maximum transfer distance. Each time we make a change, we launch a transfer
@@ -311,7 +301,6 @@ class TestBackOffice(unittest.TestCase):
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          1, "Found more transfers than expected")
 
-
         mis3_id = self.add_mis("mis3")
         stop4 = new_stop("code4", "Gare de Lyon 2", mis3_id)
         stop4.lat = 48.84556
@@ -346,7 +335,6 @@ class TestBackOffice(unittest.TestCase):
                          9127641, "Transfer distance different than expected")
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          1, "Found more transfers than expected")
-
 
     """
     Test mis_connection calculation by creating/removing transfers and checking
@@ -437,7 +425,6 @@ class TestBackOffice(unittest.TestCase):
                                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
                          1, "MisConnection not found")
 
-
     """
     Check that if a transfer modification_state is 'recalculate', the back_office 
     effectively recalculate distance and durations for this transfer.
@@ -445,6 +432,7 @@ class TestBackOffice(unittest.TestCase):
     def test_recalculate_state(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
+
         stop1 = new_stop("code1", "Gare de Lyon", mis1_id)
         stop1.lat = 48.84556
         stop1.long = 2.373449
@@ -463,9 +451,10 @@ class TestBackOffice(unittest.TestCase):
         transfer.duration = randint(10, 10000)
         transfer.prm_duration = randint(10, 10000)
         transfer.modification_state = "recalculate"
-        self.db_session.flush()
+        self.db_session.commit()
 
         _compute_transfers(self.db_session, 900)
+
         transfer = self.db_session.query(metabase.Transfer) \
                        .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
         self.assertEqual(transfer.modification_state, 'auto', "Transfer modification_state should be 'auto'")
@@ -473,7 +462,6 @@ class TestBackOffice(unittest.TestCase):
         self.assertEqual(original_values,
                          [transfer.distance, transfer.duration, transfer.prm_duration],
                          "Distance and durations have not been recalculated properly ")
-
 
     """
         Check that trigger on transfer 'active' column works accordingly.
@@ -541,7 +529,6 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.commit()
         self.db_session.expire_all()
         self.assertEqual(t.active, True)
-
 
     """
     Check that back_office doesn't modify transfer when its status is
@@ -641,7 +628,6 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.expire_all()
         self.assertTrue(mode.updated_at - approx_update_date < timedelta(seconds=4))
 
-
     def test_mis_dates_overlap(self):
         mis1_id = self.add_mis(name="mis1")
         mis2_id = self.add_mis(name="mis2")
@@ -697,46 +683,8 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.commit()
         self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
 
-
-    def tearDown(self):
-        tests.disconnect_db(self.db_session)
-        tests.drop_db()
-
-
-"""
-This test uses 3 components (metabase, back_office and mis_translator).
-It creates a database, retrieve stops from 2 stub MIS and launch the
-back_office several times, each time with a different maximum distance between
-stops (to calculate transfers). For each different setting, we generate a dump
-of the resulting database and compare it to a reference dump. If they don't match,
-we exit the test and consider it as failed.
-"""
-class TestBackOfficeChangeTransferMaxDistance(unittest.TestCase):
-
-    def setUp(self):
-        try:
-            tests.drop_db()
-        except:
-            pass
-        tests.create_db(populate_script=TEST_DIR + "test_back_office.sql")
-        self._mis_translator_process = tests.launch_mis_translator(TEST_DIR + "mis_translator.conf")
-
-    def test(self):
-        for conf_file, ref_dump_file in \
-            [('test_back_office1.conf', 'db_dump1'),
-             ('test_back_office2.conf', 'db_dump2'),
-             ('test_back_office3.conf', 'db_dump3'),
-             ('test_back_office4.conf', 'db_dump4')]:
-            self.assertTrue(
-                tests.calculate_and_check(
-                    TEST_DIR + conf_file, TEST_DIR + ref_dump_file),
-                msg="Database dump different than reference dump (%s)" \
-                     % (ref_dump_file))
-
-    def tearDown(self):
-        tests.terminate_mis_translator(self._mis_translator_process)
-        tests.drop_db()
-
+    # todo
+    # #def test change on max distanance to calculate transfers
 
 if __name__ == '__main__':
     unittest.main()

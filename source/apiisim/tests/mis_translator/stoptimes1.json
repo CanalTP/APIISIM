@@ -1,0 +1,290 @@
+[
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "CHATELET",
+            "coord": {
+                "lat": "48.858285",
+                "lon": "2.348755"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8797807"
+        },
+        "arrival_date_time": "20140930T035300",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T035300"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "ST MICHEL NOTRE DAME NOCTILIEN",
+            "coord": {
+                "lat": "48.85345",
+                "lon": "2.343838"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759114"
+        },
+        "arrival_date_time": "20140930T035600",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T035600"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "GARE MONTPARNASSE NOCTILIEN",
+            "coord": {
+                "lat": "48.840507",
+                "lon": "2.319491"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759115"
+        },
+        "arrival_date_time": "20140930T040800",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T040800"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "BALARD",
+            "coord": {
+                "lat": "48.835775",
+                "lon": "2.278103"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8741470"
+        },
+        "arrival_date_time": "20140930T041800",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T041800"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "MARCEL SEMBAT",
+            "coord": {
+                "lat": "48.833687",
+                "lon": "2.244247"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8741471"
+        },
+        "arrival_date_time": "20140930T042400",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T042400"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "SEVRES RIVE GAUCHE NOCTILIEN",
+            "coord": {
+                "lat": "48.821311",
+                "lon": "2.214597"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759116"
+        },
+        "arrival_date_time": "20140930T043100",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T043100"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "HOPITAL JEAN ROSTAND",
+            "coord": {
+                "lat": "48.821172",
+                "lon": "2.202443"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8741458"
+        },
+        "arrival_date_time": "20140930T043300",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T043300"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "ATRIUM",
+            "coord": {
+                "lat": "48.809896",
+                "lon": "2.19013"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8741461"
+        },
+        "arrival_date_time": "20140930T043500",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T043500"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "CHAVILLE RIVE GAUCHE NOCTILIEN",
+            "coord": {
+                "lat": "48.804788",
+                "lon": "2.188484"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759178"
+        },
+        "arrival_date_time": "20140930T043700",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T043700"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "GRACE DE DIEU",
+            "coord": {
+                "lat": "48.804135",
+                "lon": "2.176798"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8741460"
+        },
+        "arrival_date_time": "20140930T043900",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T043900"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "VIROFLAY RIVE GAUCHE NOCTILIEN",
+            "coord": {
+                "lat": "48.80091",
+                "lon": "2.171271"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759179"
+        },
+        "arrival_date_time": "20140930T044100",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T044100"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "PIERRE EDOUARD",
+            "coord": {
+                "lat": "48.801104",
+                "lon": "2.162767"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8741452"
+        },
+        "arrival_date_time": "20140930T044300",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T044300"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "PORCHEFONTAINE NOCTILIEN",
+            "coord": {
+                "lat": "48.796876",
+                "lon": "2.15372"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759180"
+        },
+        "arrival_date_time": "20140930T044500",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T044500"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "VERSAILLES CHANTIERS NOCTILIEN",
+            "coord": {
+                "lat": "48.79557",
+                "lon": "2.135482"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759181"
+        },
+        "arrival_date_time": "20140930T045000",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T045000"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "VERSAILLES RIVE GAUCHE NOCTILIEN",
+            "coord": {
+                "lat": "48.800078",
+                "lon": "2.128104"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759182"
+        },
+        "arrival_date_time": "20140930T045400",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T045400"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "PORTE DES MATELOTS",
+            "coord": {
+                "lat": "48.803299",
+                "lon": "2.105899"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8741451"
+        },
+        "arrival_date_time": "20140930T045800",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T045800"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "ST CYR NOCTILIEN",
+            "coord": {
+                "lat": "48.798926",
+                "lon": "2.07298"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759183"
+        },
+        "arrival_date_time": "20140930T050200",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T050200"
+    },
+    {
+        "stop_point": {
+            "comment": "",
+            "name": "ST QUENTIN EN YVELINES NOCTILIEN",
+            "coord": {
+                "lat": "48.787966",
+                "lon": "2.044703"
+            },
+            "equipments": [ ],
+            "id": "stop_point:DUA:SP:8759185"
+        },
+        "arrival_date_time": "20140930T050800",
+        "additional_informations": [ ],
+        "links": [ ],
+        "departure_date_time": "20140930T050800"
+    }
+]

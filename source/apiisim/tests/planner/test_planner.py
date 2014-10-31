@@ -1,4 +1,9 @@
-import sys, os, unittest, Queue, logging
+#!/usr/bin/python
+# -*- encoding: utf8 -*-
+import unittest
+import os, Queue, logging
+from datetime import timedelta, datetime, date as date_type
+from itertools import permutations
 from apiisim import tests
 from apiisim.planner import TraceStop, Planner
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
@@ -6,11 +11,8 @@ from apiisim.common.plan_trip import PlanTripRequestType, EndPointType, \
                                      LocationPointType, LocationPointType, \
                                      LocationStructure
 from apiisim.common.mis_plan_summed_up_trip import SummedUpTripType, TripStopPlaceType
-from datetime import timedelta, datetime, date as date_type
-from itertools import permutations
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
-
 
 def new_location(longitude, latitude):
     ret = LocationPointType()
@@ -19,9 +21,7 @@ def new_location(longitude, latitude):
     l.Longitude = longitude
     l.Latitude  = latitude
     ret.Position = l
-
     return ret
-
 
 class TestPlanner(unittest.TestCase):
 
@@ -34,6 +34,12 @@ class TestPlanner(unittest.TestCase):
         self._planner = Planner("postgresql+psycopg2://%s:%s@localhost/%s" % \
                                 (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME))
 
+    def tearDown(self):
+        # Force planner deletion to reset SQLAlchemy connection pool. Otherwise,
+        # some connections can stay open, which will prevent us from deleting
+        # the database.
+        del self._planner
+        tests.drop_db()
 
     def testDepartureAtDetailedTrace(self):
         request = PlanTripRequestType()
@@ -59,7 +65,6 @@ class TestPlanner(unittest.TestCase):
                     self.assertEquals(res[j][1][0].PlaceTypeId, "stop_code%s0" % k)
                     self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s1" % k)
                     self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k + 1))
-
 
     def testArrivalAtDetailedTrace(self):
         request = PlanTripRequestType()
@@ -104,7 +109,6 @@ class TestPlanner(unittest.TestCase):
                           [[1, 3, 4], [4, 3, 1], [3, 4, 2], [1, 4, 3, 2]])
 
     def testComputeTraces(self):
-
         request = PlanTripRequestType()
         request.Departure = new_location(1, 1)
         request.Arrival = new_location(3, 3)
@@ -226,7 +230,6 @@ class TestPlanner(unittest.TestCase):
 
         position = LocationStructure(Longitude=0, Latitude=0)
         self.assertEquals(calculator._get_surrounding_mises(position, date), set([1, 2, 3]))
-
 
     def testGetMisModes(self):
         request = PlanTripRequestType()
@@ -365,14 +368,6 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(len(linked_stops), 2)
         self.assertEquals(linked_stops[0].PlaceTypeId, "l1")
         self.assertEquals(linked_stops[1].PlaceTypeId, "l4")
-
-    def tearDown(self):
-        # Force planner deletion to reset SQLAlchemy connection pool. Otherwise, 
-        # some connections can stay open, which will prevent us from deleting 
-        # the database.
-        del self._planner
-        tests.drop_db()
-
 
 if __name__ == '__main__':
     unittest.main()
