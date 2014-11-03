@@ -6,7 +6,7 @@ from datetime import timedelta, datetime
 from apiisim.common import TransportModeEnum
 from apiisim.mis_translator.mis_api import navitia
 
-TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
+TEST_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "")
 
 class TestNavitia(unittest.TestCase):
 
@@ -247,7 +247,7 @@ class VirtualMisApi(navitia.MisApi):
         self.last_json_data = json_data
         self.urls.append(url)
         self.json_data.append(json_data)
-        dump_filename = "navidump" + str(hash(url)) + str(hash(json_data)) + ".json"
+        dump_filename = "navidump" + str(hash(url)) + ("8570956" if json_data is None else str(hash(json_data))) + ".json"
         print dump_filename
         f = open(TEST_DIR + dump_filename)
         content = "".join(f.readlines())

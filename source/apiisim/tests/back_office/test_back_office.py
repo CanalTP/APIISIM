@@ -12,7 +12,7 @@ from apiisim import metabase
 from apiisim.back_office.run import compute_transfers, compute_mis_connections, \
                                     mis_dates_overlap
 
-TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
+TEST_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "")
 
 def new_stop(code ="stop_code", name="stop_name", mis_id=1):
     stop = metabase.Stop()

@@ -5,10 +5,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 import logging, sys, argparse, ConfigParser
 from apiisim import metabase
+import platform
 
-CREATE_DB_SCRIPT = os.path.dirname(os.path.realpath(__file__)) + "/../metabase/sql_scripts/create_db.sh"
-MIS_TRANSLATOR = os.path.dirname(os.path.realpath(__file__)) + "/../mis_translator/run.py"
-BACK_OFFICE = os.path.dirname(os.path.realpath(__file__)) + "/../back_office/run.py"
+if platform.system() == "Windows":
+    CREATE_DB_SCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "metabase", "sql_scripts", "create_db.cmd")
+    MIS_TRANSLATOR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "mis_translator", "run.py")
+    BACK_OFFICE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "back_office", "run.py")
+else:
+    CREATE_DB_SCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "metabase", "sql_scripts", "create_db.sh")
+    MIS_TRANSLATOR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "mis_translator", "run.py")
+    BACK_OFFICE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "back_office", "run.py")
 
 DB_NAME = "test_db"
 USER_NAME = "test_user"
@@ -16,21 +22,34 @@ ADMIN_NAME = "postgres"
 USER_PASS = "test_user"
 ADMIN_PASS = "postgres"
 
-CREATE_DB_CONF = \
-"DB_NAME=%s\n" \
-"USER_NAME=%s\n" \
-"ADMIN_NAME=%s\n" \
-"USER_PASS=%s\n" \
-"ADMIN_PASS=%s\n" \
-"POPULATE_DB=%s\n" \
-"POPULATE_DB_SCRIPT=%s\n"
+if platform.system() == "Windows":
+    CREATE_DB_CONF = \
+    "SET DB_NAME=%s\n" \
+    "SET USER_NAME=%s\n" \
+    "SET ADMIN_NAME=%s\n" \
+    "SET USER_PASS=%s\n" \
+    "SET ADMIN_PASS=%s\n" \
+    "SET POPULATE_DB=%s\n" \
+    "SET POPULATE_DB_SCRIPT=%s\n"
+else:
+    CREATE_DB_CONF = \
+    "DB_NAME=%s\n" \
+    "USER_NAME=%s\n" \
+    "ADMIN_NAME=%s\n" \
+    "USER_PASS=%s\n" \
+    "ADMIN_PASS=%s\n" \
+    "POPULATE_DB=%s\n" \
+    "POPULATE_DB_SCRIPT=%s\n"
 
 """
 Create db with its associated owner and populate it (if a populate_script is given).
 """
 def create_db(db_name=DB_NAME, user_name=USER_NAME, admin_name=ADMIN_NAME,
               user_pass=USER_PASS, admin_pass=ADMIN_PASS, populate_script=""):
-    fd, create_db_conf_file = tempfile.mkstemp(text=True, prefix="test", suffix=".conf")
+    if platform.system() == "Windows":
+        fd, create_db_conf_file = tempfile.mkstemp(text=True, prefix="test", suffix=".conf.cmd")
+    else:   
+        fd, create_db_conf_file = tempfile.mkstemp(text=True, prefix="test", suffix=".conf")
     if populate_script:
         populate = "true"
     else:
@@ -39,7 +58,10 @@ def create_db(db_name=DB_NAME, user_name=USER_NAME, admin_name=ADMIN_NAME,
                                    populate, populate_script))
     os.close(fd)
 
-    ret = subprocess.call(['bash', CREATE_DB_SCRIPT, create_db_conf_file])
+    if platform.system() == "Windows":
+        ret = subprocess.call([CREATE_DB_SCRIPT, create_db_conf_file])
+    else:
+        ret = subprocess.call(['bash', CREATE_DB_SCRIPT, create_db_conf_file])
     if ret != 0:
         raise Exception("%s failed: %s" % (CREATE_DB_SCRIPT, ret))
 
