@@ -6,25 +6,26 @@ from datetime import datetime
 import threading
 from mod_python import apache
 from apiisim.common.plan_trip import PlanTripRequestType, SelfDriveConditionType, \
-                                     EndingSearch, PlanTripNotificationResponseType, \
-                                     PlanTripExistenceNotificationResponseType, \
-                                     PlanTripResponse, StartingSearch, ErrorType
+    EndingSearch, PlanTripNotificationResponseType, \
+    PlanTripExistenceNotificationResponseType, \
+    PlanTripResponse, StartingSearch, ErrorType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, string_to_bool, \
-                           TransportModeEnum, PlanTripStatusEnum, parse_location_context
+    TransportModeEnum, PlanTripStatusEnum, parse_location_context
 from apiisim.common.marshalling import DATE_FORMAT
 from apiisim.planner import benchmark, PlanTripCancellationResponse, BadRequestException, \
-                            Planner
+    Planner
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
 from logging.handlers import RotatingFileHandler
 
 
 def init_logging(log_file):
-    handler = RotatingFileHandler(log_file, maxBytes=8*1024*1024, backupCount=3)
+    handler = RotatingFileHandler(log_file, maxBytes=8 * 1024 * 1024, backupCount=3)
     formatter = logging.Formatter('%(asctime)s <%(thread)d> [%(levelname)s] %(message)s')
     handler.setFormatter(formatter)
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
     root_logger.addHandler(handler)
+
 
 def log_error(func):
     def decorator(self, *args, **kwargs):
@@ -36,6 +37,7 @@ def log_error(func):
             raise
 
     return decorator
+
 
 class WorkerThread(threading.Thread):
     def __init__(self, params, job_queue, notif_queue):
@@ -62,6 +64,8 @@ class WorkerThread(threading.Thread):
     Parse request dict and return a new PlanTripRequestType object with its
     attributes set accordingly.
 """
+
+
 def parse_request(request):
     ret = PlanTripRequestType()
 
@@ -106,10 +110,10 @@ def parse_request(request):
     ret.selfDriveConditions = []
     for c in request.get('selfDriveConditions', []):
         condition = SelfDriveConditionType(TripPart=c.get("TripPart", ""),
-                                SelfDriveMode=c.get("SelfDriveMode", ""))
+                                           SelfDriveMode=c.get("SelfDriveMode", ""))
         if not TripPartEnum.validate(condition.TripPart) or \
-           not SelfDriveModeEnum.validate(condition.SelfDriveMode):
-           raise BadRequestException("Invalid self drive condition", "selfDriveConditions")
+                not SelfDriveModeEnum.validate(condition.SelfDriveMode):
+            raise BadRequestException("Invalid self drive condition", "selfDriveConditions")
         ret.selfDriveConditions.append(condition)
 
     ret.AccessibilityConstraint = string_to_bool(request.get('AccessibilityConstraint', "False"))
@@ -133,12 +137,12 @@ class CancellationListener(threading.Thread):
             msg = self._connection.ws_stream.receive_message()
             logging.debug("<CancellationListener> Received message %s", msg)
             # if msg is None:
-            #     # Connection has been closed
+            # # Connection has been closed
             #     break
             try:
                 msg = json.loads(msg)
                 if "PlanTripCancellationRequest" in msg \
-                    and msg["PlanTripCancellationRequest"]["RequestId"] == self._params.clientRequestId:
+                        and msg["PlanTripCancellationRequest"]["RequestId"] == self._params.clientRequestId:
                     self._queue.put("CANCEL")
                     break
             except:

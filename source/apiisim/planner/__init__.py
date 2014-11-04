@@ -3,95 +3,131 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from apiisim.common.mis_plan_trip import ItineraryResponseType, ItineraryRequestType, \
-                                         LineType, PTNetworkType
+    LineType, PTNetworkType
 from apiisim.common.plan_trip import PlanTripRequestType, \
-                                     PlanTripExistenceNotificationResponseType, \
-                                     PlanTripNotificationResponseType, \
-                                     PlanTripResponse, EndingSearch, StartingSearch, \
-                                     AbstractNotificationResponseType, StepEndPointType, \
-                                     EndPointType, TripStopPlaceType, LocationStructure, \
-                                     TripType, StepType, PTRideType, LegType, SectionType, \
-                                     PartialTripType, ComposedTripType, ProviderType
+    PlanTripExistenceNotificationResponseType, \
+    PlanTripNotificationResponseType, \
+    PlanTripResponse, EndingSearch, StartingSearch, \
+    AbstractNotificationResponseType, StepEndPointType, \
+    EndPointType, TripStopPlaceType, LocationStructure, \
+    TripType, StepType, PTRideType, LegType, SectionType, \
+    PartialTripType, ComposedTripType, ProviderType
 from apiisim.common.mis_plan_summed_up_trip import LocationContextType, \
-                                                   SummedUpItinerariesResponseType, \
-                                                   StatusType, SummedUpTripType, \
-                                                   SummedUpItinerariesRequestType
+    SummedUpItinerariesResponseType, \
+    StatusType, SummedUpTripType, \
+    SummedUpItinerariesRequestType
 from apiisim.common import OUTPUT_ENCODING, StatusCodeEnum, xsd_duration_to_timedelta, \
-                           TypeOfPlaceEnum
+    TypeOfPlaceEnum
 from apiisim.common.marshalling import marshal, itinerary_request_type, \
-                               summed_up_itineraries_request_type, \
-                               summed_up_trip_type, \
-                               plan_trip_existence_notification_response_type, \
-                               plan_trip_notification_response_type, \
-                               plan_trip_response_type, ending_search_type, \
-                               starting_search_type, DATE_FORMAT, \
-                               plan_trip_cancellation_response_type
+    summed_up_itineraries_request_type, \
+    summed_up_trip_type, \
+    plan_trip_existence_notification_response_type, \
+    plan_trip_notification_response_type, \
+    plan_trip_response_type, ending_search_type, \
+    starting_search_type, DATE_FORMAT, \
+    plan_trip_cancellation_response_type
 from apiisim import metabase
 
 
 class PlannerException(Exception):
     pass
+
+
 class InvalidResponseException(PlannerException):
     def __init__(self):
         PlannerException.__init__(self, "MIS response is invalid")
+
+
 class NoItineraryFoundException(PlannerException):
     def __init__(self):
         PlannerException.__init__(self, "No itinerary found")
+
+
 class BadRequestException(PlannerException):
     def __init__(self, message, field=""):
         PlannerException.__init__(self, message)
         self.field = field
+
+
 class CancelledRequestException(PlannerException):
     def __init__(self):
         PlannerException.__init__(self, "PlanTripCancellationRequest received")
 
-################################################################################
+
+# ###############################################################################
 
 def _marshal_ItineraryRequestType(self):
     return marshal(self, itinerary_request_type)
+
+
 ItineraryRequestType.marshal = _marshal_ItineraryRequestType
+
 
 def _marshal_SummedUpItinerariesRequestType(self):
     return marshal(self, summed_up_itineraries_request_type)
+
+
 SummedUpItinerariesRequestType.marshal = _marshal_SummedUpItinerariesRequestType
 
+
 def _marshal_SummedUpTripType(self):
-    return {"SummedUpTripType" : marshal(self, summed_up_trip_type)}
+    return {"SummedUpTripType": marshal(self, summed_up_trip_type)}
+
+
 SummedUpTripType.marshal = _marshal_SummedUpTripType
 
+
 def _marshal_PlanTripExistenceNotificationResponseType(self):
-    return {"PlanTripExistenceNotificationResponseType" : marshal(self, plan_trip_existence_notification_response_type)}
+    return {"PlanTripExistenceNotificationResponseType": marshal(self, plan_trip_existence_notification_response_type)}
+
+
 PlanTripExistenceNotificationResponseType.marshal = _marshal_PlanTripExistenceNotificationResponseType
 
+
 def _marshal_PlanTripNotificationResponseType(self):
-    return {"PlanTripNotificationResponseType" : marshal(self, plan_trip_notification_response_type)}
+    return {"PlanTripNotificationResponseType": marshal(self, plan_trip_notification_response_type)}
+
+
 PlanTripNotificationResponseType.marshal = _marshal_PlanTripNotificationResponseType
 
+
 def _marshal_PlanTripResponse(self):
-    return {"PlanTripResponse" : marshal(self, plan_trip_response_type)}
+    return {"PlanTripResponse": marshal(self, plan_trip_response_type)}
+
+
 PlanTripResponse.marshal = _marshal_PlanTripResponse
 
+
 def _marshal_EndingSearch(self):
-    return {"EndingSearch" : marshal(self, ending_search_type)}
+    return {"EndingSearch": marshal(self, ending_search_type)}
+
+
 EndingSearch.marshal = _marshal_EndingSearch
 
+
 def _marshal_StartingSearch(self):
-    return {"StartingSearch" : marshal(self, starting_search_type)}
+    return {"StartingSearch": marshal(self, starting_search_type)}
+
+
 StartingSearch.marshal = _marshal_StartingSearch
+
 
 class PlanTripCancellationResponse(AbstractNotificationResponseType):
     def marshal(self):
-        return {"PlanTripCancellationResponse" : marshal(self, plan_trip_cancellation_response_type)}
+        return {"PlanTripCancellationResponse": marshal(self, plan_trip_cancellation_response_type)}
+
 
 def _repr(self):
     return unicode(self.marshal()).encode(OUTPUT_ENCODING)
+
 
 PlanTripRequestType.__repr__ = _repr
 ItineraryRequestType.__repr__ = _repr
 SummedUpItinerariesRequestType.__repr__ = _repr
 SummedUpTripType.__repr__ = _repr
 
-################################################################################
+# ###############################################################################
+
 
 def benchmark(func):
     def decorator(*args, **kwargs):
@@ -102,11 +138,12 @@ def benchmark(func):
 
         end_date = datetime.now()
         logging.debug("%s(%s %s) | END: %s | DURATION: %ss",
-            func.__name__, args, kwargs, end_date,
-            (end_date - start_date).total_seconds())
+                      func.__name__, args, kwargs, end_date,
+                      (end_date - start_date).total_seconds())
         return result
 
     return decorator
+
 
 def parse_end_point(point, step_end_point=False):
     if step_end_point:
@@ -124,8 +161,8 @@ def parse_end_point(point, step_end_point=False):
     place.TypeOfPlaceRef = p.get("TypeOfPlaceRef", TypeOfPlaceEnum.LOCATION)
     if "Position" in p:
         place.Position = LocationStructure(
-                            Latitude=p["Position"]["Latitude"],
-                            Longitude=p["Position"]["Longitude"])
+            Latitude=p["Position"]["Latitude"],
+            Longitude=p["Position"]["Longitude"])
 
     ret.TripStopPlace = place
     ret.DateTime = datetime.strptime(point["DateTime"], DATE_FORMAT)
@@ -133,15 +170,16 @@ def parse_end_point(point, step_end_point=False):
 
 
 def parse_summed_up_trips(trips):
-    ret = [] # [summedUpTripType]
+    ret = []  # [summedUpTripType]
     for trip in trips:
         departure = parse_end_point(trip["Departure"])
         arrival = parse_end_point(trip["Arrival"])
         ret.append(SummedUpTripType(
-                        Departure=departure, Arrival=arrival,
-                        InterchangeCount=trip["InterchangeCount"],
-                        InterchangeDuration=trip["InterchangeDuration"]))
+            Departure=departure, Arrival=arrival,
+            InterchangeCount=trip["InterchangeCount"],
+            InterchangeDuration=trip["InterchangeDuration"]))
     return ret
+
 
 def parse_detailed_trip(trip):
     if not trip:
@@ -159,15 +197,16 @@ def parse_detailed_trip(trip):
 
     return ret
 
+
 def parse_steps(steps):
-    ret = [] # [StepType]
+    ret = []  # [StepType]
     for step in steps:
         ret.append(
-                StepType(
-                    id=step["id"],
-                    Departure=parse_end_point(step["Departure"], step_end_point=True),
-                    Arrival=parse_end_point(step["Arrival"], step_end_point=True),
-                    Duration=xsd_duration_to_timedelta(step["Duration"])))
+            StepType(
+                id=step["id"],
+                Departure=parse_end_point(step["Departure"], step_end_point=True),
+                Arrival=parse_end_point(step["Arrival"], step_end_point=True),
+                Duration=xsd_duration_to_timedelta(step["Duration"])))
     return ret
 
 
@@ -212,10 +251,11 @@ def parse_sections(sections):
             leg.Duration = xsd_duration_to_timedelta(l["Duration"])
 
         ret.append(SectionType(
-                        PartialTripId=section.get("PartialTripId", None),
-                        PTRide=ptr, Leg=leg))
+            PartialTripId=section.get("PartialTripId", None),
+            PTRide=ptr, Leg=leg))
 
     return ret
+
 
 def stop_to_trace_stop(stop):
     ret = TraceStop()
@@ -228,6 +268,7 @@ def stop_to_trace_stop(stop):
     ret.Position = l
 
     return ret
+
 
 # full_trip is [(MisApi, DetailedTrip)]
 def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
@@ -249,8 +290,8 @@ def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
             partial_trip = PartialTripType()
             partial_trip.id = mis_api.get_name()
             partial_trip.Provider = ProviderType(
-                                        Name=mis_api.get_name(),
-                                        Url=mis_api.get_api_url())
+                Name=mis_api.get_name(),
+                Url=mis_api.get_api_url())
             partial_trip.Departure = trip.Departure
             partial_trip.Arrival = trip.Arrival
             partial_trip.Duration = trip.Duration
@@ -258,9 +299,9 @@ def create_full_notification(request_id, trace_id, full_trip, runtime_duration):
             composed_trip.partialTrips.append(partial_trip)
 
     return PlanTripNotificationResponseType(
-                RequestId=request_id,
-                RuntimeDuration=runtime_duration,
-                ComposedTrip=composed_trip)
+        RequestId=request_id,
+        RuntimeDuration=runtime_duration,
+        ComposedTrip=composed_trip)
 
 
 class TraceStop(LocationContextType):
@@ -276,9 +317,7 @@ class TraceStop(LocationContextType):
         return hash(self.PlaceTypeId)
 
     def __repr__(self):
-        return (u"<TraceStop(PlaceTypeId='%s')>" % \
-                (self.PlaceTypeId)) \
-                .encode(OUTPUT_ENCODING)
+        return (u"<TraceStop(PlaceTypeId='%s')>" % self.PlaceTypeId).encode(OUTPUT_ENCODING)
 
 
 class MisApi(object):
@@ -319,7 +358,7 @@ class MisApi(object):
                       "URL: \n%s\n"
                       "DATA: \n%s", url, json.dumps(data))
         headers = {'Content-type': 'application/json',
-                   'Authorization' : self._api_key}
+                   'Authorization': self._api_key}
         resp, content = self._http.request(url, "POST", headers=headers, body=json.dumps(data))
         if resp.status != 200:
             # TODO error handling (raise exception)
@@ -383,9 +422,7 @@ class MisApi(object):
         return ret
 
     def __repr__(self):
-        return (u"<MisApi(name='%s')>" % \
-                (self._name)) \
-                .encode(OUTPUT_ENCODING)
+        return (u"<MisApi(name='%s')>" % self._name).encode(OUTPUT_ENCODING)
 
 
 class Planner(object):
@@ -396,8 +433,8 @@ class Planner(object):
         # Class that will be instantiated by every thread to create their own 
         # thread-local sessions
         self._db_session_factory = scoped_session(sessionmaker(
-                                                        bind=self._db_engine, 
-                                                        expire_on_commit=False))
+            bind=self._db_engine,
+            expire_on_commit=False))
 
     def __del__(self):
         # Not mandatory but a good way to ensure that no connection to the database

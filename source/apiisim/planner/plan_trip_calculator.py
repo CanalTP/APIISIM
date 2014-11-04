@@ -1,5 +1,5 @@
 from apiisim.planner import MisApi, benchmark, stop_to_trace_stop, \
-                            create_full_notification, NoItineraryFoundException
+    create_full_notification, NoItineraryFoundException
 from datetime import datetime, timedelta
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import aliased
@@ -8,15 +8,16 @@ from geoalchemy2 import Geography
 from geoalchemy2.functions import ST_DWithin, GenericFunction
 from geoalchemy2.functions import ST_Intersects
 from apiisim.common.plan_trip import PlanTripExistenceNotificationResponseType, \
-                                     ProviderType
+    ProviderType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesRequestType
 from apiisim.common.mis_plan_trip import ItineraryRequestType, multiDeparturesType, \
-                                         multiArrivalsType
+    multiArrivalsType
 from apiisim.common import TransportModeEnum, PlanSearchOptions
+from apiisim.planner import CancelledRequestException
 import logging
 
 
-class ST_GeogFromText(GenericFunction):
+class StGeogFromText(GenericFunction):
     name = 'ST_GeogFromText'
     type = Geography
 
@@ -24,7 +25,7 @@ class ST_GeogFromText(GenericFunction):
 class PlanTripCalculator(object):
     # Maximum MIS trace length
     MAX_TRACE_LENGTH = 3
-    SURROUNDING_MISES_MAX_DISTANCE = 400 # In meters
+    SURROUNDING_MISES_MAX_DISTANCE = 400  # In meters
 
     def __init__(self, planner, params, notif_queue):
         self._planner = planner
@@ -33,7 +34,6 @@ class PlanTripCalculator(object):
         self._notif_queue = notif_queue
         self._cancelled = False
 
-
     @benchmark
     def _get_transfers(self, mis1_id, mis2_id):
         # ([transfer_duration], [stop_mis1], [stop_mis2])
@@ -41,30 +41,30 @@ class PlanTripCalculator(object):
         # as TraceStop objects, not as metabase.Stop objects.
         ret = ([], [], [])
         subq = self._db_session.query(metabase.TransferMis.transfer_id) \
-                                        .filter(or_(and_(metabase.TransferMis.mis1_id==mis1_id,
-                                                         metabase.TransferMis.mis2_id==mis2_id),
-                                                    and_(metabase.TransferMis.mis1_id==mis2_id,
-                                                         metabase.TransferMis.mis2_id==mis1_id))) \
-                                        .filter(metabase.TransferMis.transfer_active==True) \
-                                        .order_by(metabase.TransferMis.transfer_id) \
-                                        .subquery()
+            .filter(or_(and_(metabase.TransferMis.mis1_id == mis1_id,
+                             metabase.TransferMis.mis2_id == mis2_id),
+                        and_(metabase.TransferMis.mis1_id == mis2_id,
+                             metabase.TransferMis.mis2_id == mis1_id))) \
+            .filter(metabase.TransferMis.transfer_active == True) \
+            .order_by(metabase.TransferMis.transfer_id) \
+            .subquery()
         # logging.debug("transfers_ids : %s", transfers_ids)
         s1 = aliased(metabase.Stop)
         s2 = aliased(metabase.Stop)
 
         results = self._db_session.query(metabase.Transfer, s1, s2) \
-                                  .filter(metabase.Transfer.id == subq.c.transfer_id) \
-                                  .filter(and_(metabase.Transfer.stop1_id == s1.id),
-                                               metabase.Transfer.stop2_id == s2.id) \
-                                  .all()
+            .filter(metabase.Transfer.id == subq.c.transfer_id) \
+            .filter(and_(metabase.Transfer.stop1_id == s1.id),
+                    metabase.Transfer.stop2_id == s2.id) \
+            .all()
         for t, s1, s2 in results:
             l1 = stop_to_trace_stop(s1)
             l2 = stop_to_trace_stop(s2)
-            if s1.mis_id == mis1_id: # implies s2.mis_id == mis2_id
+            if s1.mis_id == mis1_id:  # implies s2.mis_id == mis2_id
                 ret[0].append(timedelta(seconds=t.duration))
                 ret[1].append(l1)
                 ret[2].append(l2)
-            elif s1.mis_id == mis2_id: # implies s2.mis_id == mis1_id
+            elif s1.mis_id == mis2_id:  # implies s2.mis_id == mis1_id
                 ret[0].append(timedelta(seconds=t.duration))
                 ret[1].append(l2)
                 ret[2].append(l1)
@@ -75,7 +75,6 @@ class PlanTripCalculator(object):
         # logging.debug("ret: len %s len %s\n%s", len(ret[mis1_id]), len(ret[mis2_id]), ret)
         return ret
 
-
     """
         Return set of MIS that:
             - have at least one stop point whose distance to given position is
@@ -84,29 +83,28 @@ class PlanTripCalculator(object):
         Also ensure that returned MIS are available at given date.
         Note that date must of type 'date', not 'datetime'.
     """
+
     @benchmark
     def _get_surrounding_mises(self, position, date):
-        ret = set() # ([mis_id])
+        ret = set()  # ([mis_id])
         all_mises = self._db_session.query(metabase.Mis).all()
 
         for mis in all_mises:
             if self._db_session.query(metabase.Stop.id) \
-                               .filter(metabase.Stop.mis_id == mis.id) \
-                               .filter(
-                                    ST_DWithin(
-                                        metabase.Stop.geog,
-                                        ST_GeogFromText('POINT(%s %s)' \
-                                            % (position.Longitude, position.Latitude)),
-                                        self.SURROUNDING_MISES_MAX_DISTANCE)) \
-                               .count() > 0 \
-               and (mis.start_date <= date <= mis.end_date):
+                    .filter(metabase.Stop.mis_id == mis.id) \
+                    .filter(
+                    ST_DWithin(
+                        metabase.Stop.geog,
+                        StGeogFromText('POINT(%s %s)' % (position.Longitude, position.Latitude)),
+                        self.SURROUNDING_MISES_MAX_DISTANCE)
+                    ).count() > 0 \
+                    and (mis.start_date <= date <= mis.end_date):
 
                 shape = MisApi(self._db_session, mis.id).get_shape()
                 if shape:
                     intersect = self._db_session.query(ST_Intersects(
-                                                ST_GeogFromText('POINT(%s %s)' \
-                                                    % (position.Longitude, position.Latitude)),
-                                                ST_GeogFromText(shape))).one()[0]
+                        StGeogFromText('POINT(%s %s)' % (position.Longitude, position.Latitude)),
+                        StGeogFromText(shape))).one()[0]
                     logging.debug("INTERSECTS <%s>: %s", mis.name, intersect)
                     if intersect:
                         ret.add(mis.id)
@@ -117,31 +115,28 @@ class PlanTripCalculator(object):
                       position.Longitude, position.Latitude, ret)
         return ret
 
-
     def _get_mis_modes(self, mis_id):
-        return set([x[0] for x in \
-                    self._db_session.query(metabase.Mode.code) \
-                                    .filter(metabase.MisMode.mis_id == mis_id) \
-                                    .filter(metabase.Mode.id == metabase.MisMode.mode_id) \
-                                    .all()])
-
+        return set([x[0] for x in
+                    self._db_session.query(metabase.Mode.code)
+                        .filter(metabase.MisMode.mis_id == mis_id)
+                        .filter(metabase.Mode.id == metabase.MisMode.mode_id)
+                        .all()])
 
     @benchmark
     def _get_connected_mises(self, mis_id):
-        s1 = set([x[0] for x in \
-                  self._db_session.query(metabase.MisConnection.mis1_id) \
-                                  .filter(metabase.MisConnection.mis2_id == mis_id) \
-                                  .all()])
-        s2 = set([x[0] for x in \
-                  self._db_session.query(metabase.MisConnection.mis2_id) \
-                                  .filter(metabase.MisConnection.mis1_id == mis_id) \
-                                  .all()])
+        s1 = set([x[0] for x in
+                  self._db_session.query(metabase.MisConnection.mis1_id)
+                      .filter(metabase.MisConnection.mis2_id == mis_id)
+                      .all()])
+        s2 = set([x[0] for x in
+                  self._db_session.query(metabase.MisConnection.mis2_id)
+                      .filter(metabase.MisConnection.mis1_id == mis_id)
+                      .all()])
         return s1 | s2
-
 
     @benchmark
     def _get_mis_traces(self, departure_mises, arrival_mises, max_trace_length):
-        ret = [] # [[mis_id]] each mis_id list is a trace
+        ret = []  # [[mis_id]] each mis_id list is a trace
         if max_trace_length < 1:
             logging.warning("Requesting Mis traces with max_trace_length < 1")
             return ret
@@ -155,7 +150,7 @@ class PlanTripCalculator(object):
         for mis_id in departure_mises:
             connected_mises = self._get_connected_mises(mis_id)
             for subtrace in self._get_mis_traces(connected_mises,
-                                        arrival_mises, max_trace_length - 1):
+                                                 arrival_mises, max_trace_length - 1):
                 if not mis_id in subtrace:
                     subtrace.insert(0, mis_id)
                     ret.append(subtrace)
@@ -164,11 +159,11 @@ class PlanTripCalculator(object):
 
     def _get_trace_transfers(self, mis_trace):
         # {mis1_id : {mis2_id : transfers},
-        #  mis2_id : {mis3_id : transfers, ...}
+        # mis2_id : {mis3_id : transfers, ...}
         ret = {}
         for i in range(0, len(mis_trace) - 1):
             mis1_id = mis_trace[i]
-            mis2_id = mis_trace[i+1]
+            mis2_id = mis_trace[i + 1]
             t = self._get_transfers(mis1_id, mis2_id)
             if mis1_id not in ret:
                 ret[mis1_id] = {}
@@ -177,12 +172,12 @@ class PlanTripCalculator(object):
         return ret
 
     def _get_providers(self, mis_trace):
-        ret = [] # [ProviderType]
+        ret = []  # [ProviderType]
         for mis_id in mis_trace:
             mis_api = MisApi(self._db_session, mis_id)
             ret.append(ProviderType(
-                            Name=mis_api.get_name(),
-                            Url=mis_api.get_api_url()))
+                Name=mis_api.get_name(),
+                Url=mis_api.get_api_url()))
         return ret
 
     def _filter_traces(self, traces):
@@ -216,17 +211,16 @@ class PlanTripCalculator(object):
         logging.debug("arrival_mises %s", arrival_mises)
 
         return self._filter_traces(
-                        self._get_mis_traces(departure_mises, arrival_mises, self.MAX_TRACE_LENGTH))
-
+            self._get_mis_traces(departure_mises, arrival_mises, self.MAX_TRACE_LENGTH))
 
     @benchmark
     def _departure_at_detailed_trace(self, mis_trace):
         i = 0
         ret = []
         # [
-        #   (
-        #     MisApi,
-        #     [TraceStop], # departures
+        # (
+        # MisApi,
+        # [TraceStop], # departures
         #     [TraceStop], # arrivals
         #     [TraceStop], # linked_stops (stops linked to arrivals via a transfer)
         #     [timedelta]  # transfer_durations
@@ -239,7 +233,7 @@ class PlanTripCalculator(object):
         transfers = self._get_trace_transfers(mis_trace)
         while True:
             # Divide trace in chunks of 3 MIS
-            chunk = mis_trace[i:i+3]
+            chunk = mis_trace[i:i + 3]
             if not chunk:
                 break
             logging.debug("CHUNK: %s", chunk)
@@ -289,15 +283,14 @@ class PlanTripCalculator(object):
 
         return ret
 
-
     @benchmark
     def _arrival_at_detailed_trace(self, mis_trace):
         i = 0
         ret = []
         # [
-        #   (
-        #     MisApi,
-        #     [TraceStop], # departures
+        # (
+        # MisApi,
+        # [TraceStop], # departures
         #     [TraceStop], # arrivals
         #     [TraceStop], # linked_stops (stops linked to departures via a transfer)
         #     [timedelta]  # transfer_durations
@@ -315,7 +308,7 @@ class PlanTripCalculator(object):
         transfers = self._get_trace_transfers(mis_trace)
         while True:
             # Divide trace in chunks of 3 MIS
-            chunk = mis_trace[i:i+3]
+            chunk = mis_trace[i:i + 3]
             if not chunk:
                 break
             logging.debug("CHUNK: %s", chunk)
@@ -367,10 +360,9 @@ class PlanTripCalculator(object):
 
         return ret
 
-
     def _single_mis_trip(self, mis_id, trace_id, providers):
         # Return best "meta-trip", which is a list of detailed trips.
-        ret = [] #  [(mis_api, DetailedTrip)]
+        ret = []  # [(mis_api, DetailedTrip)]
 
         detailed_request = ItineraryRequestType()
         self._init_request(detailed_request)
@@ -386,17 +378,16 @@ class PlanTripCalculator(object):
         ret.append((mis_api, resp.DetailedTrip))
 
         notif = PlanTripExistenceNotificationResponseType(
-                    RequestId=self._params.clientRequestId,
-                    ComposedTripId=trace_id,
-                    DepartureTime=resp.DetailedTrip.Departure.DateTime,
-                    ArrivalTime=resp.DetailedTrip.Arrival.DateTime,
-                    Duration=resp.DetailedTrip.Duration,
-                    providers=providers,
-                    Departure=self._params.Departure, Arrival=self._params.Arrival)
+            RequestId=self._params.clientRequestId,
+            ComposedTripId=trace_id,
+            DepartureTime=resp.DetailedTrip.Departure.DateTime,
+            ArrivalTime=resp.DetailedTrip.Arrival.DateTime,
+            Duration=resp.DetailedTrip.Duration,
+            providers=providers,
+            Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
 
         return ret
-
 
     def _generate_trace_id(self, mis_trace):
         return "_".join(map(str, mis_trace))
@@ -407,6 +398,7 @@ class PlanTripCalculator(object):
             - If no itinerary is found from/to a given departure/arrival stop, this stop (and
               its linked stops) are removed from the whole "meta-trip".
     """
+
     def _update_transtion_stops(self, transition_stops, linked_stops, stop_field, trips, trip_field):
         logging.debug("Updating transition stops...")
         logging.debug("Requested: %d %s", len(transition_stops), trip_field)
@@ -446,6 +438,7 @@ class PlanTripCalculator(object):
             - If no itinerary is found to a given arrival stop, this stop (and
               its linked stops) are removed from the whole "meta-trip".
     """
+
     def _update_arrivals(self, arrivals, linked_stops, trips):
         self._update_transtion_stops(arrivals, linked_stops, "arrival_time", trips, "Arrival")
 
@@ -455,12 +448,14 @@ class PlanTripCalculator(object):
             - If no itinerary is found from a given departure stop, this stop
               (and its linked stops) are removed from the whole "meta-trip".
     """
+
     def _update_departures(self, departures, linked_stops, trips):
         self._update_transtion_stops(departures, linked_stops, "departure_time", trips, "Departure")
 
     """
         Keep the best trip from SIM response
     """
+
     def _filter_best_trip_response(self, resp, clockwise):
         if len(resp.summedUpTrips) == 0:
             return
@@ -474,19 +469,17 @@ class PlanTripCalculator(object):
         to_del = set(to_del)
         for i in sorted(to_del, reverse=True):
             trip = resp.summedUpTrips[i]
-            logging.debug("Remove bad trip from MIS response %s (%s) -> %s (%s)", trip.Departure.TripStopPlace.id, \
+            logging.debug("Remove bad trip from MIS response %s (%s) -> %s (%s)", trip.Departure.TripStopPlace.id,
                           trip.Departure.DateTime, trip.Arrival.TripStopPlace.id, trip.Arrival.DateTime)
             dummy = resp.summedUpTrips.pop(i)
 
     """
         Compute a trip according to the detailed_trace provided
     """
-    def _departure_at_trip(self, detailed_trace, trace_id, providers):
-        # Minimum arrival_time to arrival
-        best_arrival_time = None
 
+    def _departure_at_trip(self, detailed_trace, trace_id, providers):
         # Return best "meta-trip", which is a list of detailed trips.
-        ret = [] #  [(mis_api, DetailedTrip)]
+        ret = []  # [(mis_api, DetailedTrip)]
 
         summed_up_request = SummedUpItinerariesRequestType()
         self._init_request(summed_up_request)
@@ -518,7 +511,8 @@ class PlanTripCalculator(object):
             for a, l, t in zip(arrivals, linked_stops, transfer_durations):
                 l.arrival_time = a.arrival_time + t
 
-            logging.debug("summary for step 1 at %s : departure %s arrival %s", mis_api, summed_up_request.DepartureTime, min([x.arrival_time for x in arrivals]))
+            logging.debug("summary for step 1 at %s : departure %s arrival %s", mis_api,
+                          summed_up_request.DepartureTime, min([x.arrival_time for x in arrivals]))
 
         logging.debug("Step 2: first pass (left->right), optimize departure and arrival time on the last MIS")
 
@@ -548,16 +542,17 @@ class PlanTripCalculator(object):
 
         # tell the client that we have found the best arrival time
         notif = PlanTripExistenceNotificationResponseType(
-                    RequestId=self._params.clientRequestId,
-                    ComposedTripId=trace_id,
-                    DepartureTime=self._params.DepartureTime,
-                    ArrivalTime=best_arrival_time,
-                    Duration=best_arrival_time - self._params.DepartureTime,
-                    providers=providers,
-                    Departure=self._params.Departure, Arrival=self._params.Arrival)
+            RequestId=self._params.clientRequestId,
+            ComposedTripId=trace_id,
+            DepartureTime=self._params.DepartureTime,
+            ArrivalTime=best_arrival_time,
+            Duration=best_arrival_time - self._params.DepartureTime,
+            providers=providers,
+            Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
 
-        logging.debug("summary for step 2 at %s : departure %s arrival %s", mis_api, summed_up_request.DepartureTime, best_arrival_time)
+        logging.debug("summary for step 2 at %s : departure %s arrival %s", mis_api, summed_up_request.DepartureTime,
+                      best_arrival_time)
 
         logging.debug("Step 3: second pass (right->left), optimize departure time on the MIS of the middle")
 
@@ -575,14 +570,15 @@ class PlanTripCalculator(object):
                 if self._cancelled:
                     raise CancelledRequestException()
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
-                self._update_departures(departures, detailed_trace[i-1][2], resp.summedUpTrips)
+                self._update_departures(departures, detailed_trace[i - 1][2], resp.summedUpTrips)
 
                 # Substract transfer time from previous request results
-                _, _, arrivals, linked_stops, transfer_durations = detailed_trace[i-1]
+                _, _, arrivals, linked_stops, transfer_durations = detailed_trace[i - 1]
                 for a, l, t in zip(arrivals, linked_stops, transfer_durations):
                     a.departure_time = l.departure_time - t
 
-                logging.debug("summary for step 3 at %s : departure %s arrival %s", mis_api, min([x.departure_time for x in departures]), summed_up_request.ArrivalTime)
+                logging.debug("summary for step 3 at %s : departure %s arrival %s", mis_api,
+                              min([x.departure_time for x in departures]), summed_up_request.ArrivalTime)
 
         logging.debug("Step 4: third pass (left->right), details the optimal trip")
 
@@ -631,19 +627,20 @@ class PlanTripCalculator(object):
             prev_stop = best_stops[0]
 
             if detailed_request.DepartureTime:
-                logging.debug("summary for step 4 at %s : departure %s arrival %s", mis_api, detailed_request.DepartureTime, min([x.arrival_time for x in arrivals]))
+                logging.debug("summary for step 4 at %s : departure %s arrival %s", mis_api,
+                              detailed_request.DepartureTime, min([x.arrival_time for x in arrivals]))
             else:
-                logging.debug("summary for step 4 at %s : departure None arrival %s", mis_api, min([x.arrival_time for x in arrivals]))
+                logging.debug("summary for step 4 at %s : departure None arrival %s", mis_api,
+                              min([x.arrival_time for x in arrivals]))
 
         return ret
-
 
     def _arrival_at_trip(self, detailed_trace, trace_id, providers):
         # Maximum departure_time drom departure
         best_departure_time = None
 
         # Return best "meta-trip", which is a list of detailed trips.
-        ret = [] #  [(mis_api, DetailedTrip)]
+        ret = []  # [(mis_api, DetailedTrip)]
 
         summed_up_request = SummedUpItinerariesRequestType()
         self._init_request(summed_up_request)
@@ -692,13 +689,13 @@ class PlanTripCalculator(object):
         for d, l, t in zip(departures, linked_stops, transfer_durations):
             d.arrival_time = l.arrival_time + t
         notif = PlanTripExistenceNotificationResponseType(
-                    RequestId=self._params.clientRequestId,
-                    ComposedTripId=trace_id,
-                    DepartureTime=best_departure_time,
-                    ArrivalTime=self._params.ArrivalTime,
-                    Duration=self._params.ArrivalTime - best_departure_time,
-                    providers=providers,
-                    Departure=self._params.Departure, Arrival=self._params.Arrival)
+            RequestId=self._params.clientRequestId,
+            ComposedTripId=trace_id,
+            DepartureTime=best_departure_time,
+            ArrivalTime=self._params.ArrivalTime,
+            Duration=self._params.ArrivalTime - best_departure_time,
+            providers=providers,
+            Departure=self._params.Departure, Arrival=self._params.Arrival)
         self._notif_queue.put(notif)
 
         # Do departure_at non-detailed requests
@@ -715,10 +712,10 @@ class PlanTripCalculator(object):
                 if self._cancelled:
                     raise CancelledRequestException()
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
-                self._update_arrivals(arrivals, detailed_trace[i-1][1], resp.summedUpTrips)
+                self._update_arrivals(arrivals, detailed_trace[i - 1][1], resp.summedUpTrips)
 
                 # Add transfer time from previous request results
-                _, departures, _, linked_stops, transfer_durations = detailed_trace[i-1]
+                _, departures, _, linked_stops, transfer_durations = detailed_trace[i - 1]
                 for d, l, t in zip(departures, linked_stops, transfer_durations):
                     d.arrival_time = l.arrival_time + t
 
@@ -734,7 +731,7 @@ class PlanTripCalculator(object):
                 detailed_request.ArrivalTime = None
                 detailed_request.DepartureTime = min([x.arrival_time for x in departures])
                 for d in departures:
-                   d.AccessTime = d.arrival_time - detailed_request.DepartureTime
+                    d.AccessTime = d.arrival_time - detailed_request.DepartureTime
             else:
                 # All other requests are arrival_at requests.
                 detailed_request.ArrivalTime = prev_stop.arrival_time
@@ -769,7 +766,6 @@ class PlanTripCalculator(object):
         ret.reverse()
         return ret
 
-
     def _init_request(self, request):
         request.id = self._params.clientRequestId
         request.Algorithm = self._params.Algorithm
@@ -777,7 +773,6 @@ class PlanTripCalculator(object):
         request.selfDriveConditions = self._params.selfDriveConditions
         request.AccessibilityConstraint = self._params.AccessibilityConstraint
         request.Language = self._params.Language
-
 
     @benchmark
     def compute_trip(self, mis_trace):
@@ -789,8 +784,8 @@ class PlanTripCalculator(object):
         # geographic coordinates.
         for mis_id in [mis_trace[0], mis_trace[-1]]:
             if not self._db_session.query(metabase.Mis.geographic_position_compliant) \
-                                   .filter_by(id=mis_id) \
-                                   .one()[0]:
+                    .filter_by(id=mis_id) \
+                    .one()[0]:
                 raise Exception("First or last Mis is not geographic_position_compliant")
 
         trace_id = self._generate_trace_id(mis_trace)
@@ -812,10 +807,8 @@ class PlanTripCalculator(object):
 
         return ret
 
-
     def stop(self):
         self._cancelled = True
-
 
     def __del__(self):
         logging.debug("Deleting PlanTripCalculator instance")

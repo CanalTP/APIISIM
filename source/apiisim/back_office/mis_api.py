@@ -9,11 +9,11 @@ HTTP_OK = 200
 
 
 class Stop(object):
-    def __init__(self, code, name, lat, lng):
+    def __init__(self, code, name, lat, long):
         self.code = code
         self.name = name
         self.lat = lat
-        self.long = lng
+        self.long = long
 
     def __repr__(self):
         return ("<Stop: code=%s, name=%s, lat=%s, long=%s>" %
@@ -62,7 +62,7 @@ class MisApi(object):
                     Stop(code=quay["PrivateCode"],
                          name=quay["Name"],
                          lat=float(quay["Centroid"]["Location"]["Latitude"]),
-                         lng=float(quay["Centroid"]["Location"]["Longitude"])))
+                         long=float(quay["Centroid"]["Location"]["Longitude"])))
 
         return stops
 
