@@ -14,6 +14,8 @@ from apiisim.common.marshalling import DATE_FORMAT, marshal, itinerary_response_
     summed_up_itineraries_response_type, \
     stops_response_type, capabilities_response_type
 from apiisim.common.mis_capabilities import CapabilitiesResponseType
+from apiisim.common.mis_collect_stops import StopsResponseType, \
+    PublicationDeliveryType, dataObjectsType, CompositeFrameType, framesType, SiteFrameType, stopPlacesType
 from mis_api.base import MisApiException
 
 

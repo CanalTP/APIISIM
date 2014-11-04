@@ -84,11 +84,11 @@ def parse_request(request):
     if ('Departure' not in request) or ('Arrival' not in request):
         raise BadRequestException("Missing departure or arrival")
     try:
-        ret.Departure = parse_location_context(request["Departure"], has_AccessTime=False)
+        ret.Departure = parse_location_context(request["Departure"], has_access_time=False)
     except Exception as exc:
         raise BadRequestException("Could not parse Departure: %s" % exc, "Departure")
     try:
-        ret.Arrival = parse_location_context(request["Arrival"], has_AccessTime=False)
+        ret.Arrival = parse_location_context(request["Arrival"], has_access_time=False)
     except Exception as exc:
         raise BadRequestException("Could not parse Arrival: %s" % exc, "Arrival")
 
