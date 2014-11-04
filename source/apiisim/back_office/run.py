@@ -1,14 +1,20 @@
-from mis_api import MisApi
 from math import sqrt
-from apiisim import metabase
+import logging
+import sys
+import argparse
+import ConfigParser
+import datetime
+import os
+from copy import copy
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-import logging, sys, argparse, ConfigParser, datetime
 from geoalchemy2.functions import ST_Distance, ST_DWithin
 from geoalchemy2.functions import ST_Intersects, GenericFunction
 from geoalchemy2 import Geography
-import os
-from copy import copy
+
+from mis_api import MisApi
+from apiisim import metabase
 
 
 def init_logging():
@@ -30,12 +36,15 @@ def db_transaction(func):
             db_session.rollback()
             logging.debug("ROLLBACK")
             raise
+
     return decorator
 
 
 """
 Add given Stop object returned by a MisApi to database.
 """
+
+
 def add_stop(db_session, mis_id, stop):
     new_stop = metabase.Stop()
     new_stop.mis_id = mis_id
@@ -52,9 +61,11 @@ Update stop in database with data contained in given Stop object.
 Return True if stop in database has been modified (i.e. given Stop object
 was different than stop in database), False otherwise.
 """
+
+
 def update_stop(db_session, mis_id, stop):
     db_stop = db_session.query(metabase.Stop) \
-              .filter_by(mis_id=mis_id, code=stop.code).one()
+        .filter_by(mis_id=mis_id, code=stop.code).one()
 
     modified = False
     if db_stop.name != stop.name:
@@ -75,6 +86,8 @@ def update_stop(db_session, mis_id, stop):
 """
 Return True if mis1 and mis2 validity periods overlap, False otherwise.
 """
+
+
 def mis_dates_overlap(db_session, mis1_id, mis2_id):
     mis1 = db_session.query(metabase.Mis).get(mis1_id)
     mis2 = db_session.query(metabase.Mis).get(mis2_id)
@@ -91,6 +104,8 @@ def mis_dates_overlap(db_session, mis1_id, mis2_id):
 """
 Retrieve MIS capabilities and update database accordingly.
 """
+
+
 @db_transaction
 def retrieve_mis_capabilities(db_session):
     logging.info("Retrieving MIS capabilities...")
@@ -104,19 +119,23 @@ def retrieve_mis_capabilities(db_session):
         except Exception as e:
             logging.error("get_capabilities request to <%s> failed: %s", mis.api_url, e)
 
-class ST_GeogFromText(GenericFunction):
+
+class StGeogFromText(GenericFunction):
     name = 'ST_GeogFromText'
     type = Geography
+
 
 """
 Retrieve all stops from Mis APIs and update database accordingly (add new stops
 and remove obsolete ones).
 """
+
+
 @db_transaction
 def retrieve_all_stops(db_session, stats):
     # First, retrieve stops for all Mis existing in the DB
     logging.info("Retrieving stops...")
-    all_stops = {} # {mis_id : [list of stops]}
+    all_stops = {}  # {mis_id : [list of stops]}
     for mis in db_session.query(metabase.Mis).all():
         try:
             logging.info("From <%s>...", mis.name)
@@ -129,9 +148,8 @@ def retrieve_all_stops(db_session, stats):
                 nb_ignored = 0
                 for s in stops:
                     intersect = db_session.query(ST_Intersects(
-                                        ST_GeogFromText('POINT(%s %s)' \
-                                            % (s.long, s.lat)),
-                                        ST_GeogFromText(shape))).one()[0]
+                        StGeogFromText('POINT(%s %s)' % (s.long, s.lat)),
+                        StGeogFromText(shape))).one()[0]
                     if not intersect:
                         nb_ignored += 1
                         all_stops[mis.id].remove(s)
@@ -204,10 +222,12 @@ def retrieve_all_stops(db_session, stats):
 Calculate all transfers by parsing all stops and add them to the database.
 Also remove obsolete transfers.
 """
+
+
 @db_transaction
 def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers, stats):
     all_stops = db_session.query(metabase.Stop).all()
-    transfers = [] # List of frozensets: [(stop1_id, stop2_id)]
+    transfers = []  # List of frozensets: [(stop1_id, stop2_id)]
 
     # For each stop, look for all stops that are within a specified distance
     # (and that are not in the same MIS).
@@ -220,20 +240,20 @@ def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers, stat
         # First subquery: select current stop "geog" attribute. We'll be looking
         # at all stops that are within a specified from this position.
         subq = db_session.query(metabase.Stop.geog) \
-                         .filter(metabase.Stop.id == stop.id) \
-                         .subquery()
+            .filter(metabase.Stop.id == stop.id) \
+            .subquery()
 
         # Second subquery: select "geog" attribute from all stops that are not in
         # the same MIS as the current stop.
         subq2 = db_session.query(metabase.Stop.id, metabase.Stop.geog) \
-                          .filter(metabase.Stop.mis_id != stop.mis_id) \
-                          .subquery()
+            .filter(metabase.Stop.mis_id != stop.mis_id) \
+            .subquery()
 
         # Final query: For each stop not in current stop MIS, get its "id"
         # if it is within a specified distance from the current stop.
         q = db_session.query(subq2.c.id) \
-                      .filter(ST_DWithin(subq2.c.geog,subq.c.geog, transfer_max_distance)) \
-                      .all()
+            .filter(ST_DWithin(subq2.c.geog, subq.c.geog, transfer_max_distance)) \
+            .all()
 
         for s in q:
             transfers.append(frozenset([stop.id, s[0]]))
@@ -254,8 +274,8 @@ def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers, stat
 
         _new_transfer = False
         transfer = db_session.query(metabase.Transfer) \
-                             .filter_by(stop1_id=stop1_id, stop2_id=stop2_id) \
-                             .first()
+            .filter_by(stop1_id=stop1_id, stop2_id=stop2_id) \
+            .first()
         if transfer is None:
             _new_transfer = True
             transfer = metabase.Transfer()
@@ -269,17 +289,17 @@ def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers, stat
             continue
 
         subq = db_session.query(metabase.Stop.geog) \
-                         .filter(metabase.Stop.id == stop1_id) \
-                         .subquery()
+            .filter(metabase.Stop.id == stop1_id) \
+            .subquery()
         subq2 = db_session.query(metabase.Stop.geog) \
-                         .filter(metabase.Stop.id == stop2_id) \
-                         .subquery()
-        d = db_session.query(ST_Distance(subq2.c.geog,subq.c.geog)).first()[0]
+            .filter(metabase.Stop.id == stop2_id) \
+            .subquery()
+        d = db_session.query(ST_Distance(subq2.c.geog, subq.c.geog)).first()[0]
 
         transfer.distance = int(d)
         # We assume that we walk at 4 Km/h (~1m/s), also multiply by sqrt(2)
         # as path is never straight from point to point.
-        transfer.duration = int((d/60) * sqrt(2))
+        transfer.duration = int((d / 60) * sqrt(2))
         transfer.prm_duration = transfer.duration * 2
         transfer.modification_state = "auto"
         transfer.active = True
@@ -297,9 +317,9 @@ def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers, stat
     db_transfers = db_session.query(metabase.Transfer.id,
                                     metabase.Transfer.stop1_id,
                                     metabase.Transfer.stop2_id) \
-                             .all()
+        .all()
     for t in db_transfers:
-        if set([t[1], t[2]]) not in transfers:
+        if {t[1], t[2]} not in transfers:  # {t[1], t[2]} is a set
             db_session.query(metabase.Transfer).filter_by(id=t[0]).delete()
 
     nb_transfers = len(transfers)
@@ -323,6 +343,8 @@ database (if they don't already exist).
 Also remove obsolete mis_connections (i.e. mis_connections where the 2 MIS
 don't have any transfer between them).
 """
+
+
 @db_transaction
 def compute_mis_connections(db_session, stats):
     mis_connections = []
@@ -345,8 +367,8 @@ def compute_mis_connections(db_session, stats):
 
         mis_connections.append(frozenset([mis1_id, mis2_id]))
         if db_session.query(metabase.MisConnection) \
-                     .filter_by(mis1_id=mis1_id, mis2_id=mis2_id) \
-                     .first() is not None:
+                .filter_by(mis1_id=mis1_id, mis2_id=mis2_id) \
+                .first() is not None:
             continue
 
         nb_new += 1
@@ -363,11 +385,11 @@ def compute_mis_connections(db_session, stats):
     db_mis_connections = db_session.query(metabase.MisConnection.id,
                                           metabase.MisConnection.mis1_id,
                                           metabase.MisConnection.mis2_id) \
-                                   .all()
-    mis_connections = set(mis_connections) # Remove duplicates
+        .all()
+    mis_connections = set(mis_connections)  # Remove duplicates
     nb_deleted = 0
     for m in db_mis_connections:
-        if set([m[1], m[2]]) not in mis_connections:
+        if {m[1], m[2]} not in mis_connections:  # {m[1], m[2]} is a set
             db_session.query(metabase.MisConnection).filter_by(id=m[0]).delete()
             nb_deleted += 1
 
@@ -385,10 +407,10 @@ def get_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", help="Configuration file")
     args = parser.parse_args()
-    if args.config:
-        config_file = args.config
-    else:
+    if not args.config:
         parser.error("No configuration file given")
+        exit(2)
+    config_file = args.config
     if not os.path.isabs(config_file):
         config_file = os.getcwd() + "/" + config_file
     if not os.path.isfile(config_file):
@@ -400,6 +422,7 @@ def get_config():
     config.read(config_file)
 
     return config
+
 
 @db_transaction
 def add_import_stats(db_session, stats):

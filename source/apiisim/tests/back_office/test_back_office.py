@@ -1,41 +1,51 @@
 #!/usr/bin/python
 # -*- encoding: utf8 -*-
-import os, sys
-import unittest, logging, datetime
+import os
+import unittest
+import logging
+import datetime
 from random import randint
+from datetime import timedelta, date as date_type
+
 from geoalchemy2.functions import ST_AsText
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
-from datetime import timedelta, date as date_type
+
 from apiisim import tests
 from apiisim import metabase
 from apiisim.back_office.run import compute_transfers, compute_mis_connections, \
-                                    mis_dates_overlap
+    mis_dates_overlap
+
 
 TEST_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "")
 
-def new_stop(code ="stop_code", name="stop_name", mis_id=1):
+
+def new_stop(code="stop_code", name="stop_name", mis_id=1):
     stop = metabase.Stop()
-    stop.code   = code
+    stop.code = code
     stop.mis_id = mis_id
-    stop.name   = name
-    stop.long   = 142.396624
-    stop.lat    = 66.361493
+    stop.name = name
+    stop.long = 142.396624
+    stop.lat = 66.361493
     return stop
+
 
 def _compute_transfers(db_session, transfer_max_distance):
     return compute_transfers(db_session, transfer_max_distance,
                              db_session.query(metabase.Transfer).count(),
                              metabase.BackOfficeImport())
 
+
 def _compute_mis_connections(db_session):
     return compute_mis_connections(db_session, metabase.BackOfficeImport())
+
 
 """
 Test suite for metabase and back_office components
 """
-class TestBackOffice(unittest.TestCase):
 
+
+class TestBackOffice(unittest.TestCase):
     def setUp(self):
         try:
             tests.drop_db()
@@ -56,7 +66,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.flush()
         return mis.id
 
-    def add_stop(self, code ="stop_code", name="stop_name", mis_id=1):
+    def add_stop(self, code="stop_code", name="stop_name", mis_id=1):
         stop = new_stop(code, name, mis_id)
         self.db_session.add(stop)
         self.db_session.flush()
@@ -86,6 +96,7 @@ class TestBackOffice(unittest.TestCase):
     Check that geog attribute is correctly set when a stop is inserted and
     when long/lat attributes are modified.
     """
+
     def test_geography_trigger(self):
         mis_id = self.add_mis()
 
@@ -117,6 +128,7 @@ class TestBackOffice(unittest.TestCase):
     """
     Check that we cannot create a Stop with no associated MIS.
     """
+
     def test_stop_with_no_mis(self):
         stop = new_stop()
         stop.mis_id = 37
@@ -126,6 +138,7 @@ class TestBackOffice(unittest.TestCase):
     """
     Check that we cannot have 2 stops with the same code and the same MIS.
     """
+
     def test_duplicate_stop_code(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
@@ -144,6 +157,7 @@ class TestBackOffice(unittest.TestCase):
     """
     Check that transfer state is updated accordingly when one of its stop is moved.
     """
+
     def test_moved_stop(self):
         mis_id = self.add_mis("mis1")
 
@@ -156,7 +170,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.flush()
         transfer_id = self.add_transfer(stop1.id, stop2.id)
 
-        stop1.lat = stop1.lat - 3
+        stop1.lat -= 3
         self.db_session.commit()
         self.db_session.expire_all()
         transfer = self.db_session.query(metabase.Transfer).filter_by(id=transfer_id).one()
@@ -175,7 +189,7 @@ class TestBackOffice(unittest.TestCase):
         self.assertEqual(transfer.active,
                          True, "Transfer should be active")
 
-        stop2.long = stop2.long + 11.23344
+        stop2.long += 11.23344
         self.db_session.commit()
         self.db_session.expire_all()
         self.assertEqual(transfer.modification_state,
@@ -204,6 +218,7 @@ class TestBackOffice(unittest.TestCase):
     Check that mis_connection dates are valid when inserting a new mis_connection
     and check that its dates are updated when dates of one its MIS are modified.
     """
+
     def test_mis_connection_dates(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
@@ -217,23 +232,23 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.flush()
 
         mis_connection_id = self.add_mis_connection(mis1_id, mis2_id)
-        self.assertEqual(self.db_session.query(metabase.MisConnection.start_date) \
-                                        .filter_by(id=mis_connection_id).one()[0],
-                        mis1.start_date, "mis_connection start_date not OK")
-        self.assertEqual(self.db_session.query(metabase.MisConnection.end_date) \
-                                        .filter_by(id=mis_connection_id).one()[0],
-                        mis2.end_date, "mis_connection end_date not OK")
+        self.assertEqual(self.db_session.query(metabase.MisConnection.start_date)
+                         .filter_by(id=mis_connection_id).one()[0],
+                         mis1.start_date, "mis_connection start_date not OK")
+        self.assertEqual(self.db_session.query(metabase.MisConnection.end_date)
+                         .filter_by(id=mis_connection_id).one()[0],
+                         mis2.end_date, "mis_connection end_date not OK")
 
         mis1.end_date = mis1.start_date + datetime.timedelta(days=400)
         self.db_session.flush()
-        self.assertEqual(self.db_session.query(metabase.MisConnection.end_date) \
-                                        .filter_by(id=mis_connection_id).one()[0],
+        self.assertEqual(self.db_session.query(metabase.MisConnection.end_date)
+                         .filter_by(id=mis_connection_id).one()[0],
                          mis1.end_date, "mis_connection end_date not OK")
 
         mis2.start_date = mis2.start_date + datetime.timedelta(days=400)
         self.db_session.flush()
-        self.assertEqual(self.db_session.query(metabase.MisConnection.start_date) \
-                                        .filter_by(id=mis_connection_id).one()[0],
+        self.assertEqual(self.db_session.query(metabase.MisConnection.start_date)
+                         .filter_by(id=mis_connection_id).one()[0],
                          mis2.start_date, "mis_connection start_date not OK")
 
     """
@@ -241,6 +256,7 @@ class TestBackOffice(unittest.TestCase):
     maximum transfer distance. Each time we make a change, we launch a transfer
     calculation and check that results are as expected.
     """
+
     def test_compute_transfers(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
@@ -256,8 +272,8 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.flush()
 
         _compute_transfers(self.db_session, 1000)
-        self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
-                                        .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
+        self.assertEqual(self.db_session.query(metabase.Transfer.distance)
+                         .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
                          720, "Transfer distance different than expected")
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          1, "Found more transfers than expected")
@@ -273,30 +289,30 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.flush()
 
         _compute_transfers(self.db_session, 90000)
-        self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
-                                        .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
+        self.assertEqual(self.db_session.query(metabase.Transfer.distance)
+                         .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
                          720, "Transfer distance different than expected")
-        self.assertEqual(self.db_session.query(metabase.Transfer) \
-                                        .filter(or_(metabase.Transfer.stop1_id == stop3.id,
-                                                    metabase.Transfer.stop2_id == stop3.id)) \
-                                        .count(),
-                                        0, "This transfer should not exist")
+        self.assertEqual(self.db_session.query(metabase.Transfer)
+                         .filter(or_(metabase.Transfer.stop1_id == stop3.id,
+                                     metabase.Transfer.stop2_id == stop3.id))
+                         .count(),
+                         0, "This transfer should not exist")
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          1, "Found more transfers than expected")
 
         _compute_transfers(self.db_session, 900000000)
-        self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
-                                .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
+        self.assertEqual(self.db_session.query(metabase.Transfer.distance)
+                         .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
                          720, "Transfer distance different than expected")
-        self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
-                                .filter_by(stop1_id=stop1.id, stop2_id=stop3.id).one()[0],
+        self.assertEqual(self.db_session.query(metabase.Transfer.distance)
+                         .filter_by(stop1_id=stop1.id, stop2_id=stop3.id).one()[0],
                          9127641, "Transfer distance different than expected")
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          2, "Found more transfers than expected")
 
         _compute_transfers(self.db_session, 1000)
-        self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
-                                        .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
+        self.assertEqual(self.db_session.query(metabase.Transfer.distance)
+                         .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()[0],
                          720, "Transfer distance different than expected")
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          1, "Found more transfers than expected")
@@ -312,9 +328,9 @@ class TestBackOffice(unittest.TestCase):
         for stop1_id, stop2_id, distance in [(stop1.id, stop2.id, 720),
                                              (stop1.id, stop4.id, 0),
                                              (stop2.id, stop4.id, 720)]:
-            self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
-                                            .filter_by(stop1_id=stop1_id, stop2_id=stop2_id) \
-                                            .one()[0],
+            self.assertEqual(self.db_session.query(metabase.Transfer.distance)
+                             .filter_by(stop1_id=stop1_id, stop2_id=stop2_id)
+                             .one()[0],
                              distance, "Transfer distance different than expected")
             self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                              3, "Found more transfers than expected")
@@ -330,8 +346,8 @@ class TestBackOffice(unittest.TestCase):
                          0, "Found transfer where there should not be any")
 
         _compute_transfers(self.db_session, 900000000)
-        self.assertEqual(self.db_session.query(metabase.Transfer.distance) \
-                                .filter_by(stop1_id=stop1.id, stop2_id=stop3.id).one()[0],
+        self.assertEqual(self.db_session.query(metabase.Transfer.distance)
+                         .filter_by(stop1_id=stop1.id, stop2_id=stop3.id).one()[0],
                          9127641, "Transfer distance different than expected")
         self.assertEqual(self.db_session.query(metabase.Transfer).count(),
                          1, "Found more transfers than expected")
@@ -340,6 +356,7 @@ class TestBackOffice(unittest.TestCase):
     Test mis_connection calculation by creating/removing transfers and checking
     that we get expected mis_connections.
     """
+
     def test_compute_mis_connection(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
@@ -363,7 +380,7 @@ class TestBackOffice(unittest.TestCase):
         for t in transfers:
             mis_connections.append(tuple([self.db_session.query(metabase.Stop.mis_id).filter_by(id=t[0]).one()[0],
                                           self.db_session.query(metabase.Stop.mis_id).filter_by(id=t[1]).one()[0]]))
-        mis_connections = set(mis_connections) # Remove duplicates
+        mis_connections = set(mis_connections)  # Remove duplicates
 
         for s1, s2 in transfers:
             self.add_transfer(s1, s2)
@@ -371,7 +388,7 @@ class TestBackOffice(unittest.TestCase):
         _compute_mis_connections(self.db_session)
         db_mis_connections = self.db_session.query(metabase.MisConnection.mis1_id,
                                                    metabase.MisConnection.mis2_id) \
-                                            .all()
+            .all()
 
         # Check that there are no duplicates in the mis_connection table.
         self.assertEqual(len(db_mis_connections), len(set(db_mis_connections)),
@@ -384,24 +401,24 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.flush()
         _compute_mis_connections(self.db_session)
         # mis_connection should still be here
-        self.assertEqual(self.db_session.query(metabase.MisConnection) \
-                                        .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
+        self.assertEqual(self.db_session.query(metabase.MisConnection)
+                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
                          1, "MisConnection not found")
 
         self.db_session.query(metabase.Transfer).filter_by(stop1_id=stop1_id, stop2_id=stop5_id).delete()
         self.db_session.flush()
         _compute_mis_connections(self.db_session)
         # mis_connection should not exist as all transfers between mis1 and mis4 have been deleted
-        self.assertEqual(self.db_session.query(metabase.MisConnection) \
-                                        .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
+        self.assertEqual(self.db_session.query(metabase.MisConnection)
+                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
                          0, "MisConnection should have been deleted")
 
         self.add_transfer(stop1_id, stop6_id)
         self.db_session.flush()
         _compute_mis_connections(self.db_session)
         # mis_connection should come back now that a transfer has been added
-        self.assertEqual(self.db_session.query(metabase.MisConnection) \
-                                        .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
+        self.assertEqual(self.db_session.query(metabase.MisConnection)
+                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
                          1, "MisConnection not found")
 
         mis1 = self.db_session.query(metabase.Mis).get(mis1_id)
@@ -413,22 +430,23 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.commit()
         _compute_mis_connections(self.db_session)
         # Validity periods don't overlap, so mis_connection should not have been created.
-        self.assertEqual(self.db_session.query(metabase.MisConnection) \
-                                        .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
+        self.assertEqual(self.db_session.query(metabase.MisConnection)
+                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
                          0, "MisConnection should have been deleted")
 
         mis4.start_date = date_type(year=2011, month=7, day=1)
         self.db_session.commit()
         _compute_mis_connections(self.db_session)
         # Validity periods now overlap, so mis_connection should exist.
-        self.assertEqual(self.db_session.query(metabase.MisConnection) \
-                                        .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
+        self.assertEqual(self.db_session.query(metabase.MisConnection)
+                         .filter_by(mis1_id=mis1_id, mis2_id=mis4_id).count(),
                          1, "MisConnection not found")
 
     """
     Check that if a transfer modification_state is 'recalculate', the back_office 
     effectively recalculate distance and durations for this transfer.
     """
+
     def test_recalculate_state(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
@@ -445,7 +463,7 @@ class TestBackOffice(unittest.TestCase):
         _compute_transfers(self.db_session, 900)
 
         transfer = self.db_session.query(metabase.Transfer) \
-                       .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
+            .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
         original_values = [transfer.distance, transfer.duration, transfer.prm_duration]
         transfer.distance = randint(10, 10000)
         transfer.duration = randint(10, 10000)
@@ -456,7 +474,7 @@ class TestBackOffice(unittest.TestCase):
         _compute_transfers(self.db_session, 900)
 
         transfer = self.db_session.query(metabase.Transfer) \
-                       .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
+            .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
         self.assertEqual(transfer.modification_state, 'auto', "Transfer modification_state should be 'auto'")
         self.assertEqual(transfer.active, True, "Transfer should be active")
         self.assertEqual(original_values,
@@ -466,6 +484,7 @@ class TestBackOffice(unittest.TestCase):
     """
         Check that trigger on transfer 'active' column works accordingly.
     """
+
     def test_transfer_active_trigger(self):
         mis_id = self.add_mis("mis1")
 
@@ -478,7 +497,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.flush()
         transfer_id = self.add_transfer(stop1.id, stop2.id)
         t = self.db_session.query(metabase.Transfer) \
-                                        .filter_by(id=transfer_id).one()
+            .filter_by(id=transfer_id).one()
         self.assertEqual(t.active, True)
 
         # When modification_state is 'validation_needed', active is automatically
@@ -534,6 +553,7 @@ class TestBackOffice(unittest.TestCase):
     Check that back_office doesn't modify transfer when its status is
     'auto', 'validation_needed' or 'manual'.
     """
+
     def test_transfer_state_unchanged(self):
         mis1_id = self.add_mis("mis1")
         mis2_id = self.add_mis("mis2")
@@ -549,7 +569,7 @@ class TestBackOffice(unittest.TestCase):
         _compute_transfers(self.db_session, 900)
 
         transfer = self.db_session.query(metabase.Transfer) \
-                       .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
+            .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
         transfer.distance = randint(10, 10000)
         transfer.duration = randint(10, 10000)
         transfer.prm_duration = randint(10, 10000)
@@ -560,7 +580,7 @@ class TestBackOffice(unittest.TestCase):
             self.db_session.flush()
             _compute_transfers(self.db_session, 900)
             transfer = self.db_session.query(metabase.Transfer) \
-                           .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
+                .filter_by(stop1_id=stop1.id, stop2_id=stop2.id).one()
             self.assertEqual(transfer.modification_state, state, "Transfer status should be '%s'" % state)
             self.assertEqual(manual_values,
                              [transfer.distance, transfer.duration, transfer.prm_duration],
@@ -569,6 +589,7 @@ class TestBackOffice(unittest.TestCase):
     """
         Check that dates are correctly set when a row is created/updated.
     """
+
     def test_creation_update_dates_trigger(self):
         approx_creation_date = datetime.datetime.now()
         mis1_id = self.add_mis("mis1")
@@ -683,8 +704,9 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.commit()
         self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
 
-    # todo
-    # #def test change on max distanance to calculate transfers
+        #  todo
+        # #def test change on max distanance to calculate transfers
+
 
 if __name__ == '__main__':
     unittest.main()

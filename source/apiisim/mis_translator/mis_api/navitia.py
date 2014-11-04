@@ -1,22 +1,20 @@
 # -*- coding: utf8 -*-
 
 from base import MisApiBase, MisApiException, \
-                 MisApiDateOutOfScopeException, MisApiBadRequestException, \
-                 MisApiInternalErrorException, MisApiUnauthorizedException, \
-                 MisCapabilities, MisApiUnknownObjectException
+    MisApiDateOutOfScopeException, MisApiBadRequestException, \
+    MisApiInternalErrorException, MisApiUnauthorizedException, \
+    MisCapabilities, MisApiUnknownObjectException
 import json, httplib2, logging, urllib
-from urllib import urlencode
 from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
-                                         EndPointType, StepEndPointType, StepType, \
-                                         QuayType, CentroidType, TripType, \
-                                         SectionType, PTRideType, LegType, \
-                                         LineType, PTNetworkType
+    EndPointType, StepEndPointType, StepType, \
+    QuayType, CentroidType, TripType, \
+    SectionType, PTRideType, LegType, \
+    LineType, PTNetworkType
 from apiisim.common.mis_collect_stops import StopPlaceType, quaysType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
-                   TransportModeEnum, PublicTransportModeEnum, PlanSearchOptions
+    TransportModeEnum, PublicTransportModeEnum, PlanSearchOptions
 from datetime import datetime, timedelta
-from random import randint
 from operator import itemgetter
 from copy import deepcopy
 import threading
@@ -49,7 +47,6 @@ class JourneyTypeEnum:
     CAR = "car"
     LESS_FALLBACK_WALK = "less_fallback_walk"
     LESS_FALLBACK_BIKE = "less_fallback_bike"
-    LESS_FALLBACK_BIKE = "less_fallback_bike"
     FASTEST = "fastest"
     NON_PT_WALK = "non_pt_walk"
     NON_PT_BIKE = "non_pt_bike"
@@ -59,70 +56,68 @@ class JourneyTypeEnum:
 
 TYPE_OF_PLACE_MAPPING = {
     # Navitia 'embedded_type' : TypeOfPlaceEnum
-    'stop_point' : TypeOfPlaceEnum.STOP_PLACE,
-    'stop_area' : TypeOfPlaceEnum.STOP_PLACE,
-    'address' :    TypeOfPlaceEnum.ADDRESS,
-    'poi' :    TypeOfPlaceEnum.POI,
-    'adminstrative_region' : TypeOfPlaceEnum.LOCATION
+    'stop_point': TypeOfPlaceEnum.STOP_PLACE,
+    'stop_area': TypeOfPlaceEnum.STOP_PLACE,
+    'address': TypeOfPlaceEnum.ADDRESS,
+    'poi': TypeOfPlaceEnum.POI,
+    'adminstrative_region': TypeOfPlaceEnum.LOCATION
 }
 
 
 # TODO Maybe add some commercial_modes too
 PUBLIC_TRANSPORT_MODE_MAPPING = {
     # Navitia physical_mode id : PublicTransportModeEnum
-    "physical_mode:Coach" : PublicTransportModeEnum.COACH,
-    "physical_mode:Taxi" : PublicTransportModeEnum.TAXI,
-    "physical_mode:default_physical_mode" : PublicTransportModeEnum.UNKNOWN,
-    "physical_mode:Bus" : PublicTransportModeEnum.BUS,
-    "physical_mode:Tramway" : PublicTransportModeEnum.TRAM,
-    "physical_mode:Ferry" : PublicTransportModeEnum.WATER,
-    "physical_mode:RapidTransit" : PublicTransportModeEnum.URBANRAIL,
-    "physical_mode:LocalTrain" : PublicTransportModeEnum.RAIL,
-    "physical_mode:LongDistanceTrain" : PublicTransportModeEnum.INTERCITYRAIL,
-    "physical_mode:Train" : PublicTransportModeEnum.RAIL,
-    "physical_mode:Metro" : PublicTransportModeEnum.METRO,
-    "physical_mode:Air" : PublicTransportModeEnum.AIR,
-    "physical_mode:CheckIn" : PublicTransportModeEnum.AIR,
-    "physical_mode:CheckOut" : PublicTransportModeEnum.AIR,
+    "physical_mode:Coach": PublicTransportModeEnum.COACH,
+    "physical_mode:Taxi": PublicTransportModeEnum.TAXI,
+    "physical_mode:default_physical_mode": PublicTransportModeEnum.UNKNOWN,
+    "physical_mode:Bus": PublicTransportModeEnum.BUS,
+    "physical_mode:Tramway": PublicTransportModeEnum.TRAM,
+    "physical_mode:Ferry": PublicTransportModeEnum.WATER,
+    "physical_mode:RapidTransit": PublicTransportModeEnum.URBANRAIL,
+    "physical_mode:LocalTrain": PublicTransportModeEnum.RAIL,
+    "physical_mode:LongDistanceTrain": PublicTransportModeEnum.INTERCITYRAIL,
+    "physical_mode:Train": PublicTransportModeEnum.RAIL,
+    "physical_mode:Metro": PublicTransportModeEnum.METRO,
+    "physical_mode:Air": PublicTransportModeEnum.AIR,
+    "physical_mode:CheckIn": PublicTransportModeEnum.AIR,
+    "physical_mode:CheckOut": PublicTransportModeEnum.AIR,
 }
-
 
 TRANSPORT_MODE_MAPPING = {
     # TransportModeEnum : [Navitia physical and/or commercial modes]}
-    TransportModeEnum.BUS : ["physical_mode:Bus",
-                             "commercial_mode:BHNS",
-                             "commercial_mode:busway"],
-    TransportModeEnum.TROLLEYBUS : ["commercial_mode:BHNS",
-                                    "commercial_mode:busway"],
-    TransportModeEnum.TRAM : ["physical_mode:Tramway"],
-    TransportModeEnum.COACH : ["physical_mode:Coach"],
-    TransportModeEnum.RAIL : ["physical_mode:Train",
-                              "physical_mode:LongDistanceTrain",
-                              "physical_mode:RapidTransit",
-                              "physical_mode:Metro",
-                              "physical_mode:Tramway",
-                              "physical_mode:LocalTrain"],
-    TransportModeEnum.INTERCITYRAIL : ["physical_mode:LongDistanceTrain"],
-    TransportModeEnum.URBANRAIL : ["physical_mode:RapidTransit",
-                                   "physical_mode:Metro",
-                                   "physical_mode:Tramway"],
-    TransportModeEnum.METRO : ["physical_mode:Metro"],
-    TransportModeEnum.AIR : ["physical_mode:Air"],
-    TransportModeEnum.WATER : ["physical_mode:Ferry",
-                               "commercial_mode:Bateau"],
+    TransportModeEnum.BUS: ["physical_mode:Bus",
+                            "commercial_mode:BHNS",
+                            "commercial_mode:busway"],
+    TransportModeEnum.TROLLEYBUS: ["commercial_mode:BHNS",
+                                   "commercial_mode:busway"],
+    TransportModeEnum.TRAM: ["physical_mode:Tramway"],
+    TransportModeEnum.COACH: ["physical_mode:Coach"],
+    TransportModeEnum.RAIL: ["physical_mode:Train",
+                             "physical_mode:LongDistanceTrain",
+                             "physical_mode:RapidTransit",
+                             "physical_mode:Metro",
+                             "physical_mode:Tramway",
+                             "physical_mode:LocalTrain"],
+    TransportModeEnum.INTERCITYRAIL: ["physical_mode:LongDistanceTrain"],
+    TransportModeEnum.URBANRAIL: ["physical_mode:RapidTransit",
+                                  "physical_mode:Metro",
+                                  "physical_mode:Tramway"],
+    TransportModeEnum.METRO: ["physical_mode:Metro"],
+    TransportModeEnum.AIR: ["physical_mode:Air"],
+    TransportModeEnum.WATER: ["physical_mode:Ferry",
+                              "commercial_mode:Bateau"],
     # TransportModeEnum.CABLE : "physical_mode:Tramway",
     # TransportModeEnum.FUNICULAR : "physical_mode:Tramway",
-    TransportModeEnum.TAXI : ["physical_mode:Taxi"],
-    TransportModeEnum.BIKE : ["commercial_mode:C72TAD"],
-    TransportModeEnum.CAR : ["commercial_mode:C72TAD"]
+    TransportModeEnum.TAXI: ["physical_mode:Taxi"],
+    TransportModeEnum.BIKE: ["commercial_mode:C72TAD"],
+    TransportModeEnum.CAR: ["commercial_mode:C72TAD"]
 }
-
 
 SELF_DRIVE_MODE_MAPPING = {
     # SelfDriveModeEnum : [Navitia modes]
-    SelfDriveModeEnum.FOOT : ["walking"],
-    SelfDriveModeEnum.CAR : ["car"],
-    SelfDriveModeEnum.BICYCLE : ["bike", "bss"],
+    SelfDriveModeEnum.FOOT: ["walking"],
+    SelfDriveModeEnum.CAR: ["car"],
+    SelfDriveModeEnum.BICYCLE: ["bike", "bss"],
 }
 
 
@@ -143,7 +138,7 @@ def parse_end_point(point):
 
     point_data = point[embedded_type]
     for r in point_data.get("administrative_regions", []):
-        if r["level"] == 8: # City level
+        if r["level"] == 8:  # City level
             place.CityCode = r["id"]
             place.CityName = r["name"]
     place.Position = LocationStructure(Latitude=point_data["coord"]["lat"],
@@ -168,7 +163,7 @@ def parse_stop_times(stop_times):
     steps = []
     for i in range(0, len(stop_times) - 1):
         s1 = stop_times[i]
-        s2 = stop_times[i+1]
+        s2 = stop_times[i + 1]
         step = StepType()
         step.id = "%s:%s" % (s1["stop_point"]["id"], s2["stop_point"]["id"])
         # TODO what if it is not a 'stop_point'
@@ -207,10 +202,17 @@ def journey_to_summed_up_trip(journey):
 
 
 def journey_to_str(journey):
-    return ("<Journey> Departure: %s | Arrival: %s | Duration: %s | "
-            "Nb_transfers: %s | Type: %s" % (journey["departure_date_time"],
-            journey["arrival_date_time"], journey["duration"],
-            journey["nb_transfers"], journey["type"]))
+    if journey["sections"]:
+        return ("From: %s | To: %s | Departure: %s | Arrival: %s | Duration: %s | "
+                "Nb_transfers: %s | Type: %s" % (
+                    journey["sections"][0]["from"]["id"], journey["sections"][-1]["to"]["id"],
+                    journey["departure_date_time"], journey["arrival_date_time"],
+                    journey["duration"], journey["nb_transfers"], journey["type"]))
+    else:
+        return ("(no section) | Departure: %s | Arrival: %s | Duration: %s | "
+                "Nb_transfers: %s | Type: %s" % (
+                    journey["departure_date_time"], journey["arrival_date_time"],
+                    journey["duration"], journey["nb_transfers"], journey["type"]))
 
 
 def journey_to_detailed_trip(journey):
@@ -248,8 +250,8 @@ def journey_to_detailed_trip(journey):
 
             physical_mode_id = next((x["id"] for x in s.get("links", []) if x["type"] == "physical_mode"), "")
             ptr.PublicTransportMode = PUBLIC_TRANSPORT_MODE_MAPPING.get(
-                                            physical_mode_id,
-                                            PublicTransportModeEnum.UNKNOWN)
+                physical_mode_id,
+                PublicTransportModeEnum.UNKNOWN)
             ptr.Departure = parse_end_point(s["from"])
             ptr.Arrival = parse_end_point(s["to"])
             ptr.Departure.DateTime = datetime.strptime(s["departure_date_time"], DATE_FORMAT)
@@ -260,7 +262,7 @@ def journey_to_detailed_trip(journey):
             ptr.StopHeadSign = s["display_informations"].get("headsign", None)
             ptr.steps = parse_stop_times(s.get("stop_date_times", None))
             section.PTRide = ptr
-        else: # Consider section as LegType
+        else:  # Consider section as LegType
             # TODO handle waiting status
             if s["type"] == SectionTypeEnum.WAITING:
                 continue
@@ -271,8 +273,8 @@ def journey_to_detailed_trip(journey):
             leg.Arrival.DateTime = datetime.strptime(s["arrival_date_time"], DATE_FORMAT)
             leg.Duration = timedelta(seconds=s["duration"])
             leg.SelfDriveMode = INVERSE_SELF_DRIVE_MODE_MAPPING.get(
-                                    s.get("transfer_type",""),
-                                    SelfDriveModeEnum.FOOT)
+                s.get("transfer_type", ""),
+                SelfDriveModeEnum.FOOT)
             section.Leg = leg
 
         trip.sections.append(section)
@@ -290,14 +292,14 @@ def journey_to_detailed_trip(journey):
 def algo_classic(journeys, departure_at=False, optimize_departure_and_arrival=False):
     if departure_at:
         # Get journey with minimum arrival time
-        l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT)) \
+        l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT))
                     for x in journeys],
-                    key=itemgetter(1))
+                   key=itemgetter(1))
     else:
         # Get journey with maximum departure time
-        l = sorted([(x, datetime.strptime(x["departure_date_time"], DATE_FORMAT)) \
+        l = sorted([(x, datetime.strptime(x["departure_date_time"], DATE_FORMAT))
                     for x in journeys],
-                    key=itemgetter(1), reverse=True)
+                   key=itemgetter(1), reverse=True)
 
     # Find all journeys that match given criteria. If there is only one, this is
     # the best journey, if there are multiple ones, we'll have to filter results a
@@ -320,6 +322,8 @@ def algo_classic(journeys, departure_at=False, optimize_departure_and_arrival=Fa
             # If there are multiple journeys of type "best", go to the next step but
             # only keep journeys of type "best".
             second_selection = l
+    else:
+        second_selection = first_selection
 
     # If we still haven't found a unique best journey (remember this is possible
     # as these journeys come from different Navitia requests, so we can have
@@ -327,13 +331,13 @@ def algo_classic(journeys, departure_at=False, optimize_departure_and_arrival=Fa
     # departure_time or with minimum arrival_time, depending on the departure_at
     # parameter.
     if departure_at:
-        l = sorted([(x, datetime.strptime(x["departure_date_time"], DATE_FORMAT)) \
+        l = sorted([(x, datetime.strptime(x["departure_date_time"], DATE_FORMAT))
                     for x in second_selection],
-                    key=itemgetter(1), reverse=True)
+                   key=itemgetter(1), reverse=True)
     else:
-        l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT)) \
+        l = sorted([(x, datetime.strptime(x["arrival_date_time"], DATE_FORMAT))
                     for x in second_selection],
-                    key=itemgetter(1))
+                   key=itemgetter(1))
 
     return l[0][0]
 
@@ -342,36 +346,37 @@ def algo_shortest(journeys, departure_at, optimize_departure_and_arrival=False):
     # Filter in journeys with minimum transfers count
     y = min([x["nb_transfers"] for x in journeys])
     j = [x for x in journeys if x["nb_transfers"] == y]
-    return algo_classic(j, departure_at)
+    return algo_classic(j, departure_at, optimize_departure_and_arrival)
 
 
 def algo_fastest(journeys, departure_at, optimize_departure_and_arrival=False):
     # Get journey with minimum duration
     y = min([x["duration"] for x in journeys])
     j = [x for x in journeys if x["duration"] == y]
-    return algo_classic(j, departure_at)
+    return algo_classic(j, departure_at, optimize_departure_and_arrival)
 
 
 def algo_minchanges(journeys, departure_at, optimize_departure_and_arrival=False):
     # Get journey with minimum transfer duration
 
-    transfer_durations = [] # [(journey, transfer_duration)]
+    transfer_durations = []  # [(journey, transfer_duration)]
     for journey in journeys:
-        transfer_durations.append( \
-                (journey, sum([s["duration"] for s in journey["sections"] \
-                         if s["type"] != SectionTypeEnum.PUBLIC_TRANSPORT])))
+        transfer_durations.append(
+            (journey, sum([s["duration"] for s in journey["sections"]
+                           if s["type"] != SectionTypeEnum.PUBLIC_TRANSPORT])))
     y = min([x[1] for x in transfer_durations])
     j = [x[0] for x in transfer_durations if x[1] == y]
-    return algo_classic(j, departure_at)
+    return algo_classic(j, departure_at, optimize_departure_and_arrival)
 
 
 def choose_best_journey(journeys, algo, departure_at=True, optimize_departure_and_arrival=False):
-    logging.debug("Algorithm: %s\n"
-                  "Number of journeys: %s\n"
-                  "Departure at: %s\n"
-                  "Optimize dep & arrival: %s", algo, len(journeys), departure_at, optimize_departure_and_arrival)
     if not journeys:
         return None
+
+    for j in journeys:
+        logging.debug("JOURNEY RECEIVED: %s", journey_to_str(j))
+    logging.debug("CHOOSE BEST (algorithm: %s - count: %s - clockwise: %s - optimize origin: %s)", algo, len(journeys),
+                  departure_at, optimize_departure_and_arrival)
 
     best = None
     if algo == AlgorithmEnum.CLASSIC:
@@ -383,8 +388,7 @@ def choose_best_journey(journeys, algo, departure_at=True, optimize_departure_an
     elif algo == AlgorithmEnum.MINCHANGES:
         best = algo_minchanges(journeys, departure_at, optimize_departure_and_arrival)
 
-    logging.debug("BEST: %s \nFROM %s", journey_to_str(best),
-                                        [journey_to_str(x) for x in journeys])
+    logging.debug("FOUND BEST: %s", journey_to_str(best))
 
     return best
 
@@ -416,11 +420,11 @@ def params_set_datetime(params, departure_time, arrival_time, departure, arrival
     if departure_time:
         params['datetime_represents'] = 'departure'
         params['datetime'] = \
-                (departure_time + departure.AccessTime).strftime(DATE_FORMAT)
+            (departure_time + departure.AccessTime).strftime(DATE_FORMAT)
     else:
         params['datetime_represents'] = 'arrival'
         params['datetime'] = \
-                (arrival_time + arrival.AccessTime).strftime(DATE_FORMAT)
+            (arrival_time + arrival.AccessTime).strftime(DATE_FORMAT)
 
 
 def params_set_modes(params, modes, self_drive_conditions):
@@ -440,14 +444,13 @@ def params_set_modes(params, modes, self_drive_conditions):
     for l in [params["last_section_mode[]"], params["first_section_mode[]"]]:
         if "bss" in l and "walking" in l:
             l.remove("walking")
-    # We ignore DEPARTURE_ARRIVAL_OPTIMIZED option as Navitia always does this
-    # optimization (it cannot be disabled).
+            # We ignore DEPARTURE_ARRIVAL_OPTIMIZED option as Navitia always does this
+            # optimization (it cannot be disabled).
 
 
 # location is a LocationContextType object
 def get_location_id(location):
-    return location.PlaceTypeId \
-        or "%s;%s" % (location.Position.Longitude, location.Position.Latitude)
+    return location.PlaceTypeId or "%s;%s" % (location.Position.Longitude, location.Position.Latitude)
 
 
 # We need that to be able to remove duplicated stops easily (in get_stops()).
@@ -460,12 +463,12 @@ class _StopPlaceType(StopPlaceType):
 
 
 class MisApi(MisApiBase):
-
     def __init__(self, config, api_key=""):
         self._api_url = "http://navitia2-ws.ctp.xxx.canaltp.fr//v1/coverage/yyy/"
         self._api_key = api_key
 
-    def _check_answer(self, resp, content, get_or_post_str, url):
+    @staticmethod
+    def _check_answer(resp, content, get_or_post_str, url):
         if resp.status == 200:
             return
 
@@ -492,13 +495,13 @@ class MisApi(MisApiBase):
             raise MisApiInternalErrorException(exc_msg)
         raise MisApiException(exc_msg)
 
-    def _send_request(self, url, json_data = None):
+    def _send_request(self, url, json_data=None):
         http = httplib2.Http()
 
-        #logging.debug("NAVITIA Authorization: %s", self._api_key)
+        # logging.debug("NAVITIA Authorization: %s", self._api_key)
         logging.debug("NAVITIA URL %s", url)
 
-        headers = {'Authorization' : self._api_key}
+        headers = {'Authorization': self._api_key}
         if json_data is not None:
             headers['Content-type'] = 'application/json'
 
@@ -506,10 +509,11 @@ class MisApi(MisApiBase):
             resp, content = http.request(url, "GET", headers=headers)
         else:
             logging.debug("NAVITIA JSON POST %s", json.dumps(json_data))
-            resp, content = http.request(url, "POST", body=json.dumps(json_data).encode("ASCII","replace"), headers=headers)
+            resp, content = http.request(url, "POST", body=json.dumps(json_data).encode("ASCII", "replace"),
+                                         headers=headers)
 
         logging.debug("NAVITIA RESP %s", content)
-        self._check_answer(resp, content, "GET" if (json_data is None) else "POST", url)
+        MisApi._check_answer(resp, content, "GET" if (json_data is None) else "POST", url)
         return resp, content
 
     def _journeys_request(self, params):
@@ -524,7 +528,7 @@ class MisApi(MisApiBase):
 
     def _nm_journeys_request(self, params):
         url = self._api_url + "/journeys"
-        resp, content = self._send_request(url, json_data = params)
+        resp, content = self._send_request(url, json_data=params)
 
         # Navitia may give us multiple journeys, we retrieve them all and then
         # choose the best according to request parameters.
@@ -538,7 +542,7 @@ class MisApi(MisApiBase):
     def _get_stops_by_mode(self, physical_mode):
         ret = []
         base_url = self._api_url + ("/physical_modes/%s/stop_areas" % physical_mode)
-        params = {"count" : ITEMS_PER_PAGE}
+        params = {"count": ITEMS_PER_PAGE}
         max_pages = 0
         pages_read = 0
         while True:
@@ -551,16 +555,16 @@ class MisApi(MisApiBase):
                     _StopPlaceType(
                         id=s["id"],
                         quays=[QuayType(
-                              id=s["id"],
-                              Name=s["name"],
-                              PrivateCode=s["id"],
-                              Centroid=CentroidType(
-                                  Location=LocationStructure(
-                                      Longitude=s["coord"]["lon"],
-                                      Latitude=s["coord"]["lat"])))]))
+                            id=s["id"],
+                            Name=s["name"],
+                            PrivateCode=s["id"],
+                            Centroid=CentroidType(
+                                Location=LocationStructure(
+                                    Longitude=s["coord"]["lon"],
+                                    Latitude=s["coord"]["lat"])))]))
 
             next_base_url = None
-            for s in  content["links"]:
+            for s in content["links"]:
                 if "type" in s and s['type'] == "next":
                     next_base_url = s["href"]
 
@@ -595,7 +599,8 @@ class MisApi(MisApiBase):
 
         return ret
 
-    def clean_up_trip_response(self, journeys, departures, arrivals, clockwise, algorithm, options):
+    @staticmethod
+    def _clean_up_trip_response(journeys, departures, arrivals, clockwise, algorithm, options):
         if not journeys:
             # No journey found, no need to go further, just return empty list.
             return []
@@ -609,8 +614,8 @@ class MisApi(MisApiBase):
                 if not journeys_to_arrival:
                     continue
                 best_journeys.append(
-                        choose_best_journey(journeys_to_arrival, algorithm,
-                                            optimize_departure_and_arrival=optimize)
+                    choose_best_journey(journeys_to_arrival, algorithm,
+                                        optimize_departure_and_arrival=optimize)
                 )
         else:
             for d in departures:
@@ -618,8 +623,8 @@ class MisApi(MisApiBase):
                 if not journeys_from_departure:
                     continue
                 best_journeys.append(
-                        choose_best_journey(journeys_from_departure, algorithm, departure_at=False,
-                                            optimize_departure_and_arrival=optimize)
+                    choose_best_journey(journeys_from_departure, algorithm, departure_at=False,
+                                        optimize_departure_and_arrival=optimize)
                 )
 
         ret = [journey_to_summed_up_trip(x) for x in best_journeys if x]
@@ -650,11 +655,10 @@ class MisApi(MisApiBase):
         # If no journey found, DetailedTrip is None
         return journey_to_detailed_trip(best_journey)
 
-
     class ThreadSummedUpItinerary(threading.Thread):
-        def __init__(self, threadID, caller, journeys, params, d, a, departure_time, arrival_time):
+        def __init__(self, thread_id, caller, journeys, params, d, a, departure_time, arrival_time):
             threading.Thread.__init__(self)
-            self.threadID = threadID
+            self.threadID = thread_id
             self.caller = caller
             self.journeys = journeys
             self.params = deepcopy(params)
@@ -662,6 +666,7 @@ class MisApi(MisApiBase):
             self.a = a
             self.departure_time = departure_time
             self.arrival_time = arrival_time
+
         def run(self):
             self.params['from'] = get_location_id(self.d)
             self.params['to'] = get_location_id(self.a)
@@ -684,7 +689,6 @@ class MisApi(MisApiBase):
 
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
-        ret = []
 
         # Request itinerary for every departure/arrival pair and then
         # choose best.
@@ -711,41 +715,38 @@ class MisApi(MisApiBase):
                     for j in self._journeys_request(params):
                         journeys.append((d, a, j))
 
-        trips = self.clean_up_trip_response(journeys, departures, arrivals, departure_time, algorithm, options)
-        logging.debug("Summed up trips (%s) : %s", len(trips), trips)
-
+        trips = MisApi._clean_up_trip_response(journeys, departures, arrivals, departure_time, algorithm, options)
         return trips
 
     def get_hardcoded_summed_up_itineraries(self, departures, arrivals, departure_time,
-                                           arrival_time, algorithm,
-                                           modes, self_drive_conditions,
-                                           accessibility_constraint,
-                                           language, options):
-        def locationContext2Str(self, location):
+                                            arrival_time, algorithm,
+                                            modes, self_drive_conditions,
+                                            accessibility_constraint,
+                                            language, options):
+        def locationcontext2str(location):
             if not location.PlaceTypeId:
-                return "%f;%f" % (location.Position.Longitude, location.Position.Latitude)
+                return "%s;%s" % (location.Position.Longitude, location.Position.Latitude)
             else:
                 return location.PlaceTypeId
 
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
 
-        # fix json format issues
+        #  fix json format issues
         params["forbidden_uris[]"] = list(params["forbidden_uris[]"])
         params["first_section_mode[]"] = "walking"
         params["last_section_mode[]"] = "walking"
-
-        ret = []
 
         # Request itinerary for every departure/arrival pair and then
         # choose best.
         params['from'] = []
         for d in departures:
-            params['from'].append({"uri" : get_location_id(d), "access_duration" : int(d.AccessTime.total_seconds() // 60)})
+            params['from'].append(
+                {"uri": get_location_id(d), "access_duration": int(d.AccessTime.total_seconds() // 60)})
 
-        params['to' ] = []
+        params['to'] = []
         for a in arrivals:
-            params['to'].append({"uri" : get_location_id(a), "access_duration" : int(a.AccessTime.total_seconds() // 60)})
+            params['to'].append({"uri": get_location_id(a), "access_duration": int(a.AccessTime.total_seconds() // 60)})
 
         if departure_time:
             params['datetime_represents'] = 'departure'
@@ -771,11 +772,9 @@ class MisApi(MisApiBase):
             if len(a) == 0:
                 continue
             journeys.append((d[0], a[0], j))
-            logging.debug("Found result for %s -> %s", locationContext2Str(d[0]), locationContext2Str(a[0]))
+            logging.debug("NxM RESULT FOR %s -> %s", locationcontext2str(d[0]), locationcontext2str(a[0]))
 
-        trips = self.clean_up_trip_response(journeys, departures, arrivals, departure_time, algorithm, options)
-        logging.debug("Summed up trips (%s) : %s", len(trips), trips)
-
+        trips = MisApi._clean_up_trip_response(journeys, departures, arrivals, departure_time, algorithm, options)
         return trips
 
     def get_summed_up_itineraries(self, departures, arrivals, departure_time,
@@ -784,7 +783,7 @@ class MisApi(MisApiBase):
                                   accessibility_constraint,
                                   language, options):
         return self.get_emulated_summed_up_itineraries(departures, arrivals, departure_time,
-                                                        arrival_time, algorithm,
-                                                        modes, self_drive_conditions,
-                                                        accessibility_constraint,
-                                                        language, options, multithreaded=True)
+                                                       arrival_time, algorithm,
+                                                       modes, self_drive_conditions,
+                                                       accessibility_constraint,
+                                                       language, options, multithreaded=True)

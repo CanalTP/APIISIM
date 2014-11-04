@@ -1,22 +1,20 @@
+import logging
+import datetime
+import json
+from traceback import format_exc
+
 from flask_restful import abort, Resource
-import logging, datetime, json
 from flask import request, Response
-from apiisim.common.mis_plan_trip import LocationContextType, LocationStructure, \
-                                  ItineraryResponseType, StatusType, \
-                                  SelfDriveConditionType
+from apiisim.common.mis_plan_trip import ItineraryResponseType, StatusType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType
 from apiisim.common import AlgorithmEnum, StatusCodeEnum, SelfDriveModeEnum, TripPartEnum, \
-                   TransportModeEnum, PlanSearchOptions, string_to_bool, \
-                   xsd_duration_to_timedelta, parse_location_context
+    TransportModeEnum, PlanSearchOptions, string_to_bool, \
+    parse_location_context
 from apiisim.common.marshalling import DATE_FORMAT, marshal, itinerary_response_type, \
-                                       summed_up_itineraries_response_type, \
-                                       stops_response_type, capabilities_response_type
-from apiisim.common.mis_collect_stops import StopsResponseType, \
-    PublicationDeliveryType, dataObjectsType, CompositeFrameType, framesType, SiteFrameType, stopPlacesType
+    summed_up_itineraries_response_type, \
+    stops_response_type, capabilities_response_type
 from apiisim.common.mis_capabilities import CapabilitiesResponseType
-from mis_api.base import MisApiException, MisApiDateOutOfScopeException, \
-                         MisApiBadRequestException, MisApiInternalErrorException
-from traceback import format_exc
+from mis_api.base import MisApiException
 
 
 # Lists of enabled Mis APIs modules
@@ -25,16 +23,18 @@ MIS_APIS_AVAILABLE = frozenset(["navitia", "pays_de_la_loire", "bretagne",
 
 STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien",
                                      "stub_pays_de_la_loire", "stub_bourgogne",
-                                     "stub_sncf_national","stub_transilien_light",
+                                     "stub_sncf_national", "stub_transilien_light",
                                      "stub_pays_de_la_loire_light", "stub_bourgogne_light",
                                      "stub_back_office_test1", "stub_back_office_test2"])
-mis_api_mapping = {} # Mis name : MisApi Class
+mis_api_mapping = {}  # Mis name : MisApi Class
 mis_api_config = None
 
 """
 Load all available Mis APIs modules and populate mis_api_mapping dict so that
 we can easily instanciate a MisApi object based on the Mis name.
 """
+
+
 def load_mis_apis(config):
     global mis_api_config
 
@@ -43,14 +43,14 @@ def load_mis_apis(config):
     if mis_api_config.getboolean("General", "enable_stub_mis_apis"):
         to_load.append(("mis_api.stub", STUB_MIS_APIS_AVAILABLE))
 
-    for package, mis_apis in to_load:
+    for package, mis_items in to_load:
         try:
-            exec ("import %s" % (package))
+            exec ("import %s" % package)
         except ImportError as e:
             logging.warning("Could not load MIS API package <%s>: %s", package, e)
             continue
 
-        for m in mis_apis:
+        for m in mis_items:
             mis_module = "%s_module" % m
             try:
                 exec ("from %s import %s as %s" % (package, m, mis_module))
@@ -61,14 +61,18 @@ def load_mis_apis(config):
             mis_api_mapping[mis_name] = eval("%s.MisApi" % mis_module)
             logging.info("Loaded Mis API <%s> ", mis_name)
 
+
 """
 Return new MisApi object based on given mis_name.
 """
+
+
 def get_mis_api(mis_name, api_key=""):
-    if mis_api_mapping.has_key(mis_name):
+    if mis_name in mis_api_mapping:
         return mis_api_mapping[mis_name](mis_api_config, api_key)
     else:
         return None
+
 
 def get_mis_or_abort(mis_name, api_key=""):
     mis = get_mis_api(mis_name, api_key)
@@ -76,6 +80,7 @@ def get_mis_or_abort(mis_name, api_key=""):
         abort(404, message="Mis <%s> not supported" % mis_name)
 
     return mis
+
 
 class _ItineraryRequestParams:
     def __init__(self):
@@ -90,12 +95,15 @@ class _ItineraryRequestParams:
         self.language = ""
         self.options = []
 
-""" 
+
+"""
 Parse given itinerary request.
 To parse a summed_up_itineraries request (i.e. non-detailed itineraries), 
 set summed_up_itineraries to True. To parse a "standard" itinerary request
 (i.e. more detailed itineraries), set summed_up_itineraries to False.
 """
+
+
 def parse_itinerary_request(request, summed_up_itineraries=False):
     # TODO do all validators
     params = _ItineraryRequestParams()
@@ -118,8 +126,8 @@ def parse_itinerary_request(request, summed_up_itineraries=False):
             abort(400)
         req = request.json["ItineraryRequest"]
         if ("DepartureTime" not in req and "ArrivalTime" not in req) \
-            or ("multiDepartures" not in req and "multiArrivals" not in req) \
-            or ("multiDepartures" in req and "multiArrivals" in req):
+                or ("multiDepartures" not in req and "multiArrivals" not in req) \
+                or ("multiDepartures" in req and "multiArrivals" in req):
             logging.error("Invalid itinerary request")
             abort(400)
 
@@ -173,18 +181,18 @@ def parse_itinerary_request(request, summed_up_itineraries=False):
     params.self_drive_conditions = []
     for c in req.get('selfDriveConditions', []):
         condition = SelfDriveConditionType(TripPart=c.get("TripPart", ""),
-                                SelfDriveMode=c.get("SelfDriveMode", ""))
+                                           SelfDriveMode=c.get("SelfDriveMode", ""))
         if not TripPartEnum.validate(condition.TripPart) or \
-           not SelfDriveModeEnum.validate(condition.SelfDriveMode):
-           logging.error("Invalid self drive condition")
-           abort(400)
+                not SelfDriveModeEnum.validate(condition.SelfDriveMode):
+            logging.error("Invalid self drive condition")
+            abort(400)
         params.self_drive_conditions.append(condition)
 
     params.accessibility_constraint = string_to_bool(req.get('AccessibilityConstraint', "False"))
     params.language = req.get('Language', "")
     params.options = req.get("options", [])
     if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in params.options \
-        and len(departures) > 1 and len(arrivals) > 1:
+            and len(departures) > 1 and len(arrivals) > 1:
         logging.error("DEPARTURE_ARRIVAL_OPTIMIZED option only available with 1-n itineraries")
         abort(400)
 
@@ -197,19 +205,21 @@ class RequestProcessor(object):
         self._request = request
         self._start_date = datetime.datetime.now()
         self._mis = get_mis_or_abort(mis_name, request.headers.get("Authorization", ""))
+        self._resp = self._new_response()
 
-        logging.debug("MIS NAME %s", mis_name)
-        logging.debug("URL: %s", request.url)
+        logging.info("MIS NAME %s", mis_name)
+        logging.info("REQUEST.URL: %s", request.url)
         if request.json:
-            logging.debug("REQUEST.JSON: \n%s", request.json)
+            logging.info("REQUEST.JSON: \n%s", request.json)
 
     def _parse_request(self):
         return None
 
+    def _new_response(self):
+        return None
+
     def process(self):
         params = self._parse_request()
-        self._resp = self._new_response()
-
         resp_code = 200
         try:
             self._mis_request(params)
@@ -227,8 +237,9 @@ class RequestProcessor(object):
         self._resp.Status.RuntimeDuration = datetime.datetime.now() - self._start_date
 
         # TODO handle all errors (TOO_MANY_END_POINT...)
-        return Response(json.dumps(self._marshal_response()),
-                        status=resp_code, mimetype='application/json')
+        answer_json = json.dumps(self._marshal_response())
+        logging.info("ANSWER.JSON: %s", answer_json)
+        return Response(answer_json, status=resp_code, mimetype='application/json')
 
 
 class ItineraryRequestProcessor(RequestProcessor):
@@ -240,20 +251,20 @@ class ItineraryRequestProcessor(RequestProcessor):
 
     def _mis_request(self, params):
         self._resp.DetailedTrip = \
-                self._mis.get_itinerary(
-                        params.departures, 
-                        params.arrivals, 
-                        params.departure_time,
-                        params.arrival_time, 
-                        algorithm=params.algorithm, 
-                        modes=params.modes, 
-                        self_drive_conditions=params.self_drive_conditions,
-                        accessibility_constraint=params.accessibility_constraint,
-                        language=params.language,
-                        options=params.options)
+            self._mis.get_itinerary(
+                params.departures,
+                params.arrivals,
+                params.departure_time,
+                params.arrival_time,
+                algorithm=params.algorithm,
+                modes=params.modes,
+                self_drive_conditions=params.self_drive_conditions,
+                accessibility_constraint=params.accessibility_constraint,
+                language=params.language,
+                options=params.options)
 
     def _marshal_response(self):
-        return {'ItineraryResponse' : marshal(self._resp, itinerary_response_type)}
+        return {'ItineraryResponse': marshal(self._resp, itinerary_response_type)}
 
 
 class SummedUpItinerariesRequestProcessor(RequestProcessor):
@@ -265,20 +276,20 @@ class SummedUpItinerariesRequestProcessor(RequestProcessor):
 
     def _mis_request(self, params):
         self._resp.summedUpTrips = \
-                self._mis.get_summed_up_itineraries(
-                        params.departures, 
-                        params.arrivals, 
-                        params.departure_time,
-                        params.arrival_time, 
-                        algorithm=params.algorithm, 
-                        modes=params.modes, 
-                        self_drive_conditions=params.self_drive_conditions,
-                        accessibility_constraint=params.accessibility_constraint,
-                        language=params.language,
-                        options=params.options)
+            self._mis.get_summed_up_itineraries(
+                params.departures,
+                params.arrivals,
+                params.departure_time,
+                params.arrival_time,
+                algorithm=params.algorithm,
+                modes=params.modes,
+                self_drive_conditions=params.self_drive_conditions,
+                accessibility_constraint=params.accessibility_constraint,
+                language=params.language,
+                options=params.options)
 
     def _marshal_response(self):
-        return {'SummedUpItinerariesResponse' : \
+        return {'SummedUpItinerariesResponse':
                 marshal(self._resp, summed_up_itineraries_response_type)}
 
 
@@ -295,7 +306,8 @@ class StopsRequestProcessor(RequestProcessor):
         return StopsResponseType()
 
     def _marshal_response(self):
-        return {'StopsResponse' : marshal(self._resp, stops_response_type)}
+        return {'StopsResponse': marshal(self._resp, stops_response_type)}
+
 
 class CapabilitiesRequestProcessor(RequestProcessor):
     def _mis_request(self, params):
@@ -307,20 +319,23 @@ class CapabilitiesRequestProcessor(RequestProcessor):
         return CapabilitiesResponseType()
 
     def _marshal_response(self):
-        return {'CapabilitiesResponse' : marshal(self._resp, capabilities_response_type)}
+        return {'CapabilitiesResponse': marshal(self._resp, capabilities_response_type)}
 
 
 class Stops(Resource):
     def get(self, mis_name=""):
         return StopsRequestProcessor(mis_name, request).process()
 
+
 class Capabilities(Resource):
     def get(self, mis_name=""):
         return CapabilitiesRequestProcessor(mis_name, request).process()
 
+
 class Itineraries(Resource):
     def post(self, mis_name=""):
         return ItineraryRequestProcessor(mis_name, request).process()
+
 
 class SummedUpItineraries(Resource):
     def post(self, mis_name=""):

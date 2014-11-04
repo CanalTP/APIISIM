@@ -1,0 +1,1161 @@
+{
+	"journeys": [{
+		"fare": {
+			"found": false,
+			"total": {
+				"currency": "",
+				"value": "0.0"
+			},
+			"links": []
+		},
+		"sections": [{
+			"links": [],
+			"departure_date_time": "20141113T161740",
+			"duration": 486,
+			"path": [{
+				"duration": 12,
+				"length": 13,
+				"direction": 0,
+				"name": ""
+			},
+			{
+				"duration": 13,
+				"length": 14,
+				"direction": -4,
+				"name": ""
+			},
+			{
+				"duration": 6,
+				"length": 6,
+				"direction": -51,
+				"name": "Rue de Rivoli"
+			},
+			{
+				"duration": 5,
+				"length": 5,
+				"direction": 84,
+				"name": "Boulevard de S\u00e9bastopol"
+			},
+			{
+				"duration": 45,
+				"length": 50,
+				"direction": -83,
+				"name": "Rue de Rivoli"
+			},
+			{
+				"duration": 211,
+				"length": 236,
+				"direction": 79,
+				"name": "Rue Saint-Denis"
+			},
+			{
+				"duration": 60,
+				"length": 67,
+				"direction": -90,
+				"name": "Rue Berger"
+			},
+			{
+				"duration": 63,
+				"length": 70,
+				"direction": 89,
+				"name": "Rue Pierre Lescot"
+			},
+			{
+				"duration": 30,
+				"length": 33,
+				"direction": -89,
+				"name": "Porte Lescot"
+			},
+			{
+				"duration": 35,
+				"length": 39,
+				"direction": -5,
+				"name": ""
+			},
+			{
+				"duration": 6,
+				"length": 6,
+				"direction": 0,
+				"name": "Place Basse"
+			}],
+			"id": "section_6_0",
+			"from": {
+				"embedded_type": "address",
+				"address": {
+					"id": "2.3483587230769243;48.85807101538462",
+					"house_number": 0,
+					"name": "",
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"coord": {
+						"lat": "48.85807101538462",
+						"lon": "2.3483587230769243"
+					}
+				},
+				"quality": 0,
+				"id": "2.3483587230769243;48.85807101538462",
+				"name": " (Paris)"
+			},
+			"arrival_date_time": "20141113T162546",
+			"additional_informations": ["regular"],
+			"geojson": {
+				"type": "LineString",
+				"properties": [{
+					"length": 544
+				}],
+				"coordinates": [[2.3483587230769243,
+				48.85807101538462],
+				[2.3483587230769243,
+				48.85807101538462],
+				[2.348437,
+				48.858208],
+				[2.348374,
+				48.858323],
+				[2.348312,
+				48.858415],
+				[2.348295,
+				48.858462],
+				[2.348204,
+				48.858491],
+				[2.34823,
+				48.858539],
+				[2.347605,
+				48.858748],
+				[2.347935,
+				48.859523],
+				[2.348068,
+				48.859722],
+				[2.348273,
+				48.860163],
+				[2.348283,
+				48.860183],
+				[2.348352,
+				48.860353],
+				[2.348599,
+				48.860782],
+				[2.347732,
+				48.860994],
+				[2.348054,
+				48.861597],
+				[2.347616,
+				48.861702],
+				[2.347103,
+				48.86179],
+				[2.3470103043784434,
+				48.86180847541598],
+				[2.347013,
+				48.861822]]
+			},
+			"to": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "CHATELET LES HALLES",
+					"coord": {
+						"lat": "48.861822",
+						"lon": "2.347013"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"address": {
+						"id": "2.347013;48.861822",
+						"house_number": 0,
+						"name": "Place Basse",
+						"administrative_regions": [{
+							"id": "admin:7444",
+							"level": 8,
+							"name": "Paris",
+							"coord": {
+								"lat": "48.856506",
+								"lon": "2.352133"
+							},
+							"zip_code": ""
+						}],
+						"coord": {
+							"lat": "48.861822",
+							"lon": "2.347013"
+						}
+					},
+					"id": "stop_point:DUA:SP:8775860",
+					"stop_area": {
+						"comment": "",
+						"name": "CHATELET LES HALLES",
+						"coord": {
+							"lat": "48.858319",
+							"lon": "2.348388"
+						},
+						"administrative_regions": [{
+							"coord": {
+								"lat": "48.856506",
+								"lon": "2.352133"
+							},
+							"zip_code": "",
+							"id": "admin:7444",
+							"name": "Paris",
+							"level": 8
+						}],
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8775860"
+					}
+				},
+				"address": {
+					"id": "2.347013;48.861822",
+					"house_number": 0,
+					"name": "Place Basse",
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"coord": {
+						"lat": "48.861822",
+						"lon": "2.347013"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8775860",
+				"name": "CHATELET LES HALLES"
+			},
+			"mode": "walking",
+			"type": "street_network"
+		},
+		{
+			"links": [{
+				"type": "vehicle_journey",
+				"id": "vehicle_journey:DUA:SN082128F01001383272_dst_2"
+			},
+			{
+				"type": "line",
+				"id": "line:DUA:810801400"
+			},
+			{
+				"type": "route",
+				"id": "route:DUA:8108014000002"
+			},
+			{
+				"type": "commercial_mode",
+				"id": "commercial_mode:RER"
+			},
+			{
+				"type": "physical_mode",
+				"id": "physical_mode:RapidTransit"
+			},
+			{
+				"type": "network",
+				"id": "network:DUA801"
+			}],
+			"departure_date_time": "20141113T162600",
+			"duration": 180,
+			"id": "section_7_0",
+			"from": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "CHATELET LES HALLES",
+					"coord": {
+						"lat": "48.861822",
+						"lon": "2.347013"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"address": {
+						"id": "2.347013;48.861822",
+						"house_number": 0,
+						"name": "Place Basse",
+						"coord": {
+							"lat": "48.861822",
+							"lon": "2.347013"
+						}
+					},
+					"id": "stop_point:DUA:SP:8775860",
+					"stop_area": {
+						"comment": "",
+						"name": "CHATELET LES HALLES",
+						"coord": {
+							"lat": "48.858319",
+							"lon": "2.348388"
+						},
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8775860"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8775860",
+				"name": "CHATELET LES HALLES"
+			},
+			"arrival_date_time": "20141113T162900",
+			"additional_informations": ["regular"],
+			"geojson": {
+				"type": "LineString",
+				"properties": [{
+					"length": 2749
+				}],
+				"coordinates": [[2.347013,
+				48.861822],
+				[2.37326,
+				48.844139]]
+			},
+			"display_informations": {
+				"direction": "MARNE LA VALLEE CHESSY (Chessy)",
+				"code": "A",
+				"description": "",
+				"color": "000000",
+				"physical_mode": "Train de banlieue / RER",
+				"headsign": "QJOL",
+				"commercial_mode": "RER",
+				"equipments": [],
+				"network": "RER A",
+				"label": "A"
+			},
+			"to": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "PARIS GARE DE LYON",
+					"coord": {
+						"lat": "48.844139",
+						"lon": "2.37326"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"address": {
+						"id": "2.37326;48.844139",
+						"house_number": 0,
+						"name": "",
+						"coord": {
+							"lat": "48.844139",
+							"lon": "2.37326"
+						}
+					},
+					"id": "stop_point:DUA:SP:8775858",
+					"stop_area": {
+						"comment": "",
+						"name": "PARIS GARE DE LYON",
+						"coord": {
+							"lat": "48.844574",
+							"lon": "2.373253"
+						},
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8768603"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8775858",
+				"name": "PARIS GARE DE LYON"
+			},
+			"type": "public_transport",
+			"stop_date_times": [{
+				"stop_point": {
+					"comment": "",
+					"name": "CHATELET LES HALLES",
+					"coord": {
+						"lat": "48.861822",
+						"lon": "2.347013"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8775860"
+				},
+				"arrival_date_time": "20141113T162500",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T162600"
+			},
+			{
+				"stop_point": {
+					"comment": "",
+					"name": "PARIS GARE DE LYON",
+					"coord": {
+						"lat": "48.844139",
+						"lon": "2.37326"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8775858"
+				},
+				"arrival_date_time": "20141113T162900",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T163000"
+			}]
+		},
+		{
+			"links": [],
+			"departure_date_time": "20141113T162900",
+			"duration": 120,
+			"id": "section_8_0",
+			"from": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "PARIS GARE DE LYON",
+					"coord": {
+						"lat": "48.844139",
+						"lon": "2.37326"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"address": {
+						"id": "2.37326;48.844139",
+						"house_number": 0,
+						"name": "",
+						"coord": {
+							"lat": "48.844139",
+							"lon": "2.37326"
+						}
+					},
+					"id": "stop_point:DUA:SP:8775858",
+					"stop_area": {
+						"comment": "",
+						"name": "PARIS GARE DE LYON",
+						"coord": {
+							"lat": "48.844574",
+							"lon": "2.373253"
+						},
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8768603"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8775858",
+				"name": "PARIS GARE DE LYON"
+			},
+			"arrival_date_time": "20141113T163100",
+			"additional_informations": ["regular"],
+			"geojson": {
+				"type": "LineString",
+				"properties": [{
+					"length": 38
+				}],
+				"coordinates": [[2.37326,
+				48.844139],
+				[2.373755,
+				48.844266]]
+			},
+			"to": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "PARIS GARE DE LYON",
+					"coord": {
+						"lat": "48.844266",
+						"lon": "2.373755"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"address": {
+						"id": "2.373755;48.844266",
+						"house_number": 0,
+						"name": "",
+						"coord": {
+							"lat": "48.844266",
+							"lon": "2.373755"
+						}
+					},
+					"id": "stop_point:DUA:SP:8768600",
+					"stop_area": {
+						"comment": "",
+						"name": "PARIS GARE DE LYON",
+						"coord": {
+							"lat": "48.844574",
+							"lon": "2.373253"
+						},
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8768603"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8768600",
+				"name": "PARIS GARE DE LYON"
+			},
+			"transfer_type": "walking",
+			"type": "transfer"
+		},
+		{
+			"links": [],
+			"departure_date_time": "20141113T163100",
+			"duration": 1740,
+			"id": "section_9_0",
+			"arrival_date_time": "20141113T170000",
+			"additional_informations": ["regular"],
+			"type": "waiting"
+		},
+		{
+			"links": [{
+				"type": "vehicle_journey",
+				"id": "vehicle_journey:DUA:SN891015F01005385443_dst_2"
+			},
+			{
+				"type": "line",
+				"id": "line:DUA:800851081"
+			},
+			{
+				"type": "route",
+				"id": "route:DUA:8008510820001"
+			},
+			{
+				"type": "commercial_mode",
+				"id": "commercial_mode:Train"
+			},
+			{
+				"type": "physical_mode",
+				"id": "physical_mode:RapidTransit"
+			},
+			{
+				"type": "network",
+				"id": "network:DUA851"
+			}],
+			"departure_date_time": "20141113T170000",
+			"duration": 4620,
+			"id": "section_10_0",
+			"from": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "PARIS GARE DE LYON",
+					"coord": {
+						"lat": "48.844266",
+						"lon": "2.373755"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"address": {
+						"id": "2.373755;48.844266",
+						"house_number": 0,
+						"name": "",
+						"coord": {
+							"lat": "48.844266",
+							"lon": "2.373755"
+						}
+					},
+					"id": "stop_point:DUA:SP:8768600",
+					"stop_area": {
+						"comment": "",
+						"name": "PARIS GARE DE LYON",
+						"coord": {
+							"lat": "48.844574",
+							"lon": "2.373253"
+						},
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8768603"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8768600",
+				"name": "PARIS GARE DE LYON"
+			},
+			"arrival_date_time": "20141113T181700",
+			"additional_informations": ["regular"],
+			"geojson": {
+				"type": "LineString",
+				"properties": [{
+					"length": 101723
+				}],
+				"coordinates": [[2.373755,
+				48.844266],
+				[2.799234,
+				48.406806],
+				[2.942523,
+				48.379526],
+				[3.069688,
+				48.343269],
+				[3.13114,
+				48.324052],
+				[3.201894,
+				48.286391],
+				[3.26732,
+				48.198417]]
+			},
+			"display_informations": {
+				"direction": "LAROCHE MIGENNES (Migennes)",
+				"code": "Gare de Ly",
+				"description": "",
+				"color": "000000",
+				"physical_mode": "Train de banlieue / RER",
+				"headsign": "91015",
+				"commercial_mode": "Train",
+				"equipments": [],
+				"network": "Paris Sud Est",
+				"label": "Gare de Ly"
+			},
+			"to": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "SENS",
+					"coord": {
+						"lat": "48.198417",
+						"lon": "3.26732"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:946433",
+						"level": 8,
+						"name": "Sens",
+						"coord": {
+							"lat": "48.197857",
+							"lon": "3.282605"
+						},
+						"zip_code": "89100"
+					}],
+					"address": {
+						"id": "0.0;0.0",
+						"house_number": 0,
+						"name": "",
+						"coord": {
+							"lat": "0.0",
+							"lon": "0.0"
+						}
+					},
+					"id": "stop_point:DUA:SP:8768300",
+					"stop_area": {
+						"comment": "",
+						"name": "SENS",
+						"coord": {
+							"lat": "48.198417",
+							"lon": "3.26732"
+						},
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8768300"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8768300",
+				"name": "SENS"
+			},
+			"type": "public_transport",
+			"stop_date_times": [{
+				"stop_point": {
+					"comment": "",
+					"name": "PARIS GARE DE LYON",
+					"coord": {
+						"lat": "48.844266",
+						"lon": "2.373755"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768600"
+				},
+				"arrival_date_time": "20141113T170000",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T170000"
+			},
+			{
+				"stop_point": {
+					"comment": "",
+					"name": "CHAMPAGNE SUR SEINE",
+					"coord": {
+						"lat": "48.406806",
+						"lon": "2.799234"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768245"
+				},
+				"arrival_date_time": "20141113T173700",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T173800"
+			},
+			{
+				"stop_point": {
+					"comment": "",
+					"name": "MONTEREAU",
+					"coord": {
+						"lat": "48.379526",
+						"lon": "2.942523"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768230"
+				},
+				"arrival_date_time": "20141113T174800",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T175000"
+			},
+			{
+				"stop_point": {
+					"comment": "",
+					"name": "VILLENEUVE LA GUYARD",
+					"coord": {
+						"lat": "48.343269",
+						"lon": "3.069688"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768310"
+				},
+				"arrival_date_time": "20141113T175700",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T175800"
+			},
+			{
+				"stop_point": {
+					"comment": "",
+					"name": "CHAMPIGNY SUR YONNE",
+					"coord": {
+						"lat": "48.324052",
+						"lon": "3.13114"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768312"
+				},
+				"arrival_date_time": "20141113T180200",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T180300"
+			},
+			{
+				"stop_point": {
+					"comment": "",
+					"name": "PONT SUR YONNE",
+					"coord": {
+						"lat": "48.286391",
+						"lon": "3.201894"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768313"
+				},
+				"arrival_date_time": "20141113T180900",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T181000"
+			},
+			{
+				"stop_point": {
+					"comment": "",
+					"name": "SENS",
+					"coord": {
+						"lat": "48.198417",
+						"lon": "3.26732"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768300"
+				},
+				"arrival_date_time": "20141113T181700",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T181900"
+			}]
+		},
+		{
+			"links": [],
+			"departure_date_time": "20141113T181700",
+			"duration": 600,
+			"id": "section_11_0",
+			"arrival_date_time": "20141113T182700",
+			"additional_informations": ["regular"],
+			"type": "waiting"
+		},
+		{
+			"links": [{
+				"type": "vehicle_journey",
+				"id": "vehicle_journey:DUA:SN891164F02006384555_dst_2"
+			},
+			{
+				"type": "line",
+				"id": "line:DUA:800851082"
+			},
+			{
+				"type": "route",
+				"id": "route:DUA:8008510851108"
+			},
+			{
+				"type": "commercial_mode",
+				"id": "commercial_mode:Train"
+			},
+			{
+				"type": "physical_mode",
+				"id": "physical_mode:RapidTransit"
+			},
+			{
+				"type": "network",
+				"id": "network:DUA851"
+			}],
+			"departure_date_time": "20141113T182700",
+			"duration": 3300,
+			"id": "section_12_0",
+			"from": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "SENS",
+					"coord": {
+						"lat": "48.198417",
+						"lon": "3.26732"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:946433",
+						"level": 8,
+						"name": "Sens",
+						"coord": {
+							"lat": "48.197857",
+							"lon": "3.282605"
+						},
+						"zip_code": "89100"
+					}],
+					"address": {
+						"id": "0.0;0.0",
+						"house_number": 0,
+						"name": "",
+						"coord": {
+							"lat": "0.0",
+							"lon": "0.0"
+						}
+					},
+					"id": "stop_point:DUA:SP:8768300",
+					"stop_area": {
+						"comment": "",
+						"name": "SENS",
+						"coord": {
+							"lat": "48.198417",
+							"lon": "3.26732"
+						},
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8768300"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8768300",
+				"name": "SENS"
+			},
+			"arrival_date_time": "20141113T192200",
+			"additional_informations": ["regular"],
+			"geojson": {
+				"type": "LineString",
+				"properties": [{
+					"length": 96550
+				}],
+				"coordinates": [[3.26732,
+				48.198417],
+				[2.383028,
+				48.839081]]
+			},
+			"display_informations": {
+				"direction": "GARE DE BERCY (Paris)",
+				"code": "R",
+				"description": "",
+				"color": "000000",
+				"physical_mode": "Train de banlieue / RER",
+				"headsign": "91164",
+				"commercial_mode": "Train",
+				"equipments": [],
+				"network": "Paris Sud Est",
+				"label": "R"
+			},
+			"to": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "GARE DE BERCY",
+					"coord": {
+						"lat": "48.839081",
+						"lon": "2.383028"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"address": {
+						"id": "2.383028;48.839081",
+						"house_number": 0,
+						"name": "",
+						"coord": {
+							"lat": "48.839081",
+							"lon": "2.383028"
+						}
+					},
+					"id": "stop_point:DUA:SP:8768666",
+					"stop_area": {
+						"comment": "",
+						"name": "PARIS BERCY",
+						"coord": {
+							"lat": "48.838388",
+							"lon": "2.38232"
+						},
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8768666"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8768666",
+				"name": "GARE DE BERCY"
+			},
+			"type": "public_transport",
+			"stop_date_times": [{
+				"stop_point": {
+					"comment": "",
+					"name": "SENS",
+					"coord": {
+						"lat": "48.198417",
+						"lon": "3.26732"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768300"
+				},
+				"arrival_date_time": "20141113T182500",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T182700"
+			},
+			{
+				"stop_point": {
+					"comment": "",
+					"name": "GARE DE BERCY",
+					"coord": {
+						"lat": "48.839081",
+						"lon": "2.383028"
+					},
+					"equipments": [],
+					"id": "stop_point:DUA:SP:8768666"
+				},
+				"arrival_date_time": "20141113T192200",
+				"additional_informations": [],
+				"links": [],
+				"departure_date_time": "20141113T192200"
+			}]
+		},
+		{
+			"links": [],
+			"departure_date_time": "20141113T192200",
+			"duration": 0,
+			"id": "section_13_0",
+			"from": {
+				"embedded_type": "stop_point",
+				"stop_point": {
+					"comment": "",
+					"name": "GARE DE BERCY",
+					"coord": {
+						"lat": "48.839081",
+						"lon": "2.383028"
+					},
+					"equipments": [],
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"address": {
+						"id": "2.383028;48.839081",
+						"house_number": 0,
+						"name": "",
+						"administrative_regions": [{
+							"id": "admin:7444",
+							"level": 8,
+							"name": "Paris",
+							"coord": {
+								"lat": "48.856506",
+								"lon": "2.352133"
+							},
+							"zip_code": ""
+						}],
+						"coord": {
+							"lat": "48.839081",
+							"lon": "2.383028"
+						}
+					},
+					"id": "stop_point:DUA:SP:8768666",
+					"stop_area": {
+						"comment": "",
+						"name": "PARIS BERCY",
+						"coord": {
+							"lat": "48.838388",
+							"lon": "2.38232"
+						},
+						"administrative_regions": [{
+							"coord": {
+								"lat": "48.856506",
+								"lon": "2.352133"
+							},
+							"zip_code": "",
+							"id": "admin:7444",
+							"name": "Paris",
+							"level": 8
+						}],
+						"timezone": "Europe/Paris",
+						"id": "stop_area:DUA:SA:8768666"
+					}
+				},
+				"quality": 0,
+				"id": "stop_point:DUA:SP:8768666",
+				"name": "GARE DE BERCY"
+			},
+			"arrival_date_time": "20141113T192200",
+			"additional_informations": ["regular"],
+			"to": {
+				"embedded_type": "stop_area",
+				"stop_area": {
+					"comment": "",
+					"name": "PARIS BERCY",
+					"coord": {
+						"lat": "48.838388",
+						"lon": "2.38232"
+					},
+					"administrative_regions": [{
+						"id": "admin:7444",
+						"level": 8,
+						"name": "Paris",
+						"coord": {
+							"lat": "48.856506",
+							"lon": "2.352133"
+						},
+						"zip_code": ""
+					}],
+					"timezone": "Europe/Paris",
+					"id": "stop_area:DUA:SA:8768666"
+				},
+				"quality": 0,
+				"id": "stop_area:DUA:SA:8768666",
+				"name": "PARIS BERCY (Paris)"
+			},
+			"mode": "walking",
+			"type": "crow_fly"
+		}],
+		"tags": ["standard"],
+		"departure_date_time": "20141113T161740",
+		"requested_date_time": "20141113T152235",
+		"duration": 11060,
+		"nb_transfers": 2,
+		"arrival_date_time": "20141113T192200",
+		"type": "best"
+	}],
+	"links": [{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/journeys?to=stop_area%3ADUA%3ASA%3A8768666&datetime_represents=arrival&first_section_mode%5B%5D=walking&last_section_mode%5B%5D=walking&from=2.348294;48.858108&datetime=20141113T192100",
+		"type": "prev",
+		"rel": "prev",
+		"templated": false
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/journeys?to=stop_area%3ADUA%3ASA%3A8768666&datetime_represents=departure&first_section_mode%5B%5D=walking&last_section_mode%5B%5D=walking&from=2.348294;48.858108&datetime=20141113T161840",
+		"type": "next",
+		"rel": "next",
+		"templated": false
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/journeys?to=stop_area%3ADUA%3ASA%3A8768666&datetime_represents=departure&first_section_mode%5B%5D=walking&last_section_mode%5B%5D=walking&from=2.348294;48.858108&datetime=20141113T000000",
+		"type": "first",
+		"rel": "first",
+		"templated": false
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/journeys?to=stop_area%3ADUA%3ASA%3A8768666&datetime_represents=arrival&first_section_mode%5B%5D=walking&last_section_mode%5B%5D=walking&from=2.348294;48.858108&datetime=20141113T235900",
+		"type": "last",
+		"rel": "last",
+		"templated": false
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/stop_points/{stop_point.id}?collection=stop_points",
+		"type": "stop_point",
+		"rel": "stop_points",
+		"templated": true
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/stop_areas/{stop_area.id}?collection=stop_areas",
+		"type": "stop_area",
+		"rel": "stop_areas",
+		"templated": true
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/addresses/{address.id}?collection=addresses",
+		"type": "address",
+		"rel": "addresses",
+		"templated": true
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/stop_points/{stop_point.id}?collection=stop_points",
+		"type": "stop_point",
+		"rel": "stop_points",
+		"templated": true
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/stop_areas/{stop_area.id}?collection=stop_areas",
+		"type": "stop_area",
+		"rel": "stop_areas",
+		"templated": true
+	},
+	{
+		"href": "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/transilien/addresses/{address.id}?collection=addresses",
+		"type": "address",
+		"rel": "addresses",
+		"templated": true
+	}],
+	"exceptions": [],
+	"notes": []
+}

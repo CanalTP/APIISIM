@@ -3,14 +3,17 @@
 from websocket import create_connection
 from apiisim.common import AlgorithmEnum, TransportModeEnum
 from apiisim.common.plan_trip import PlanTripRequestType, LocationPointType, LocationStructure, \
-                                     PlanTripCancellationRequest
+    PlanTripCancellationRequest
 from apiisim.common.marshalling import marshal, plan_trip_request_type
 from apiisim.common import formats
 from random import randint
-import datetime, json, logging, sys
+import datetime
+import json
+import logging
+import sys
+
 from datetime import timedelta
-from time import sleep
-from jsonschema import validate, Draft4Validator, ValidationError
+from jsonschema import validate, Draft4Validator
 
 
 def init_logging():
@@ -27,7 +30,7 @@ def new_location(place_id, longitude, latitude):
     ret.PlaceTypeId = place_id
     l = LocationStructure()
     l.Longitude = longitude
-    l.Latitude  = latitude
+    l.Latitude = latitude
     ret.Position = l
 
     return ret
@@ -54,7 +57,7 @@ def new_request(departure, arrival):
 
 
 def receive_msg(connection):
-    ret =  connection.recv()
+    ret = connection.recv()
     logging.debug("Received: \n%s" % ret)
     ret = json.loads(ret)
 
@@ -87,8 +90,8 @@ ws = create_connection("ws://localhost/planner")
 # Below are some examples of itinerary requests.
 
 # req = new_request(
-#          # SAINT-MICHEL NOTRE DAME - transilien
-#          # "stop_area:DUA:SA:8778543"
+# # SAINT-MICHEL NOTRE DAME - transilien
+# # "stop_area:DUA:SA:8778543"
 #          new_location(None, 2.345354, 48.853513),
 #          # Hulletteries - paysdelaloire
 #          # "stop_area:ANG:SA:1205"
@@ -161,14 +164,13 @@ ws = create_connection("ws://localhost/planner")
 
 # Set DepartureTime = datetime.datetime(year=2014, month=8, day=22, hour=14) - timedelta(days=50)
 req = new_request(
-        # "gare de Pontchaillou (Rennes)"
-        # "stop_area:SNC:SA:SAOCE87471391"
-        new_location(None, -1.68187574, 48.11165251),
-        # "Le mans"
-        new_location(None, 0.195172, 48.005432))
+    # "gare de Pontchaillou (Rennes)"
+    # "stop_area:SNC:SA:SAOCE87471391"
+    new_location(None, -1.68187574, 48.11165251),
+    # "Le mans"
+    new_location(None, 0.195172, 48.005432))
 
-
-ws.send(json.dumps({"PlanTripRequestType" : marshal(req, plan_trip_request_type)}))
+ws.send(json.dumps({"PlanTripRequestType": marshal(req, plan_trip_request_type)}))
 
 msg = receive_msg(ws)
 validate(msg["PlanTripResponse"], formats.plan_trip_response_format)

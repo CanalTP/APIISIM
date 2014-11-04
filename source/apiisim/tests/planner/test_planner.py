@@ -1,37 +1,42 @@
 #!/usr/bin/python
 # -*- encoding: utf8 -*-
 import unittest
-import os, Queue, logging
+import os
+import Queue
+import logging
 from datetime import timedelta, datetime, date as date_type
 from itertools import permutations
+
 from apiisim import tests
 from apiisim.planner import TraceStop, Planner
 from apiisim.planner.plan_trip_calculator import PlanTripCalculator
 from apiisim.common.plan_trip import PlanTripRequestType, EndPointType, \
-                                     LocationPointType, LocationPointType, \
-                                     LocationStructure
+    LocationPointType, LocationPointType, \
+    LocationStructure
 from apiisim.common.mis_plan_summed_up_trip import SummedUpTripType, TripStopPlaceType
 
+
 TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
+
 
 def new_location(longitude, latitude):
     ret = LocationPointType()
     ret.AccessTime = timedelta(seconds=100)
     l = LocationStructure()
     l.Longitude = longitude
-    l.Latitude  = latitude
+    l.Latitude = latitude
     ret.Position = l
     return ret
 
-class TestPlanner(unittest.TestCase):
 
+class TestPlanner(unittest.TestCase):
     def setUp(self):
         try:
             tests.drop_db()
         except:
             pass
         tests.create_db(populate_script=TEST_DIR + "test_planner.sql")
-        self._planner = Planner("postgresql+psycopg2://%s:%s@localhost/%s" % \
+        self._planner = Planner("postgresql+psycopg2://%s:%s@localhost/%s" %
                                 (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME))
 
     def tearDown(self):
@@ -41,7 +46,7 @@ class TestPlanner(unittest.TestCase):
         del self._planner
         tests.drop_db()
 
-    def testDepartureAtDetailedTrace(self):
+    def test_departure_at_detailed_trace(self):
         request = PlanTripRequestType()
         request.Departure = TraceStop(PlaceTypeId="departure")
         request.Arrival = TraceStop(PlaceTypeId="arrival")
@@ -66,7 +71,7 @@ class TestPlanner(unittest.TestCase):
                     self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s1" % k)
                     self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k + 1))
 
-    def testArrivalAtDetailedTrace(self):
+    def test_arrival_at_detailed_trace(self):
         request = PlanTripRequestType()
         request.Departure = TraceStop(PlaceTypeId="departure")
         request.Arrival = TraceStop(PlaceTypeId="arrival")
@@ -98,17 +103,17 @@ class TestPlanner(unittest.TestCase):
                         self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s1" % (k - 1))
                 k -= 1
 
-    def testFilterTraces(self):
+    def test_filter_traces(self):
         request = PlanTripRequestType()
         request.Departure = TraceStop(PlaceTypeId="departure")
         request.Arrival = TraceStop(PlaceTypeId="arrival")
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         self.assertEquals(calculator._filter_traces([[1, 2, 3, 4], [1, 3, 4], [4, 3, 1],
-                                                    [2, 1, 4], [3, 4, 2], [3, 2, 4],
-                                                    [1, 4, 3, 2], [4, 3, 1, 2], [3, 2, 1, 4]]),
+                                                     [2, 1, 4], [3, 4, 2], [3, 2, 4],
+                                                     [1, 4, 3, 2], [4, 3, 1, 2], [3, 2, 1, 4]]),
                           [[1, 3, 4], [4, 3, 1], [3, 4, 2], [1, 4, 3, 2]])
 
-    def testComputeTraces(self):
+    def test_compute_traces(self):
         request = PlanTripRequestType()
         request.Departure = new_location(1, 1)
         request.Arrival = new_location(3, 3)
@@ -141,7 +146,7 @@ class TestPlanner(unittest.TestCase):
         calculator.MAX_TRACE_LENGTH = 3
         self.assertEquals(calculator.compute_traces(), [])
 
-    def testGetTransfers(self):
+    def test_get_transfers(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
 
@@ -210,66 +215,66 @@ class TestPlanner(unittest.TestCase):
         transfers1 = calculator._get_transfers(2, 3)
         transfers2 = calculator._get_transfers(3, 2)
         self.assertEquals(transfers1[0], transfers2[0])
-        self.assertEquals([x.PlaceTypeId for x in  transfers1[1]], 
+        self.assertEquals([x.PlaceTypeId for x in transfers1[1]],
                           [x.PlaceTypeId for x in transfers2[2]])
-        self.assertEquals([x.PlaceTypeId for x in  transfers1[2]], 
+        self.assertEquals([x.PlaceTypeId for x in transfers1[2]],
                           [x.PlaceTypeId for x in transfers2[1]])
 
-    def testGetSurroundingMises(self):
+    def test_get_surrounding_mis(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         position = LocationStructure(Longitude=1, Latitude=1)
         date = date_type(year=2010, month=4, day=8)
-        self.assertEquals(calculator._get_surrounding_mises(position, date), set([1]))
+        self.assertEquals(calculator._get_surrounding_mises(position, date), {1})
 
         position = LocationStructure(Longitude=3, Latitude=3)
-        self.assertEquals(calculator._get_surrounding_mises(position, date), set([3]))
+        self.assertEquals(calculator._get_surrounding_mises(position, date), {3})
 
         position = LocationStructure(Longitude=7, Latitude=33)
         self.assertEquals(calculator._get_surrounding_mises(position, date), set([]))
 
         position = LocationStructure(Longitude=0, Latitude=0)
-        self.assertEquals(calculator._get_surrounding_mises(position, date), set([1, 2, 3]))
+        self.assertEquals(calculator._get_surrounding_mises(position, date), {1, 2, 3})
 
-    def testGetMisModes(self):
+    def test_get_mis_modes(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
-        self.assertEquals(calculator._get_mis_modes(1), set(["bus", "tram"]))
-        self.assertEquals(calculator._get_mis_modes(2), set(["bus", "tram"]))
-        self.assertEquals(calculator._get_mis_modes(3), set(["tram", "funicular"]))
-        self.assertEquals(calculator._get_mis_modes(4), set(["bus"]))
-        self.assertEquals(calculator._get_mis_modes(5), set(["bus", "tram", "funicular"]))
+        self.assertEquals(calculator._get_mis_modes(1), {"bus", "tram"})
+        self.assertEquals(calculator._get_mis_modes(2), {"bus", "tram"})
+        self.assertEquals(calculator._get_mis_modes(3), {"tram", "funicular"})
+        self.assertEquals(calculator._get_mis_modes(4), {"bus"})
+        self.assertEquals(calculator._get_mis_modes(5), {"bus", "tram", "funicular"})
         self.assertEquals(calculator._get_mis_modes(6), set([]))
 
-    def testGetConnectedMises(self):
+    def test_get_connected_mis(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
-        self.assertEquals(calculator._get_connected_mises(1), set([2, 4]))
-        self.assertEquals(calculator._get_connected_mises(2), set([1, 3]))
-        self.assertEquals(calculator._get_connected_mises(3), set([2, 4]))
-        self.assertEquals(calculator._get_connected_mises(4), set([1, 3]))
+        self.assertEquals(calculator._get_connected_mises(1), {2, 4})
+        self.assertEquals(calculator._get_connected_mises(2), {1, 3})
+        self.assertEquals(calculator._get_connected_mises(3), {2, 4})
+        self.assertEquals(calculator._get_connected_mises(4), {1, 3})
         self.assertEquals(calculator._get_connected_mises(5), set([]))
         self.assertEquals(calculator._get_connected_mises(6), set([]))
 
-    def testGetTraceTransfers(self):
+    def test_get_trace_transfers(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         for l in [permutations([1, 2, 3]), permutations([1, 4, 6])]:
-            for a, b ,c in l:
+            for a, b, c in l:
                 transfers = calculator._get_trace_transfers([a, b, c])
                 self.assertEquals(transfers,
-                              {a: {b: calculator._get_transfers(a, b)},
-                               b: {c: calculator._get_transfers(b, c)}})
+                                  {a: {b: calculator._get_transfers(a, b)},
+                                   b: {c: calculator._get_transfers(b, c)}})
 
         for l in [permutations([1, 2, 3, 4]), permutations([1, 3, 4, 6])]:
-            for a, b ,c, d in l:
+            for a, b, c, d in l:
                 transfers = calculator._get_trace_transfers([a, b, c, d])
                 self.assertEquals(transfers,
-                              {a: {b: calculator._get_transfers(a, b)},
-                               b: {c: calculator._get_transfers(b, c)},
-                               c: {d: calculator._get_transfers(c, d)}})
+                                  {a: {b: calculator._get_transfers(a, b)},
+                                   b: {c: calculator._get_transfers(b, c)},
+                                   c: {d: calculator._get_transfers(c, d)}})
 
-    def testGetProviders(self):
+    def test_get_providers(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         providers = calculator._get_providers([2, 1, 3])
@@ -283,7 +288,7 @@ class TestPlanner(unittest.TestCase):
         providers = calculator._get_providers([])
         self.assertEquals(providers, [])
 
-    def testGenerateTraceId(self):
+    def test_generate_trace_id(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         self.assertEquals(calculator._generate_trace_id([2, 3, 4]), "2_3_4")
@@ -291,7 +296,7 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(calculator._generate_trace_id([1]), "1")
         self.assertEquals(calculator._generate_trace_id([]), "")
 
-    def testUpdateDepartures(self):
+    def test_update_departures(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         departures = [TraceStop(PlaceTypeId="1"),
@@ -305,20 +310,20 @@ class TestPlanner(unittest.TestCase):
         trips = [
             SummedUpTripType(
                 Departure=EndPointType(
-                                TripStopPlace=TripStopPlaceType(id="1"),
-                                DateTime=datetime(year=2014, month=2, day=1))),
+                    TripStopPlace=TripStopPlaceType(id="1"),
+                    DateTime=datetime(year=2014, month=2, day=1))),
             SummedUpTripType(
                 Departure=EndPointType(
-                                TripStopPlace=TripStopPlaceType(id="0"),
-                                DateTime=datetime(year=2014, month=2, day=2))),
+                    TripStopPlace=TripStopPlaceType(id="0"),
+                    DateTime=datetime(year=2014, month=2, day=2))),
             SummedUpTripType(
                 Departure=EndPointType(
-                                TripStopPlace=TripStopPlaceType(id="36"),
-                                DateTime=datetime(year=2014, month=2, day=4))),
+                    TripStopPlace=TripStopPlaceType(id="36"),
+                    DateTime=datetime(year=2014, month=2, day=4))),
             SummedUpTripType(
                 Departure=EndPointType(
-                                TripStopPlace=TripStopPlaceType(id="3"),
-                                DateTime=datetime(year=2014, month=2, day=21))),
+                    TripStopPlace=TripStopPlaceType(id="3"),
+                    DateTime=datetime(year=2014, month=2, day=21))),
         ]
         calculator._update_departures(departures, linked_stops, trips)
         self.assertEquals(len(departures), 2)
@@ -330,13 +335,13 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(linked_stops[0].PlaceTypeId, "l1")
         self.assertEquals(linked_stops[1].PlaceTypeId, "l3")
 
-    def testUpdateArrivals(self):
+    def test_update_arrivals(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         arrivals = [TraceStop(PlaceTypeId="1"),
-                      TraceStop(PlaceTypeId="2"),
-                      TraceStop(PlaceTypeId="3"),
-                      TraceStop(PlaceTypeId="4")]
+                    TraceStop(PlaceTypeId="2"),
+                    TraceStop(PlaceTypeId="3"),
+                    TraceStop(PlaceTypeId="4")]
         linked_stops = [TraceStop(PlaceTypeId="l1"),
                         TraceStop(PlaceTypeId="l2"),
                         TraceStop(PlaceTypeId="l3"),
@@ -344,20 +349,20 @@ class TestPlanner(unittest.TestCase):
         trips = [
             SummedUpTripType(
                 Arrival=EndPointType(
-                                TripStopPlace=TripStopPlaceType(id="1"),
-                                DateTime=datetime(year=2014, month=2, day=1))),
+                    TripStopPlace=TripStopPlaceType(id="1"),
+                    DateTime=datetime(year=2014, month=2, day=1))),
             SummedUpTripType(
                 Arrival=EndPointType(
-                                TripStopPlace=TripStopPlaceType(id="0"),
-                                DateTime=datetime(year=2014, month=2, day=2))),
+                    TripStopPlace=TripStopPlaceType(id="0"),
+                    DateTime=datetime(year=2014, month=2, day=2))),
             SummedUpTripType(
                 Arrival=EndPointType(
-                                TripStopPlace=TripStopPlaceType(id="4"),
-                                DateTime=datetime(year=2014, month=2, day=26))),
+                    TripStopPlace=TripStopPlaceType(id="4"),
+                    DateTime=datetime(year=2014, month=2, day=26))),
             SummedUpTripType(
                 Arrival=EndPointType(
-                                TripStopPlace=TripStopPlaceType(id="43"),
-                                DateTime=datetime(year=2014, month=2, day=4))),
+                    TripStopPlace=TripStopPlaceType(id="43"),
+                    DateTime=datetime(year=2014, month=2, day=4))),
         ]
         calculator._update_arrivals(arrivals, linked_stops, trips)
         self.assertEquals(len(arrivals), 2)
@@ -368,6 +373,7 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(len(linked_stops), 2)
         self.assertEquals(linked_stops[0].PlaceTypeId, "l1")
         self.assertEquals(linked_stops[1].PlaceTypeId, "l4")
+
 
 if __name__ == '__main__':
     unittest.main()

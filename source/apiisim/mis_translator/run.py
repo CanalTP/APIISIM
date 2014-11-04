@@ -1,10 +1,19 @@
 # -*- coding: utf8 -*-
 
-import resources
-from flask import Flask
-import flask_restful, logging, sys
+import logging
+import logging.config
+
+import sys
 from logging.handlers import RotatingFileHandler
-import argparse, os, ConfigParser
+import argparse
+import os
+import ConfigParser
+
+from flask import Flask
+import flask_restful
+
+import resources
+
 
 def get_cmd_args():
     parser = argparse.ArgumentParser()
@@ -13,9 +22,10 @@ def get_cmd_args():
 
     return parser.parse_args()
 
-def get_config(args):
-    if args.config:
-        config_file = args.config
+
+def get_config(cmd_args):
+    if cmd_args.config:
+        config_file = cmd_args.config
         if not os.path.isabs(config_file):
             config_file = os.getcwd() + "/" + config_file
         if not os.path.isfile(config_file):
@@ -25,37 +35,42 @@ def get_config(args):
         config_file = os.path.dirname(os.path.realpath(__file__)) + "/" + "default.conf"
 
     logging.info("Configuration retrieved from '%s':", config_file)
-    config = ConfigParser.RawConfigParser()
-    config.read(config_file)
+    conf = ConfigParser.RawConfigParser()
+    conf.read(config_file)
 
-    return config
+    return conf
+
 
 def init_logging(log_file):
-    # TODO add possibility to read logging config from a file/variable
+    handler = None
+
     if log_file:
-        handler = RotatingFileHandler(log_file, maxBytes=4*1024*1024, backupCount=3)
+        handler = RotatingFileHandler(log_file, maxBytes=4 * 1024 * 1024, backupCount=3)
+    elif os.path.isfile("logging.conf"):
+        logging.config.fileConfig("logging.conf")
     else:
         handler = logging.StreamHandler(stream=sys.stdout)
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-    handler.setFormatter(formatter)
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(handler)
 
-    print "Logging to '%s'" % (log_file or "stdout")
+    if handler:
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        root_logger.addHandler(handler)
 
 
-args = get_cmd_args()
-init_logging(args.log)
-config = get_config(args)
+if __name__ == '__main__':
+    args = get_cmd_args()
+    init_logging(args.log)
+    config = get_config(args)
 
-resources.load_mis_apis(config)
+    resources.load_mis_apis(config)
 
-app = Flask(__name__)
-api = flask_restful.Api(app)
-api.add_resource(resources.Stops, '/<string:mis_name>/v0/stops.json')
-api.add_resource(resources.Capabilities, '/<string:mis_name>/v0/capabilities.json')
-api.add_resource(resources.Itineraries, '/<string:mis_name>/v0/itineraries.json')
-api.add_resource(resources.SummedUpItineraries, '/<string:mis_name>/v0/summed_up_itineraries.json')
+    app = Flask(__name__)
+    api = flask_restful.Api(app)
+    api.add_resource(resources.Stops, '/<string:mis_name>/v0/stops.json')
+    api.add_resource(resources.Capabilities, '/<string:mis_name>/v0/capabilities.json')
+    api.add_resource(resources.Itineraries, '/<string:mis_name>/v0/itineraries.json')
+    api.add_resource(resources.SummedUpItineraries, '/<string:mis_name>/v0/summed_up_itineraries.json')
 
-app.run(debug=False)
+    app.run(debug=False)
