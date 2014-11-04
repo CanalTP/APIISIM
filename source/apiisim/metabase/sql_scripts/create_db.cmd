@@ -1,11 +1,13 @@
 @echo off
 
+SET SILENT=1
+
 REM Creates a new database and a new user, this user will be the owner of the database.
 REM Once created, the database is initialized with the schema defined in set_schema.sql
 REM and finally it is populated with some data.
 if /%1/ EQU // (
 echo "missing config file"
-SET PROMPT=1
+SET SILENT=
 goto err
 )
 
@@ -13,13 +15,13 @@ set configfile="%1"
 
 if NOT EXIST %configfile% (
 echo %1 not found
-SET PROMPT=1
+SET SILENT=
 goto err
 )
 
 if /%configfile:~-5,4%/ NEQ /.cmd/ (
 echo incorrect config file: %1
-SET PROMPT=1
+SET SILENT=
 goto err
 )
 
@@ -30,13 +32,13 @@ call "%1"
 
 if /%USER_PASS%/ EQU // (
     SET /p USER_PASS=Password for %USER_NAME%: 
-    SET PROMPT=1
+    SET SILENT=
     echo.
 )
 
 if /%ADMIN_PASS%/ EQU // (
     SET /p ADMIN_PASS=Password for %ADMIN_NAME%: 
-    SET PROMPT=1
+    SET SILENT=
     echo.
 )
 
@@ -62,11 +64,8 @@ SET PGPASSWORD=%USER_PASS%
 psql -w -U %USER_NAME% -h localhost -f "%~dp0set_schema.sql" %DB_NAME%
 if /%POPULATE_DB%/ EQU /true/ (
 if "%POPULATE_DB_SCRIPT%" NEQ "" (
-REM If path is relative, use dirname.
-REM If path is absolute, let it as is.
-SET POPULATE_DB_SCRIPT="%~dp0%POPULATE_DB_SCRIPT%"
+psql -w -U %USER_NAME% -h localhost -f "%POPULATE_DB_SCRIPT%" %DB_NAME%
 )
-psql -w -U %USER_NAME% -h localhost -f %POPULATE_DB_SCRIPT% %DB_NAME%
 )
 
 color 0A
@@ -78,5 +77,4 @@ goto fin
 
 :fin
 echo.
-if /%PROMPT%/ EQU /1/ pause
-
+if /%SILENT%/ EQU // pause

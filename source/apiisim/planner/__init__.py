@@ -224,7 +224,7 @@ def stop_to_trace_stop(stop):
     ret.PlaceTypeId = stop.code
     l = LocationStructure()
     l.Longitude = stop.long
-    l.Latitude  = stop.lat
+    l.Latitude = stop.lat
     ret.Position = l
 
     return ret

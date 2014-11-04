@@ -16,7 +16,7 @@ from apiisim.common.plan_trip import PlanTripRequestType, EndPointType, \
 from apiisim.common.mis_plan_summed_up_trip import SummedUpTripType, TripStopPlaceType
 
 
-TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
+TEST_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "")
 
 
 def new_location(longitude, latitude):
