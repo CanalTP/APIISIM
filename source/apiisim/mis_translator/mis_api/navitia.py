@@ -5,6 +5,7 @@ from base import MisApiBase, MisApiException, \
     MisApiInternalErrorException, MisApiUnauthorizedException, \
     MisCapabilities, MisApiUnknownObjectException
 import json, httplib2, logging, urllib
+import traceback
 from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
     EndPointType, StepEndPointType, StepType, \
     QuayType, CentroidType, TripType, \
@@ -643,7 +644,10 @@ class MisApi(MisApiBase):
             for d in departures:
                 params['from'] = get_location_id(d)
                 params_set_datetime(params, departure_time, arrival_time, d, arrivals[0])
-                journeys.extend(self._journeys_request(params))
+                try:
+                    journeys.extend(self._journeys_request(params))
+                except:
+                    logging.getLogger('exceptions').error(traceback.format_exc())
         else:
             params['from'] = get_location_id(departures[0])
             for a in arrivals:
@@ -671,7 +675,12 @@ class MisApi(MisApiBase):
             self.params['from'] = get_location_id(self.d)
             self.params['to'] = get_location_id(self.a)
             params_set_datetime(self.params, self.departure_time, self.arrival_time, self.d, self.a)
-            for j in self.caller._journeys_request(self.params):
+            try:
+                journeys = self.caller._journeys_request(self.params)
+            except:
+                journeys = []
+                logging.getLogger('exceptions').error(traceback.format_exc())
+            for j in journeys:
                 self.caller.threadLock.acquire()
                 self.journeys.append((self.d, self.a, j))
                 self.caller.threadLock.release()
