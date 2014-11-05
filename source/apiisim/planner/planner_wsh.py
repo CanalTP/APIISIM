@@ -203,7 +203,7 @@ class ConnectionHandler(object):
             self._send_status(PlanTripStatusEnum.BAD_REQUEST, error)
             raise
 
-        runner = PlannerProcessHandler(planner, request, self._notif_queue)
+        runner = PlannerProcessHandler(planner, params, self._notif_queue)
         runner.process()
 
     def __del__(self):
