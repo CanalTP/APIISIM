@@ -75,7 +75,7 @@ class MisApi(object):
         return MisCapabilities(content["MultipleStartsAndArrivals"],
                                content["GeographicPositionCompliant"])
 
-    # Should not be hard-coded but it will do the job for now.
+    # TODO Should not be hard-coded but it will do the job for now.
     def get_shape(self, name):
         if name == "paysdelaloire":
             return "POLYGON((-2.557442956 46.26975161,-2.557442956 48.56805252," \

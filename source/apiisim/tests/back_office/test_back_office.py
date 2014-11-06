@@ -619,7 +619,7 @@ class TestBackOffice(unittest.TestCase):
 
         approx_creation_date = datetime.datetime.now()
         mis2_id = self.add_mis("mis2")
-        mis2 = self.db_session.query(metabase.Mis).get(mis2_id)
+        #mis2 = self.db_session.query(metabase.Mis).get(mis2_id)
         stop2 = new_stop("code1", "Gare de Lyon", mis2_id)
         self.db_session.add(stop2)
         self.db_session.commit()
@@ -704,8 +704,7 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.commit()
         self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
 
-        #  todo
-        # #def test change on max distanance to calculate transfers
+        # TODO make tests with different values of maxdistance to compute transfers
 
 
 if __name__ == '__main__':

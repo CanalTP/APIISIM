@@ -13,6 +13,7 @@ from apiisim.common.mis_plan_trip import TripStopPlaceType, LocationStructure, \
     LineType, PTNetworkType
 from apiisim.common.mis_collect_stops import StopPlaceType, quaysType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, SummedUpTripType
+from apiisim.common.mis_plan_trip import LocationContextType
 from apiisim.common import AlgorithmEnum, SelfDriveModeEnum, TripPartEnum, TypeOfPlaceEnum, \
     TransportModeEnum, PublicTransportModeEnum, PlanSearchOptions
 from datetime import datetime, timedelta
@@ -127,6 +128,24 @@ INVERSE_SELF_DRIVE_MODE_MAPPING = {}
 for k, v in SELF_DRIVE_MODE_MAPPING.items():
     for x in v:
         INVERSE_SELF_DRIVE_MODE_MAPPING[x] = k
+
+
+def parse_stop_area(point):
+    place = TripStopPlaceType()
+    embedded_type = point["embedded_type"]
+    point_data = point[embedded_type]
+
+    if embedded_type == "stop_area":
+        place.id = point_data["id"]
+    elif embedded_type == "stop_point":
+        place.id = point_data["stop_area"]["id"]
+    else:
+        place.id = None
+
+    place.Position = LocationStructure(Latitude=point_data["coord"]["lat"],
+                                       Longitude=point_data["coord"]["lon"])
+
+    return EndPointType(TripStopPlace=place)
 
 
 def parse_end_point(point):
@@ -732,7 +751,7 @@ class MisApi(MisApiBase):
                                             modes, self_drive_conditions,
                                             accessibility_constraint,
                                             language, options):
-        def locationcontext2str(location):
+        def location_context_to_str(location):
             if not location.PlaceTypeId:
                 return "%s;%s" % (location.Position.Longitude, location.Position.Latitude)
             else:
@@ -768,20 +787,37 @@ class MisApi(MisApiBase):
 
         journeys = []
         for j in self._nm_journeys_request(params):
-            if len(departures) == 1 and departures[0].PlaceTypeId is None:
+            org = parse_stop_area(j["sections"][0]["from"])
+            dst = parse_stop_area(j["sections"][-1]["to"])
+
+            if len(departures) == 1:
                 d = [departures[0]]
             else:
-                d = [x for x in departures if x.PlaceTypeId == j["sections"][0]["from"]["id"]]
-            if len(d) == 0:
-                continue
-            if len(arrivals) == 1 and arrivals[0].PlaceTypeId is None:
+                d = [s for s in departures if org.TripStopPlace.id == s.PlaceTypeId] or \
+                    [sorted([(s, (lambda (x, y): 0.44 * x * x + y * y)(
+                        (s.Position.Latitude - float(org.TripStopPlace.Position.Latitude),
+                         s.Position.Longitude - float(org.TripStopPlace.Position.Longitude)))) for s in departures],
+                        key=lambda distance: distance[1])[0][0]]
+
+            # fix pareto
+            if d[0].PlaceTypeId:
+                j["sections"][0]["from"]["id"] = d[0].PlaceTypeId
+
+            if len(arrivals) == 1:
                 a = [arrivals[0]]
             else:
-                a = [x for x in arrivals if x.PlaceTypeId == j["sections"][-1]["to"]["id"]]
-            if len(a) == 0:
-                continue
+                a = [s for s in arrivals if dst.TripStopPlace.id == s.PlaceTypeId] or \
+                    [sorted([(s, (lambda (x, y): 0.44 * x * x + y * y)(
+                        (s.Position.Latitude - float(dst.TripStopPlace.Position.Latitude),
+                         s.Position.Longitude - float(dst.TripStopPlace.Position.Longitude)))) for s in arrivals],
+                        key=lambda distance: distance[1])[0][0]]
+
+            # fix pareto
+            if a[0].PlaceTypeId:
+                j["sections"][-1]["to"]["id"] = a[0].PlaceTypeId
+
             journeys.append((d[0], a[0], j))
-            logging.debug("NxM RESULT FOR %s -> %s", locationcontext2str(d[0]), locationcontext2str(a[0]))
+            logging.debug("NxM RESULT FOR %s -> %s", location_context_to_str(d[0]), location_context_to_str(a[0]))
 
         trips = MisApi._clean_up_trip_response(journeys, departures, arrivals, departure_time, algorithm, options)
         return trips
@@ -791,8 +827,13 @@ class MisApi(MisApiBase):
                                   modes, self_drive_conditions,
                                   accessibility_constraint,
                                   language, options):
-        return self.get_emulated_summed_up_itineraries(departures, arrivals, departure_time,
-                                                       arrival_time, algorithm,
-                                                       modes, self_drive_conditions,
-                                                       accessibility_constraint,
-                                                       language, options, multithreaded=True)
+        # return self.get_emulated_summed_up_itineraries(departures, arrivals, departure_time,
+        # arrival_time, algorithm,
+        # modes, self_drive_conditions,
+        # accessibility_constraint,
+        # language, options, multithreaded=True)
+        return self.get_hardcoded_summed_up_itineraries(departures, arrivals, departure_time,
+                                                        arrival_time, algorithm,
+                                                        modes, self_drive_conditions,
+                                                        accessibility_constraint,
+                                                        language, options)

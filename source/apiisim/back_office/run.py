@@ -1,5 +1,7 @@
 from math import sqrt
 import logging
+import logging.config
+from logging.handlers import RotatingFileHandler
 import sys
 import argparse
 import ConfigParser
@@ -17,12 +19,53 @@ from mis_api import MisApi
 from apiisim import metabase
 
 
-def init_logging():
-    # TODO add possibility to read logging config from a file/variable
-    handler = logging.StreamHandler(stream=sys.stdout)
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-    root_logger.addHandler(handler)
+def get_cmd_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--config", help="Configuration file")
+    parser.add_argument("-l", "--log", help="Log file")
+
+    args = parser.parse_args()
+    if not args.config:
+        parser.error("No configuration file given")
+        exit(2)
+
+    return args
+
+
+def get_config(args):
+    config_file = args.config
+    if not os.path.isabs(config_file):
+        config_file = os.path.join(os.path.dirname(__file__), config_file)
+    if not os.path.isfile(config_file):
+        logging.error("Configuration file <%s> does not exist", config_file)
+        exit(1)
+
+    logging.info("Configuration retrieved from '%s':", config_file)
+    config = ConfigParser.RawConfigParser()
+    config.read(config_file)
+
+    return config
+
+
+def init_logging(log_file):
+    handler = None
+
+    config_file = os.path.join(os.path.dirname(__file__), "logging.conf")
+    if log_file:
+        if not os.path.isabs(log_file):
+            log_file = os.path.join(os.path.dirname(__file__), log_file)
+        handler = RotatingFileHandler(log_file, maxBytes=4 * 1024 * 1024, backupCount=3)
+    elif os.path.isfile(config_file):
+        logging.config.fileConfig(config_file)
+    else:
+        handler = logging.StreamHandler(stream=sys.stdout)
+
+    if handler:
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO)
+        root_logger.addHandler(handler)
 
 
 def db_transaction(func):
@@ -140,6 +183,7 @@ def retrieve_all_stops(db_session, stats):
         try:
             logging.info("From <%s>...", mis.name)
             all_stops[mis.id] = MisApi(mis.api_url, mis.api_key).get_stops()
+            logging.info("Get %s stops", len(all_stops[mis.id]))
 
             shape = MisApi(mis.api_url, mis.api_key).get_shape(mis.name)
             if shape:
@@ -154,6 +198,9 @@ def retrieve_all_stops(db_session, stats):
                         nb_ignored += 1
                         all_stops[mis.id].remove(s)
                 logging.info("Ignored %s stops not in shape %s", nb_ignored, shape)
+                if nb_ignored > 0:
+                    logging.info("Keep %s stops", len())
+
 
             logging.info("OK")
         except Exception as e:
@@ -403,40 +450,21 @@ def compute_mis_connections(db_session, stats):
     stats.nb_deleted_mis_connections = nb_deleted
 
 
-def get_config():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", help="Configuration file")
-    args = parser.parse_args()
-    if not args.config:
-        parser.error("No configuration file given")
-        exit(2)
-    config_file = args.config
-    if not os.path.isabs(config_file):
-        config_file = os.getcwd() + "/" + config_file
-    if not os.path.isfile(config_file):
-        logging.error("Configuration file <%s> does not exist", config_file)
-        exit(1)
-
-    logging.info("Configuration retrieved from '%s':", config_file)
-    config = ConfigParser.RawConfigParser()
-    config.read(config_file)
-
-    return config
-
-
 @db_transaction
 def add_import_stats(db_session, stats):
     db_session.add(stats)
 
 
 def main():
-    init_logging()
+    args = get_cmd_args()
+    init_logging(args.log)
+    config = get_config(args)
+
 
     import_stats = metabase.BackOfficeImport()
     import_stats.start_date = datetime.datetime.now().isoformat()
     logging.info("Back Office start: %s", import_stats.start_date)
 
-    config = get_config()
     db_url = config.get('General', 'db_url')
     transfer_max_distance = config.getint('General', 'transfer_max_distance')
     request_mis_capabilities = config.getboolean('General', 'request_mis_capabilities')

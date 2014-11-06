@@ -27,12 +27,12 @@ def get_config(cmd_args):
     if cmd_args.config:
         config_file = cmd_args.config
         if not os.path.isabs(config_file):
-            config_file = os.getcwd() + "/" + config_file
+            config_file = os.path.join(os.path.dirname(__file__), config_file)
         if not os.path.isfile(config_file):
             logging.error("Configuration file <%s> does not exist", config_file)
             exit(1)
     else:
-        config_file = os.path.dirname(os.path.realpath(__file__)) + "/" + "default.conf"
+        config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "default.conf")
 
     logging.info("Configuration retrieved from '%s':", config_file)
     conf = ConfigParser.RawConfigParser()
@@ -44,10 +44,13 @@ def get_config(cmd_args):
 def init_logging(log_file):
     handler = None
 
+    config_file = os.path.join(os.path.dirname(__file__), "logging.conf")
     if log_file:
+        if not os.path.isabs(log_file):
+            log_file = os.path.join(os.path.dirname(__file__), log_file)
         handler = RotatingFileHandler(log_file, maxBytes=4 * 1024 * 1024, backupCount=3)
-    elif os.path.isfile("logging.conf"):
-        logging.config.fileConfig("logging.conf")
+    elif os.path.isfile(config_file):
+        logging.config.fileConfig(config_file)
     else:
         handler = logging.StreamHandler(stream=sys.stdout)
 

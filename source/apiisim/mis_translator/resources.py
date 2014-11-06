@@ -20,13 +20,13 @@ from mis_api.base import MisApiException
 
 
 # Lists of enabled Mis APIs modules
-MIS_APIS_AVAILABLE = frozenset(["navitia", "pays_de_la_loire", "bretagne",
-                                "bourgogne", "champagne_ardenne", "transilien", "sncf_national"])
+MIS_APIS_AVAILABLE = frozenset(["transilien", "sncf_national", "champagne_ardenne", "pays_de_la_loire",
+                                "bretagne","bourgogne"])
 
-STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien",
-                                     "stub_pays_de_la_loire", "stub_bourgogne",
-                                     "stub_sncf_national", "stub_transilien_light",
-                                     "stub_pays_de_la_loire_light", "stub_bourgogne_light",
+STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien", "stub_transilien_light",
+                                     "stub_sncf_national",
+                                     "stub_pays_de_la_loire", "stub_pays_de_la_loire_light",
+                                     "stub_bourgogne", "stub_bourgogne_light",
                                      "stub_back_office_test1", "stub_back_office_test2"])
 mis_api_mapping = {}  # Mis name : MisApi Class
 mis_api_config = None

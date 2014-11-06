@@ -14,15 +14,17 @@ from apiisim.common.formats import summed_up_itineraries_response_format, \
 
 
 class MisTranslatorClient:
-    def __init__(self):
-        self.url = None
+    def __init__(self, uri, token):
+        self.uri = uri
+        self.token = token
         self.h = httplib2.Http()
-        self.headers = {'Content-type': 'application/json', 'Authorization': '77bca947-ca67-4f17-92a3-92b716fc3d82'}
+        self.headers = {'Content-type': 'application/json', 'Authorization': self.token}
 
-    def send_request(self, data):
-        resp, content = self.h.request(self.url, "POST", headers=self.headers, body=json.dumps(data))
+    def send_request(self, api, data):
+        url = self.uri + "/" + api
+        resp, content = self.h.request(url, "POST", headers=self.headers, body=json.dumps(data))
         if resp.status != 200:
-            print ("POST <%s> FAILED: %s" % (self.url, resp.status))
+            print ("POST <%s> FAILED: %s" % (url, resp.status))
 
         print resp
         print content
@@ -34,171 +36,135 @@ class MisTranslatorClient:
             validate(content["ItineraryResponseType"], itinerary_response_format)
 
 
-if __name__ == '__main__':
-    client = MisTranslatorClient()
+def no_code(gare):
+    gare["PlaceTypeId"] = ""
 
-    base_url = "http://127.0.0.1:5000/pays_de_la_loire/v0"
+    return gare
+
+
+def gare_paris_transilien(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 49.108501,
+                                                  "Longitude": 2.232531}, PlaceTypeId="stop_area:DUA:SA:51:641")
+
+
+def gare_reims_champagne(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 49.256602,
+                                                  "Longitude": 4.033091}, PlaceTypeId="stop_area:TAD:SA:51454")
+
+
+def gare_chartres_transilien(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.448385,
+                                                  "Longitude": 1.480871}, PlaceTypeId="stop_area:DUA:SA:8739400")
+
+
+def gare_chartres_champagne(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.448162,
+                                                  "Longitude": 1.481009}, PlaceTypeId="stop_area:SNC:SA:SAOCE87394007")
+
+
+def gare_etampes_transilien(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.436606,
+                                                  "Longitude": 2.159388}, PlaceTypeId="stop_area:DUA:SA:8754513")
+
+
+def gare_etampes_champagne(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.436587,
+                                                  "Longitude": 2.159495}, PlaceTypeId="stop_area:SNC:SA:SAOCE87545137")
+
+
+def gare_dourdan_transilien(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.533588,
+                                                  "Longitude": 2.008998}, PlaceTypeId="stop_area:DUA:SA:8754552")
+
+
+def gare_dourdan_champagne(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.533612,
+                                                  "Longitude": 2.009701}, PlaceTypeId="stop_area:SNC:SA:SAOCE87545525")
+
+
+def gare_limay_transilien(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.985849,
+                                                  "Longitude": 1.750574}, PlaceTypeId="stop_area:DUA:SA:81:6594")
+
+
+def gare_limay_champagne(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.984161,
+                                                  "Longitude": 1.747123}, PlaceTypeId="stop_area:SNC:SA:SAOCE87381582")
+
+
+def gare_melun_transilien(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.529989,
+                                                  "Longitude": 2.651388}, PlaceTypeId="stop_area:DUA:SA:27:105")
+
+
+def gare_melun_champagne(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.527597,
+                                                  "Longitude": 2.655392}, PlaceTypeId="stop_area:SNC:SA:SAOCE87682005")
+
+
+def test_journeys(client):
     departure_time = datetime.datetime.now().strftime(DATE_FORMAT)
     arrival_time = (datetime.datetime.now() + timedelta(hours=24)).strftime(DATE_FORMAT)
 
-    # gare SNCF et routière Angers-St-Laud
-    d1 = {"AccessTime": "PT2M",
-          "Position": {"Latitude": 47.464722,
-                       "Longitude": -0.558158},
-          "PlaceTypeId": "stop_area:SNC:SA:SAOCE87484006"}
+    data = {"ItineraryRequest": {"multiDepartures": {"Departure": [gare_melun_transilien(), gare_paris_transilien(),
+                                                                   gare_etampes_transilien()],
+                                                     "Arrival": gare_chartres_transilien()},
+                                 "DepartureTime": departure_time,
+                                 "modes": [TransportModeEnum.ALL]}}
 
-    # gare de Savenay
-    d2 = {"AccessTime": "PT5M",
-          "Position": {"Latitude": 47.358562,
-                       "Longitude": -1.951025},
-          "PlaceTypeId": "stop_area:SNC:SA:SAOCE87481838"}
+    client.send_request("itineraries.json", data)
 
-    # Camping de Bouchemaine
-    d3 = {"AccessTime": "PT1M30S",
-          "Position": {"Latitude": 47.419306,
-                       "Longitude": -0.611521},
-          "PlaceTypeId": "stop_area:ANG:SA:1306"}
+    data = {"ItineraryRequest": {"multiDepartures": {"Departure": [gare_dourdan_transilien(), gare_limay_transilien()],
+                                                     "Arrival": no_code(gare_melun_transilien())},
+                                 "DepartureTime": departure_time,
+                                 "Algorithm": AlgorithmEnum.MINCHANGES}}
 
-    # Gare de rennes
-    a1 = {"AccessTime": "PT6M40S",
-          "Position": {"Latitude": 48.103516,
-                       "Longitude": -1.67232},
-          "PlaceTypeId": "stop_area:SNC:SA:SAOCE87471003"}
+    client.send_request("itineraries.json", data)
 
-    # Parking Des Ecoles
-    a2 = {"AccessTime": "PT10M",
-          "Position": {"Latitude": 47.081555,
-                       "Longitude": -1.337921},
-          "PlaceTypeId": "stop_area:C44:SA:333"}
+    data = {"ItineraryRequest": {"multiArrivals": {"Departure": gare_melun_transilien(),
+                                                   "Arrival": [gare_dourdan_transilien(), gare_limay_transilien()]},
+                                 "ArrivalTime": arrival_time,
+                                 "Algorithm": AlgorithmEnum.MINCHANGES}}
 
-    # gare de Bourgneuf-en-Retz
-    a3 = {"AccessTime": "PT4M",
-          "Position": {"Latitude": 47.046857,
-                       "Longitude": -1.955269},
-          "PlaceTypeId": "stop_area:SNC:SA:SAOCE87481242"}
+    client.send_request("itineraries.json", data)
 
-    # gare de Nancy-Ville
-    a4 = {"AccessTime": "PT5M20S",
-          "Position": {"Latitude": 48.689786,
-                       "Longitude": 6.174279},
-          "PlaceTypeId": "stop_area:SNC:SA:SAOCE87141002"}
 
-    # gare de Metz-Ville
-    a5 = {"AccessTime": "PT10S",
-          "Position": {"Latitude": 49.109789,
-                       "Longitude": 6.177203},
-          "PlaceTypeId": "stop_area:SNC:SA:SAOCE87192039"}
+def test_nm_journeys(client):
+    departure_time = datetime.datetime.now().strftime(DATE_FORMAT)
+    arrival_time = (datetime.datetime.now() + timedelta(hours=24)).strftime(DATE_FORMAT)
 
-    client.url = base_url + "/itineraries.json"
+    data = {"SummedUpItinerariesRequest": {"departures": [gare_melun_transilien(), gare_limay_transilien()],
+                                           "arrivals": [gare_chartres_transilien(), gare_etampes_transilien()],
+                                           "DepartureTime": departure_time,
+                                           "modes": [TransportModeEnum.ALL]}}
 
-    data1 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1],
-                                                      "Arrival": a1},
-                                  "DepartureTime": departure_time,
-                                  "modes": [TransportModeEnum.ALL]}}
+    client.send_request("summed_up_itineraries.json", data)
 
-    data2 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1, d2, d3],
-                                                      "Arrival": a2},
-                                  "DepartureTime": departure_time,
-                                  "modes": [TransportModeEnum.ALL],
-                                  "Algorithm": AlgorithmEnum.FASTEST}}
+    data = {"SummedUpItinerariesRequest": {"departures": [gare_melun_transilien(), gare_limay_transilien()],
+                                           "arrivals": [gare_chartres_transilien(), gare_etampes_transilien()],
+                                           "ArrivalTime": arrival_time,
+                                           "modes": [TransportModeEnum.ALL]}}
 
-    data3 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1, d2, d3],
-                                                      "Arrival": a2},
-                                  "DepartureTime": departure_time,
-                                  "modes": [TransportModeEnum.ALL],
-                                  "Algorithm": AlgorithmEnum.SHORTEST}}
+    client.send_request("summed_up_itineraries.json", data)
 
-    data4 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1, d2, d3],
-                                                      "Arrival": a2},
-                                  "ArrivalTime": arrival_time,
-                                  "modes": [TransportModeEnum.ALL]}}
+    data = {"SummedUpItinerariesRequest": {"departures": [no_code(gare_melun_transilien())],
+                                           "arrivals": [gare_chartres_transilien(), gare_etampes_transilien()],
+                                           "DepartureTime": departure_time,
+                                           "modes": [TransportModeEnum.ALL]}}
 
-    data5 = {"ItineraryRequest": {"multiArrivals": {"Departure": d2,
-                                                    "Arrival": [a1, a2, a3]},
-                                  "DepartureTime": departure_time,
-                                  "modes": [TransportModeEnum.ALL]}}
+    client.send_request("summed_up_itineraries.json", data)
 
-    data6 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1, d2, d3],
-                                                      "Arrival": a2},
-                                  "DepartureTime": departure_time,
-                                  "Algorithm": AlgorithmEnum.MINCHANGES}}
+    data = {"SummedUpItinerariesRequest": {"departures": [gare_melun_transilien(), gare_limay_transilien()],
+                                           "arrivals": [no_code(gare_etampes_transilien())],
+                                           "ArrivalTime": arrival_time,
+                                           "modes": [TransportModeEnum.ALL]}}
 
-    data7 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1, d2, d3],
-                                                      "Arrival": a1},
-                                  "DepartureTime": departure_time,
-                                  "selfDriveConditions": [{"TripPart": "DEPARTURE", "SelfDriveMode": "bicycle"},
-                                                          {"TripPart": "ARRIVAL", "SelfDriveMode": "bicycle"}]
-    }}
+    client.send_request("summed_up_itineraries.json", data)
 
-    data8 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1, d2, d3],
-                                                      "Arrival": a2},
-                                  "DepartureTime": departure_time,
-                                  "modes": [TransportModeEnum.BUS]}}
 
-    data9 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1, d2, d3],
-                                                      "Arrival": a2},
-                                  "DepartureTime": departure_time,
-                                  "modes": [TransportModeEnum.BUS, TransportModeEnum.TRAM]}}
+if __name__ == '__main__':
+    mis_client = MisTranslatorClient("http://127.0.0.1:5000/transilien/v0",
+                                     "f8a9befb-6bd9-4620-b942-b6b69a07487d")
 
-    data10 = {"ItineraryRequest": {"multiDepartures": {"Departure": [d1, d2, d3],
-                                                       "Arrival": a2},
-                                   "DepartureTime": departure_time,
-                                   "modes": [TransportModeEnum.METRO]}}
-
-    client.send_request(data1)
-    client.send_request(data2)
-    client.send_request(data3)
-    client.send_request(data4)
-    client.send_request(data5)
-    client.send_request(data6)
-    client.send_request(data7)
-    client.send_request(data8)
-    client.send_request(data9)
-    client.send_request(data10)
-
-    client.url = base_url + "/summed_up_itineraries.json"
-
-    data11 = {"SummedUpItinerariesRequest": {"departures": [d1, d2, d3],
-                                             "arrivals": [a1, a4, a3],
-                                             "DepartureTime": departure_time,
-                                             "modes": [TransportModeEnum.ALL]}}
-
-    data12 = {"SummedUpItinerariesRequest": {"departures": [d1, d2, d3],
-                                             "arrivals": [a1, a4, a3],
-                                             "ArrivalTime": arrival_time,
-                                             "modes": [TransportModeEnum.ALL]}}
-
-    data13 = {"SummedUpItinerariesRequest": {"departures": [d1, d2, d3],
-                                             "arrivals": [a1, a4, a3],
-                                             "DepartureTime": departure_time,
-                                             "modes": [TransportModeEnum.ALL],
-                                             "Algorithm": AlgorithmEnum.FASTEST}}
-
-    data14 = {"SummedUpItinerariesRequest": {"departures": [d1, d2, d3],
-                                             "arrivals": [a1, a4, a3],
-                                             "DepartureTime": departure_time,
-                                             "modes": [TransportModeEnum.ALL],
-                                             "Algorithm": AlgorithmEnum.MINCHANGES}}
-
-    data15 = {"SummedUpItinerariesRequest": {"departures": [d1, d2, d3],
-                                             "arrivals": [a2],
-                                             "DepartureTime": departure_time,
-                                             "modes": [TransportModeEnum.BUS]}}
-
-    data16 = {"SummedUpItinerariesRequest": {"departures": [d1, d2, d3],
-                                             "arrivals": [a2, a3],
-                                             "DepartureTime": departure_time,
-                                             "modes": [TransportModeEnum.BUS]}}
-
-    data17 = {"SummedUpItinerariesRequest": {"departures": [d1, d2, d3],
-                                             "arrivals": [a2],
-                                             "DepartureTime": departure_time,
-                                             "options": ["DEPARTURE_ARRIVAL_OPTIMIZED"]}}
-
-    client.send_request(data11)
-    client.send_request(data12)
-    client.send_request(data13)
-    client.send_request(data14)
-    client.send_request(data15)
-    client.send_request(data16)
-    client.send_request(data17)
+    test_journeys(mis_client)
+    test_nm_journeys(mis_client)
