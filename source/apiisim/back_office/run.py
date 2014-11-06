@@ -199,10 +199,7 @@ def retrieve_all_stops(db_session, stats):
                         all_stops[mis.id].remove(s)
                 logging.info("Ignored %s stops not in shape %s", nb_ignored, shape)
                 if nb_ignored > 0:
-                    logging.info("Keep %s stops", len())
-
-
-            logging.info("OK")
+                    logging.info("Keep %s stops", len(all_stops[mis.id]))
         except Exception as e:
             logging.error("get_stops request to <%s> failed: %s", mis.api_url, e)
             # TODO: do we delete all stops from this MIS?
