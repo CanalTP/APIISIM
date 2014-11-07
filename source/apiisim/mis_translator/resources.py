@@ -16,12 +16,12 @@ from apiisim.common.marshalling import DATE_FORMAT, marshal, itinerary_response_
 from apiisim.common.mis_capabilities import CapabilitiesResponseType
 from apiisim.common.mis_collect_stops import StopsResponseType, \
     PublicationDeliveryType, dataObjectsType, CompositeFrameType, framesType, SiteFrameType, stopPlacesType
-from mis_api.base import MisApiException
+from mis_api import MisApiException
 
 
 # Lists of enabled Mis APIs modules
 MIS_APIS_AVAILABLE = frozenset(["transilien", "sncf_national", "champagne_ardenne", "pays_de_la_loire",
-                                "bretagne","bourgogne"])
+                                "bretagne", "bourgogne"])
 
 STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien", "stub_transilien_light",
                                      "stub_sncf_national",
@@ -41,9 +41,15 @@ def load_mis_apis(config):
     global mis_api_config
 
     mis_api_config = config
-    to_load = [("mis_api", MIS_APIS_AVAILABLE)]
-    if mis_api_config.getboolean("General", "enable_stub_mis_apis"):
-        to_load.append(("mis_api.stub", STUB_MIS_APIS_AVAILABLE))
+
+    if not mis_api_config.has_section("MisApi"):
+        return
+
+    to_load = []
+    for raw in mis_api_config.items("MisApi"):
+        package = raw[0]
+        mis_items = mis_api_config.get("MisApi", package).replace(" ", "").split(",")
+        to_load.append(("mis_api.%s" % package, mis_items))
 
     for package, mis_items in to_load:
         try:
@@ -244,6 +250,35 @@ class RequestProcessor(object):
         return Response(answer_json, status=resp_code, mimetype='application/json')
 
 
+class CapabilitiesRequestProcessor(RequestProcessor):
+    def _mis_request(self, params):
+        capabilities = self._mis.get_capabilities()
+        self._resp.MultipleStartsAndArrivals = capabilities.multiple_starts_and_arrivals
+        self._resp.GeographicPositionCompliant = capabilities.geographic_position_compliant
+
+    def _new_response(self):
+        return CapabilitiesResponseType()
+
+    def _marshal_response(self):
+        return {'CapabilitiesResponse': marshal(self._resp, capabilities_response_type)}
+
+
+class StopsRequestProcessor(RequestProcessor):
+    def _mis_request(self, params):
+        self._resp.PublicationDelivery = PublicationDeliveryType()
+        self._resp.PublicationDelivery.dataObjects = dataObjectsType()
+        self._resp.PublicationDelivery.dataObjects.CompositeFrame = CompositeFrameType()
+        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames = framesType()
+        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames.SiteFrame = SiteFrameType()
+        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames.SiteFrame.stopPlaces = self._mis.get_stops()
+
+    def _new_response(self):
+        return StopsResponseType()
+
+    def _marshal_response(self):
+        return {'StopsResponse': marshal(self._resp, stops_response_type)}
+
+
 class ItineraryRequestProcessor(RequestProcessor):
     def _parse_request(self):
         return parse_itinerary_request(self._request)
@@ -292,46 +327,17 @@ class SummedUpItinerariesRequestProcessor(RequestProcessor):
 
     def _marshal_response(self):
         return {'SummedUpItinerariesResponse':
-                marshal(self._resp, summed_up_itineraries_response_type)}
-
-
-class StopsRequestProcessor(RequestProcessor):
-    def _mis_request(self, params):
-        self._resp.PublicationDelivery = PublicationDeliveryType()
-        self._resp.PublicationDelivery.dataObjects = dataObjectsType()
-        self._resp.PublicationDelivery.dataObjects.CompositeFrame = CompositeFrameType()
-        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames = framesType()
-        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames.SiteFrame = SiteFrameType()
-        self._resp.PublicationDelivery.dataObjects.CompositeFrame.frames.SiteFrame.stopPlaces = self._mis.get_stops()
-
-    def _new_response(self):
-        return StopsResponseType()
-
-    def _marshal_response(self):
-        return {'StopsResponse': marshal(self._resp, stops_response_type)}
-
-
-class CapabilitiesRequestProcessor(RequestProcessor):
-    def _mis_request(self, params):
-        capabilities = self._mis.get_capabilities()
-        self._resp.MultipleStartsAndArrivals = capabilities.multiple_starts_and_arrivals
-        self._resp.GeographicPositionCompliant = capabilities.geographic_position_compliant
-
-    def _new_response(self):
-        return CapabilitiesResponseType()
-
-    def _marshal_response(self):
-        return {'CapabilitiesResponse': marshal(self._resp, capabilities_response_type)}
-
-
-class Stops(Resource):
-    def get(self, mis_name=""):
-        return StopsRequestProcessor(mis_name, request).process()
+                    marshal(self._resp, summed_up_itineraries_response_type)}
 
 
 class Capabilities(Resource):
     def get(self, mis_name=""):
         return CapabilitiesRequestProcessor(mis_name, request).process()
+
+
+class Stops(Resource):
+    def get(self, mis_name=""):
+        return StopsRequestProcessor(mis_name, request).process()
 
 
 class Itineraries(Resource):

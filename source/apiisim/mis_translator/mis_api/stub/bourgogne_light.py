@@ -1,5 +1,5 @@
 import os
-from stub_base import MisApi as StubApi
+from base import MisApi as StubApi
 
 NAME = "stub_bourgogne_light"
 

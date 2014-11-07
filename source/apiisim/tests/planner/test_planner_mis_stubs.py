@@ -6,16 +6,19 @@ from apiisim.common.plan_trip import PlanTripRequestType, LocationStructure
 from apiisim import metabase
 from datetime import datetime, timedelta, date as date_type
 from sqlalchemy import or_, and_
-from sqlalchemy.orm import aliased
 
 
-TEST_DIR = os.path.dirname(os.path.realpath(__file__)) + "/"
+TEST_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "")
 
 
 class _TestPlannerMisStubsBase(unittest.TestCase):
     MIS_TRANSLATOR_CONF_CONTENT = \
-                    ("[General]\n"
-                     "enable_stub_mis_apis = true\n")
+        ("[General]\n"
+         "enable_stub_mis_apis = true\n")
+    DB_POPULATE_SCRIPT = ""
+
+    EXPECTED_TRACES = []
+    MAX_TRACE_LENGTH = 3
 
     def setUp(self):
         try:
@@ -30,9 +33,8 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
         self._mis_translator_process = tests.launch_mis_translator(mis_translator_conf_file)
 
         tests.launch_back_office(TEST_DIR + "test_planner_mis_stubs.conf")
-        self._planner = Planner("postgresql+psycopg2://%s:%s@localhost/%s" % \
+        self._planner = Planner("postgresql+psycopg2://%s:%s@localhost/%s" %
                                 (tests.ADMIN_NAME, tests.ADMIN_PASS, tests.DB_NAME))
-
 
     def _check_trip(self, request):
         db_session = self._planner.create_db_session()
@@ -41,9 +43,9 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
         traces = calculator.compute_traces()
         logging.debug("TRACES: %s", traces)
         self.assertEquals(traces, self.EXPECTED_TRACES)
-        departure_mises = [MisApi(db_session, x).get_name() for x in \
+        departure_mises = [MisApi(db_session, x).get_name() for x in
                            calculator._get_surrounding_mises(request.Departure.Position, date_type.today())]
-        arrival_mises = [MisApi(db_session, x).get_name() for x in \
+        arrival_mises = [MisApi(db_session, x).get_name() for x in
                          calculator._get_surrounding_mises(request.Arrival.Position, date_type.today())]
         for t in traces:
             full_trip = calculator.compute_trip(t)
@@ -61,13 +63,13 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
 
             # Check that returned departure/arrival points are the same as those
             # requested.
-            self.assertEquals(full_trip[0][1].Departure.TripStopPlace.Position.Longitude, \
+            self.assertEquals(full_trip[0][1].Departure.TripStopPlace.Position.Longitude,
                               request.Departure.Position.Longitude)
-            self.assertEquals(full_trip[0][1].Departure.TripStopPlace.Position.Latitude, \
+            self.assertEquals(full_trip[0][1].Departure.TripStopPlace.Position.Latitude,
                               request.Departure.Position.Latitude)
-            self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Longitude, \
+            self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Longitude,
                               request.Arrival.Position.Longitude)
-            self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Latitude, \
+            self.assertEquals(full_trip[-1][1].Arrival.TripStopPlace.Position.Latitude,
                               request.Arrival.Position.Latitude)
 
             # Check that departure/arrival MISes are correct.
@@ -82,21 +84,20 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
                 a = arrivals[i]
                 d = departures[i + 1]
                 s1 = db_session.query(metabase.Stop) \
-                               .filter_by(code=d) \
-                               .subquery()
+                    .filter_by(code=d) \
+                    .subquery()
                 s2 = db_session.query(metabase.Stop) \
-                               .filter_by(code=a) \
-                               .subquery()
+                    .filter_by(code=a) \
+                    .subquery()
                 self.assertTrue(
-                    db_session.query(metabase.Transfer) \
-                              .filter(or_(and_(metabase.Transfer.stop1_id == s1.c.id,
-                                               metabase.Transfer.stop2_id == s2.c.id),
-                                          and_(metabase.Transfer.stop1_id == s2.c.id,
-                                               metabase.Transfer.stop2_id == s1.c.id))) \
-                              .count() > 0)
+                    db_session.query(metabase.Transfer)
+                    .filter(or_(and_(metabase.Transfer.stop1_id == s1.c.id,
+                                     metabase.Transfer.stop2_id == s2.c.id),
+                                and_(metabase.Transfer.stop1_id == s2.c.id,
+                                     metabase.Transfer.stop2_id == s1.c.id)))
+                    .count() > 0)
 
             self._planner.remove_db_session(db_session)
-
 
     def _new_request(self):
         request = PlanTripRequestType(clientRequestId="test_id")
@@ -111,19 +112,17 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
 
         return request
 
-    def testDepartureAt(self):
+    def test_departure_at(self):
         request = self._new_request()
         request.DepartureTime = datetime.now()
 
         self._check_trip(request)
 
-
-    def testArrivalAt(self):
+    def test_arrival_at(self):
         request = self._new_request()
         request.ArrivalTime = datetime.now() + timedelta(hours=10)
 
         self._check_trip(request)
-
 
     def tearDown(self):
         tests.terminate_mis_translator(self._mis_translator_process)
@@ -139,6 +138,7 @@ class TestPlannerMisStubs3Mis(_TestPlannerMisStubsBase):
     EXPECTED_TRACES = [[1, 3], [2, 3], [2, 1, 3]]
     MAX_TRACE_LENGTH = 3
 
+
 class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs_4_mis.sql"
     EXPECTED_TRACES = [[4], [1, 3], [1, 4], [1, 2, 3], [1, 2, 4],
@@ -148,6 +148,7 @@ class TestPlannerMisStubs4Mis(_TestPlannerMisStubsBase):
                        [4, 1, 2, 3], [4, 2, 3], [4, 2, 1, 3]]
     MAX_TRACE_LENGTH = 4
 
+
 class _TestPlannerMisStubs3MisLight(_TestPlannerMisStubsBase):
     DB_POPULATE_SCRIPT = TEST_DIR + "test_planner_mis_stubs_light.sql"
     MAX_TRACE_LENGTH = 3
@@ -155,17 +156,17 @@ class _TestPlannerMisStubs3MisLight(_TestPlannerMisStubsBase):
 
 class TestPlannerMisStubsEmptyTrips(TestPlannerMisStubs3Mis):
     MIS_TRANSLATOR_CONF_CONTENT = \
-                    ("[General]\n"
-                     "enable_stub_mis_apis = true\n"
-                     "[Stub]\n"
-                     "stub_mis_api_class = _EmptyTripsMisApi")
+        ("[General]\n"
+         "enable_stub_mis_apis = true\n"
+         "[Stub]\n"
+         "stub_mis_api_class = _EmptyTripsMisApi")
 
 # class TestPlannerMisStubsSwitchPoints(TestPlannerMisStubs3Mis):
-#     MIS_TRANSLATOR_CONF_CONTENT = \
-#                     ("[General]\n" \
-#                     "enable_stub_mis_apis = true\n" \
-#                     "[Stub]\n" \
-#                     "stub_mis_api_class = _SwitchPointsMisApi")
+# MIS_TRANSLATOR_CONF_CONTENT = \
+# ("[General]\n" \
+# "enable_stub_mis_apis = true\n" \
+# "[Stub]\n" \
+# "stub_mis_api_class = _SwitchPointsMisApi")
 
 # class TestPlannerMisStubsSwitchTimes(TestPlannerMisStubs3Mis):
 #     MIS_TRANSLATOR_CONF_CONTENT = \
@@ -193,6 +194,8 @@ class TestPlannerMisStubsEmptyTrips(TestPlannerMisStubs3Mis):
 """
     Check that planner responses match reference dump files.
 """
+
+
 class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
     EXPECTED_TRACES = [[3, 1], [3, 2], [3, 1, 2]]
 
@@ -224,7 +227,7 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
                 self.assertEquals(ref_content.strip(), json.dumps(notif.marshal()).strip(),
                                   "MIS response doesn't match ref_file '%s'" % ref_file)
 
-    def testDepartureAt(self):
+    def test_departure_at(self):
         request = self._new_request()
         request.DepartureTime = datetime(year=2014, month=10, day=23, hour=11, minute=20)
 
@@ -232,17 +235,15 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
                                    "departure_at_dump1_2.json",
                                    "departure_at_dump1_3.json"], 3)
 
-
-    def testArrivalAt(self):
+    def test_arrival_at(self):
         request = self._new_request()
-        request.ArrivalTime = datetime(year=2014, month=10, day=23, hour=11, minute=20) \
-                              + timedelta(hours=10)
+        request.ArrivalTime = datetime(year=2014, month=10, day=23, hour=11, minute=20) + timedelta(hours=10)
 
         self._check_trip(request, ["arrival_at_dump1_1.json",
                                    "arrival_at_dump1_2.json",
                                    "arrival_at_dump1_3.json"], 3)
 
-    def testDepartureAt2(self):
+    def test_departure_at_bis(self):
         request = self._new_request()
         request.DepartureTime = datetime(year=2014, month=10, day=23, hour=11, minute=20)
 
@@ -250,11 +251,9 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
                                    "departure_at_dump2_2.json",
                                    "departure_at_dump2_3.json"], 10)
 
-
-    def testArrivalAt2(self):
+    def test_arrival_at_bis(self):
         request = self._new_request()
-        request.ArrivalTime = datetime(year=2014, month=10, day=23, hour=11, minute=20) \
-                              + timedelta(hours=10)
+        request.ArrivalTime = datetime(year=2014, month=10, day=23, hour=11, minute=20) + timedelta(hours=10)
 
         self._check_trip(request, ["arrival_at_dump2_1.json",
                                    "arrival_at_dump2_2.json",
@@ -268,15 +267,17 @@ class TestPlannerMisStubsDumpMatch(TestPlannerMisStubs3Mis):
     it would therefore lead to duplicated points if the planner didn't care 
     to remove them.
 """
+
+
 class TestPlannerMisStubsDuplicatedPoints(_TestPlannerMisStubs3MisLight):
-    EXPECTED_TRACES = [[1], [2], [3], [1, 2], [1, 3], [1, 2, 3], [1, 3, 2], [2, 1], 
+    EXPECTED_TRACES = [[1], [2], [3], [1, 2], [1, 3], [1, 2, 3], [1, 3, 2], [2, 1],
                        [2, 3], [2, 1, 3], [2, 3, 1], [3, 1], [3, 2], [3, 1, 2], [3, 2, 1]]
 
     MIS_TRANSLATOR_CONF_CONTENT = \
-                    ("[General]\n"
-                     "enable_stub_mis_apis = true\n"
-                     "[Stub]\n"
-                     "stub_mis_api_class = _ConsistencyChecksMisApi")
+        ("[General]\n"
+         "enable_stub_mis_apis = true\n"
+         "[Stub]\n"
+         "stub_mis_api_class = _ConsistencyChecksMisApi")
 
     def _new_request(self):
         request = PlanTripRequestType(clientRequestId="test_id")
