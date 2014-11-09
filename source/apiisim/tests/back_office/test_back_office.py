@@ -47,16 +47,12 @@ Test suite for metabase and back_office components
 
 class TestBackOffice(unittest.TestCase):
     def setUp(self):
-        try:
-            tests.drop_db()
-        except:
-            pass
+        tests.drop_db()
         tests.create_db()
         self.db_session = tests.connect_db()
 
     def tearDown(self):
         tests.disconnect_db(self.db_session)
-        tests.drop_db()
 
     def add_mis(self, name="mis", url="mis_url"):
         mis = metabase.Mis()

@@ -15,13 +15,12 @@ from apiisim import metabase
 if platform.system() == "Windows":
     CREATE_DB_SCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "metabase", "sql_scripts",
                                     "create_db.cmd")
-    MIS_TRANSLATOR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "mis_translator", "run.py")
-    BACK_OFFICE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "back_office", "run.py")
 else:
     CREATE_DB_SCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "metabase", "sql_scripts",
                                     "create_db.sh")
-    MIS_TRANSLATOR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "mis_translator", "run.py")
-    BACK_OFFICE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "back_office", "run.py")
+
+MIS_TRANSLATOR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "mis_translator", "run.py")
+BACK_OFFICE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "back_office", "run.py")
 
 DB_NAME = "test_db"
 USER_NAME = "test_user"
@@ -85,9 +84,9 @@ def drop_db(db_name=DB_NAME, user_name=USER_NAME, admin_name=ADMIN_NAME,
             admin_password=ADMIN_PASS):
     os.environ["PGPASSWORD"] = admin_password
     subprocess.call(['psql', '-U', admin_name, '-h', 'localhost',
-                     '-c', 'DROP DATABASE %s' % db_name])
+                     '-c', 'DROP DATABASE IF EXISTS %s' % db_name])
     subprocess.call(['psql', '-U', admin_name, '-h', 'localhost',
-                     '-c', 'DROP USER %s' % user_name])
+                     '-c', 'DROP USER IF EXISTS %s' % user_name])
 
 
 def connect_db(db_name=DB_NAME, user_name=ADMIN_NAME, user_password=ADMIN_PASS):

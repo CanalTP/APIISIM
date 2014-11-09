@@ -19,15 +19,6 @@ from apiisim.common.mis_collect_stops import StopsResponseType, \
 from mis_api import MisApiException
 
 
-# Lists of enabled Mis APIs modules
-MIS_APIS_AVAILABLE = frozenset(["transilien", "sncf_national", "champagne_ardenne", "pays_de_la_loire",
-                                "bretagne", "bourgogne"])
-
-STUB_MIS_APIS_AVAILABLE = frozenset(["stub_transilien", "stub_transilien_light",
-                                     "stub_sncf_national",
-                                     "stub_pays_de_la_loire", "stub_pays_de_la_loire_light",
-                                     "stub_bourgogne", "stub_bourgogne_light",
-                                     "stub_back_office_test1", "stub_back_office_test2"])
 mis_api_mapping = {}  # Mis name : MisApi Class
 mis_api_config = None
 
@@ -326,8 +317,7 @@ class SummedUpItinerariesRequestProcessor(RequestProcessor):
                 options=params.options)
 
     def _marshal_response(self):
-        return {'SummedUpItinerariesResponse':
-                    marshal(self._resp, summed_up_itineraries_response_type)}
+        return {'SummedUpItinerariesResponse': marshal(self._resp, summed_up_itineraries_response_type)}
 
 
 class Capabilities(Resource):

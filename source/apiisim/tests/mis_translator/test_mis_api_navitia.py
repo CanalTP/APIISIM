@@ -9,7 +9,7 @@ from apiisim.common import AlgorithmEnum, TransportModeEnum
 from apiisim.common.plan_trip import LocationStructure
 from apiisim.common.mis_plan_trip import ItineraryResponseType
 from apiisim.common.mis_plan_summed_up_trip import SummedUpItinerariesResponseType, LocationContextType
-from apiisim.mis_translator.mis_api.navitia import base as navitia_base
+from apiisim.mis_translator.mis_api.navitia import base as navitia
 
 
 TEST_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "")
@@ -30,7 +30,7 @@ class TestNavitia(unittest.TestCase):
         return js
 
     def test_parse_endpoint(self):
-        endpoint = navitia_base.parse_end_point(self._json_from_file("endpoint1.json"))
+        endpoint = navitia.parse_end_point(self._json_from_file("endpoint1.json"))
         self.assertEquals(endpoint.TripStopPlace.id, "2.3468313805225653;48.859484964845606")
         self.assertEquals(endpoint.TripStopPlace.Name, "9 Rue des Halles (Paris)")
         self.assertEquals(endpoint.TripStopPlace.CityCode, "admin:7444")
@@ -39,7 +39,7 @@ class TestNavitia(unittest.TestCase):
         self.assertEquals(endpoint.TripStopPlace.Position.Longitude, "2.3468313805225653")
 
     def test_parse_stop_times(self):
-        steps = navitia_base.parse_stop_times(self._json_from_file("stoptimes1.json"))
+        steps = navitia.parse_stop_times(self._json_from_file("stoptimes1.json"))
 
         # print len(steps)
         # step = steps[8]
@@ -97,7 +97,7 @@ class TestNavitia(unittest.TestCase):
         self.assertEquals(steps[16].Duration, timedelta(0, 360))
 
     def test_journey2summed_up_trip(self):
-        trip = navitia_base.journey_to_summed_up_trip(self._json_from_file("journey1.json"))
+        trip = navitia.journey_to_summed_up_trip(self._json_from_file("journey1.json"))
 
         # print trip.InterchangeCount
         # print trip.Departure.TripStopPlace.id
@@ -126,14 +126,14 @@ class TestNavitia(unittest.TestCase):
         self.assertEquals(trip.InterchangeDuration, 1886)
 
     def test_journey2str(self):
-        txt = navitia_base.journey_to_str(self._json_from_file("journey1.json"))
+        txt = navitia.journey_to_str(self._json_from_file("journey1.json"))
         self.assertEquals(txt,
                           "From: 2.3468313805225653;48.859484964845606 | To: stop_area:DUA:SA:8738664 "
                           "| Departure: 20140930T034953 | Arrival: 20140930T064600 | Duration: 10567 "
                           "| Nb_transfers: 3 | Type: best")
 
     def test_journey2detailed_trip(self):
-        trip = navitia_base.journey_to_detailed_trip(self._json_from_file("journey1.json"))
+        trip = navitia.journey_to_detailed_trip(self._json_from_file("journey1.json"))
 
         # print trip.Duration
         # print trip.Distance
@@ -243,7 +243,7 @@ class TestNavitia(unittest.TestCase):
         self.assertEquals(trip.sections[6].Leg.SelfDriveMode, "foot")
 
 
-class VirtualMisApi(navitia_base.MisApi):
+class VirtualMisApi(navitia.MisApi):
     def __init__(self):
         super(VirtualMisApi, self).__init__(None)
         self._api_url = "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/test/"

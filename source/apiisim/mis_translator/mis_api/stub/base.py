@@ -9,9 +9,8 @@
         - one that returns shortest itineraries based on "as the crow flies"
           distance between stop points (using PostGIS). Although simplistic, it
           provides much more meaningful results than the random stub.
-            -> _SimpleMisApi
-        - some faulty implementations, with various error cases. They are useful
-          for unit tests.
+            -> _CrowFliesMisApi
+        - other implementations, useful for some testing cases.
 """
 import json
 import logging
@@ -94,7 +93,7 @@ def create_db(db_name):
     # just ignore it.
     try:
         conn.execute("COMMIT")
-        conn.execute("DROP DATABASE %s" % db_name)
+        conn.execute("DROP DATABASE IF EXISTS %s" % db_name)
     except:
         pass
 
@@ -176,76 +175,6 @@ def location_to_end_point(location, departure_time=None, arrival_time=None):
     return ret
 
 
-class _StubMisApi(object):
-    _initialized_databases = set([])
-
-    def __init__(self, stops_file, stops_field, db_name):
-        if not (db_name in self._initialized_databases):
-            create_db(db_name)
-            populate_db(db_name, stops_file, stops_field)
-            self.__class__._initialized_databases.add(db_name)
-        self._db_session = connect_db(db_name)
-
-    def _generate_detailed_trip(self, departures, arrivals, departure_time, arrival_time):
-        return None
-
-    def _generate_summed_up_trip(self, departures, arrivals, departure_time, arrival_time):
-        return None
-
-    def get_stops(self):
-        ret = []
-        stops = self._db_session.query(DbStop).all()
-        for s in stops:
-            ret.append(
-                StopPlaceType(
-                    id=s.id,
-                    quays=[QuayType(
-                        id=s.id,
-                        Name=s.name,
-                        PrivateCode=s.code,
-                        Centroid=CentroidType(
-                            Location=LocationStructure(
-                                Longitude=s.long,
-                                Latitude=s.lat)))]))
-
-        return ret
-
-    def get_capabilities(self):
-        return MisCapabilities(True, True, [TransportModeEnum.ALL])
-
-    def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
-                      algorithm, modes, self_drive_conditions,
-                      accessibility_constraint, language, options):
-        return self._generate_detailed_trip(departures, arrivals, departure_time, arrival_time)
-
-    def get_summed_up_itineraries(self, departures, arrivals, departure_time,
-                                  arrival_time, algorithm,
-                                  modes, self_drive_conditions,
-                                  accessibility_constraint,
-                                  language, options):
-        ret = []
-        if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in options:
-            for d in departures:
-                for a in arrivals:
-                    ret.append(self._generate_summed_up_trip([d], [a], departure_time, arrival_time))
-        else:
-            if departure_time:
-                for a in arrivals:
-                    ret.append(self._generate_summed_up_trip(departures, [a], departure_time, None))
-            else:
-                for d in departures:
-                    ret.append(self._generate_summed_up_trip([d], arrivals, None, arrival_time))
-
-        logging.debug("Summed up trips (%s) : %s", len(ret), ret)
-
-        return ret
-
-    def __del__(self):
-        if self._db_session:
-            self._db_session.close()
-            self._db_session.bind.dispose()
-
-
 def generate_section(leg=False):
     ret = SectionType()
 
@@ -307,6 +236,71 @@ def generate_section(leg=False):
     return ret
 
 
+class _StubMisApi(object):
+    _initialized_databases = set([])
+
+    def __init__(self, stops_file, stops_field, db_name):
+        if not (db_name in self._initialized_databases):
+            create_db(db_name)
+            populate_db(db_name, stops_file, stops_field)
+            self.__class__._initialized_databases.add(db_name)
+        self._db_session = connect_db(db_name)
+
+    def __del__(self):
+        if self._db_session:
+            self._db_session.close()
+            self._db_session.bind.dispose()
+
+    def _generate_detailed_trip(self, departures, arrivals, departure_time, arrival_time):
+        return None
+
+    def _generate_summed_up_trip(self, departures, arrivals, departure_time, arrival_time):
+        return None
+
+    def get_capabilities(self):
+        return MisCapabilities(True, True, [TransportModeEnum.ALL])
+
+    def get_stops(self):
+        ret = []
+        stops = self._db_session.query(DbStop).all()
+        for s in stops:
+            ret.append(
+                StopPlaceType(
+                    id=s.id,
+                    quays=[QuayType(
+                        id=s.id,
+                        Name=s.name,
+                        PrivateCode=s.code,
+                        Centroid=CentroidType(
+                            Location=LocationStructure(
+                                Longitude=s.long,
+                                Latitude=s.lat)))]))
+
+        return ret
+
+    def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
+                      algorithm, modes, self_drive_conditions,
+                      accessibility_constraint, language, options):
+        return self._generate_detailed_trip(departures, arrivals, departure_time, arrival_time)
+
+    def get_summed_up_itineraries(self, departures, arrivals, departure_time,
+                                  arrival_time, algorithm,
+                                  modes, self_drive_conditions,
+                                  accessibility_constraint,
+                                  language, options):
+        ret = []
+        if departure_time:
+            for a in arrivals:
+                ret.append(self._generate_summed_up_trip(departures, [a], departure_time, None))
+        else:
+            for d in departures:
+                ret.append(self._generate_summed_up_trip([d], arrivals, None, arrival_time))
+
+        logging.debug("Summed up trips (%s) : %s", len(ret), ret)
+
+        return ret
+
+
 # Return random itineraries.
 class _RandomMisApi(_StubMisApi):
     def _generate_detailed_trip(self, departures, arrivals, departure_time, arrival_time):
@@ -356,7 +350,7 @@ class _RandomMisApi(_StubMisApi):
 
 
 # Return itineraries based on "as the crow flies" distance between stops.
-class _SimpleMisApi(_StubMisApi):
+class _CrowFliesMisApi(_StubMisApi):
     # Return closest location to loc.
     def _get_closest_location(self, loc, locations):
         distances = []  # [(LocationContextType, distance to loc (in meters))]
@@ -366,6 +360,7 @@ class _SimpleMisApi(_StubMisApi):
                 .subquery().c.geog
         else:
             geog1 = StGeogFromText('POINT(%s %s)' % (loc.Position.Longitude, loc.Position.Latitude))
+            print "ici2"
         for l in locations:
             if l.PlaceTypeId:
                 geog2 = self._db_session.query(metabase.Stop.geog) \
@@ -446,11 +441,11 @@ class _SimpleMisApi(_StubMisApi):
         return ret
 
 
-class _EmptyTripsMisApi(_SimpleMisApi):
-    # Used by unit test to simulate replies where no itinerary is found for some
-    # departure/arrival pairs.
+# Used by unit test to simulate replies where no itinerary is found for some
+# departure/arrival pairs.
+class _IncompleteCrowFliesMisApi(_CrowFliesMisApi):
     def get_summed_up_itineraries(self, *args, **kwargs):
-        trips = super(_EmptyTripsMisApi, self).get_summed_up_itineraries(*args, **kwargs)
+        trips = super(_IncompleteCrowFliesMisApi, self).get_summed_up_itineraries(*args, **kwargs)
         if trips:
             i = randint(0, len(trips) - 1)
             logging.debug("Deleting trip %s %s", trips[i].Departure.TripStopPlace.id,
@@ -458,22 +453,6 @@ class _EmptyTripsMisApi(_SimpleMisApi):
             trips.pop(i)
 
         return trips
-
-
-class _ConsistencyChecksMisApi(_SimpleMisApi):
-    def get_summed_up_itineraries(self, departures, arrivals, departure_time,
-                                  arrival_time, algorithm, modes, self_drive_conditions,
-                                  accessibility_constraint, language, options):
-        departures_ids = [x.PlaceTypeId for x in departures]
-        arrivals_ids = [x.PlaceTypeId for x in arrivals]
-        if (len(departures_ids) != len(set(departures_ids))) \
-                or (len(arrivals_ids) != len(set(arrivals_ids))):
-            raise Exception("Duplicated departure/arrival point")
-
-        return super(_ConsistencyChecksMisApi, self).get_summed_up_itineraries(
-            departures, arrivals, departure_time, arrival_time,
-            algorithm, modes, self_drive_conditions,
-            accessibility_constraint, language, options)
 
 
 # This class is a factory that instantiates a particular MIS API class based on
@@ -490,19 +469,18 @@ class MisApi(object):
         global DB_ADMIN_NAME
         global DB_ADMIN_PASS
 
-        if not config.has_section("Stub"):
-            mis_api_class = "_SimpleMisApi"
-        else:
+        # default MisApi class
+        mis_api_class = "CrowFlies"
+
+        if config.has_section("Stub"):
             if config.has_option('Stub', 'db_admin_name'):
                 DB_ADMIN_NAME = config.get('Stub', 'db_admin_name')
             if config.has_option('Stub', 'db_admin_pass'):
                 DB_ADMIN_PASS = config.get('Stub', 'db_admin_pass')
             if config.has_option('Stub', 'stub_mis_api_class'):
                 mis_api_class = config.get('Stub', 'stub_mis_api_class')
-            else:
-                mis_api_class = "_SimpleMisApi"
 
-        return eval(mis_api_class)(cls._STOPS_FILE, cls._STOPS_FIELD, cls._DB_NAME)
+        return eval("_%sMisApi" % mis_api_class)(cls._STOPS_FILE, cls._STOPS_FIELD, cls._DB_NAME)
 
     def __init__(self, config, api_key=""):
         pass

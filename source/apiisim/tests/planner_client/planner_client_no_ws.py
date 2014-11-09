@@ -4,12 +4,16 @@ import json
 import logging
 import sys
 
-from jsonschema import validate, Draft4Validator
+from jsonschema import Draft4Validator
 
-from websocket import create_connection
-from apiisim.common.marshalling import marshal, plan_trip_request_type
 from apiisim.common import formats
+from apiisim.common.plan_trip import StartingSearch, EndingSearch, PlanTripNotificationResponseType, \
+    PlanTripCancellationRequest, PlanTripExistenceNotificationResponseType, PlanTripResponse
+
+from apiisim.planner import Planner
+from apiisim.planner.planner_process import PlannerProcessHandler
 from apiisim.tests.planner_client import *
+
 
 def init_logging():
     handler = logging.StreamHandler(stream=sys.stdout)
@@ -20,45 +24,21 @@ def init_logging():
     root_logger.addHandler(handler)
 
 
-def receive_msg(connection):
-    ret = connection.recv()
-    logging.debug("Received: \n%s" % ret)
-    ret = json.loads(ret)
-
-    return ret
-
-
 def test(plan_trip_request):
-    logging.info("Starting test")
-    logging.info("Opening connection")
-    ws = create_connection("ws://localhost/planner")
+    planner = Planner("postgresql+psycopg2://postgres:postgres@localhost/afimb_stubs_db")
+    runner = PlannerProcessHandler(planner, plan_trip_request)
+    runner.process()
 
-    data = json.dumps({"PlanTripRequestType": marshal(plan_trip_request, plan_trip_request_type)})
-    logging.info("Send: %s" % data)
-    ws.send(data)
-
-    msg = receive_msg(ws)
-    validate(msg["PlanTripResponse"], formats.plan_trip_response_format)
-
-    msg = receive_msg(ws)
-    validate(msg["StartingSearch"], formats.starting_search_format)
-
+    print
+    print "Notifications received:"
     while True:
-        msg = receive_msg(ws)
-        if "PlanTripExistenceNotificationResponseType" in msg:
-            validate(msg["PlanTripExistenceNotificationResponseType"],
-                     formats.plan_trip_existence_notification_format)
-        elif "PlanTripNotificationResponseType" in msg:
-            validate(msg["PlanTripNotificationResponseType"],
-                     formats.plan_trip_notification_response_format)
-        elif "EndingSearch" in msg:
-            validate(msg["EndingSearch"], formats.ending_search_format)
-            ws.close()
-            break
-        else:
-            raise Exception("FAIL: Unexpected message: %s" % msg)
-
-    logging.info("End of test: success")
+        print
+        notification = runner._notif_queue.get()
+        print json.dumps(notification.marshal())
+        runner._notif_queue.task_done()
+        if isinstance(notification, EndingSearch):
+            return
+    print
 
 
 if __name__ == '__main__':
@@ -83,4 +63,4 @@ if __name__ == '__main__':
     Draft4Validator.check_schema(formats.composed_trip_format)
     Draft4Validator.check_schema(formats.plan_trip_notification_response_format)
 
-    test(trip_paris_reims())
+    test(trip_orly_reims())

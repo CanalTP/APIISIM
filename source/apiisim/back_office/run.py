@@ -183,13 +183,24 @@ def retrieve_all_stops(db_session, stats):
         try:
             logging.info("From <%s>...", mis.name)
             all_stops[mis.id] = MisApi(mis.api_url, mis.api_key).get_stops()
-            logging.info("Get %s stops", len(all_stops[mis.id]))
+            count_stops = len(all_stops[mis.id])
+            logging.info("Get %s stops", count_stops)
+
+            # Ignore stops with no coordinates
+            nb_ignored = 0
+            stops = copy(all_stops[mis.id])
+            for s in stops:
+                if s.lat == 0 and s.long == 0:
+                    nb_ignored += 1
+                    all_stops[mis.id].remove(s)
+            if nb_ignored > 0:
+                logging.info("Ignored %s stops with no coordinates", nb_ignored)
 
             shape = MisApi(mis.api_url, mis.api_key).get_shape(mis.name)
             if shape:
                 # Check if stops are included in MIS shape
-                stops = copy(all_stops[mis.id])
                 nb_ignored = 0
+                stops = copy(all_stops[mis.id])
                 for s in stops:
                     intersect = db_session.query(ST_Intersects(
                         StGeogFromText('POINT(%s %s)' % (s.long, s.lat)),
@@ -198,8 +209,9 @@ def retrieve_all_stops(db_session, stats):
                         nb_ignored += 1
                         all_stops[mis.id].remove(s)
                 logging.info("Ignored %s stops not in shape %s", nb_ignored, shape)
-                if nb_ignored > 0:
-                    logging.info("Keep %s stops", len(all_stops[mis.id]))
+
+            if count_stops > len(all_stops[mis.id]):
+                logging.info("Keep %s stops", len(all_stops[mis.id]))
         except Exception as e:
             logging.error("get_stops request to <%s> failed: %s", mis.api_url, e)
             # TODO: do we delete all stops from this MIS?
@@ -223,9 +235,6 @@ def retrieve_all_stops(db_session, stats):
 
         stop_codes = []
         for s in all_stops[mis_id]:
-            # Ignore stops with no coordinates
-            if s.lat == 0 and s.long == 0:
-                continue
             stop_codes.append(s.code)
 
         db_stop_codes = set(db_stop_codes)
@@ -372,8 +381,8 @@ def compute_transfers(db_session, transfer_max_distance, orig_nb_transfers, stat
         nb_deleted = 0
     logging.info("%s transfers", nb_transfers)
     logging.info("%s new transfers", nb_new)
-    logging.info("%s updated transfers", nb_updated)
     logging.info("%s deleted transfers", nb_deleted)
+    logging.info("%s updated transfers", nb_updated)
 
     stats.nb_transfers = nb_transfers
     stats.nb_new_transfers = nb_new
@@ -420,7 +429,7 @@ def compute_mis_connections(db_session, stats):
         new_mis_connection.mis1_id = mis1_id
         new_mis_connection.mis2_id = mis2_id
         # start_date and end_date attributes are automatically set by SQL triggers
-        # when a new mis_connection is inserted, so need to set them here.
+        # when a new mis_connection is inserted, so no need to set them here.
 
         db_session.add(new_mis_connection)
         logging.info("New mis_connection: %s", new_mis_connection)
@@ -457,16 +466,15 @@ def main():
     init_logging(args.log)
     config = get_config(args)
 
-
-    import_stats = metabase.BackOfficeImport()
-    import_stats.start_date = datetime.datetime.now().isoformat()
-    logging.info("Back Office start: %s", import_stats.start_date)
-
     db_url = config.get('General', 'db_url')
     transfer_max_distance = config.getint('General', 'transfer_max_distance')
     request_mis_capabilities = config.getboolean('General', 'request_mis_capabilities')
     logging.info("db_url: %s", db_url)
     logging.info("transfer_max_distance: %s", transfer_max_distance)
+
+    import_stats = metabase.BackOfficeImport()
+    import_stats.start_date = datetime.datetime.now().isoformat()
+    logging.info("-- Back Office import begin --")
 
     # Create engine used to connect to database
     db_engine = create_engine(db_url, echo=False)
@@ -497,7 +505,7 @@ def main():
         db_session.close()
         db_session.bind.dispose()
 
-    logging.info("Back Office end: %s", import_stats.end_date)
+    logging.info("-- Back Office import end --")
 
 
 if __name__ == '__main__':
