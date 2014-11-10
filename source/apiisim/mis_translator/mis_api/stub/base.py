@@ -181,7 +181,8 @@ def generate_section(leg=False):
     end_point = EndPointType(
         TripStopPlace=TripStopPlaceType(
             id="stop_id",
-            TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION))
+            TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION,
+            Position=LocationStructure(Latitude=0, Longitude=0)))
     ret.PartialTripId = "stub_id"
     if not leg:
         ptr = PTRideType()
@@ -211,7 +212,8 @@ def generate_section(leg=False):
         step_end_point = StepEndPointType(
             TripStopPlace=TripStopPlaceType(
                 id="stop_id",
-                TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION))
+                TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION,
+                Position=LocationStructure(Latitude=0, Longitude=0)))
         for i in range(0, 3):
             step = StepType()
             step.Departure = step_end_point

@@ -428,7 +428,7 @@ class MisApi(object):
 class Planner(object):
     def __init__(self, db_url):
         # Create engine used to connect to database
-        logging.debug("DB_URL: %s", db_url)
+        logging.info("-- Init Planner (DB_URL: %s)", db_url)
         self._db_engine = create_engine(db_url, echo=False)
         # Class that will be instantiated by every thread to create their own 
         # thread-local sessions
@@ -440,6 +440,7 @@ class Planner(object):
         # Not mandatory but a good way to ensure that no connection to the database
         # is kept alive (particularly useful for unit tests).
         self._db_engine.dispose()
+        logging.info("-- Planner shutdown")
 
     def create_db_session(self):
         return self._db_session_factory()

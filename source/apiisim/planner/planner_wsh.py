@@ -171,7 +171,7 @@ class ConnectionHandler(object):
         self._notif_queue = Queue.Queue()
 
     def _send_status(self, status, error=None):
-        logging.info("Sending <%s> status", status)
+        logging.debug("Sending <%s> status", status)
         answer = PlanTripResponse()
         answer.Status = status
         answer.clientRequestId = self._request_id
@@ -182,7 +182,7 @@ class ConnectionHandler(object):
     @log_error
     def process(self):
         request = self._connection.ws_stream.receive_message()
-        logging.debug("REQUEST: \n%s", request)
+        logging.info("-- REQUEST: %s", request)
         # logging.debug(content)
 
         self._notif_thread = NotificationThread(self._connection, self._notif_queue)

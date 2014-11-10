@@ -9,15 +9,17 @@ from jsonschema import validate, Draft4Validator
 from websocket import create_connection
 from apiisim.common.marshalling import marshal, plan_trip_request_type
 from apiisim.common import formats
-from apiisim.tests.planner_client import *
+from apiisim.test_clients.planner_client import TripCollection as Trip
+
 
 def init_logging():
     handler = logging.StreamHandler(stream=sys.stdout)
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-    handler.setFormatter(formatter)
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(handler)
+    if handler:
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        root_logger.addHandler(handler)
 
 
 def receive_msg(connection):
@@ -83,4 +85,4 @@ if __name__ == '__main__':
     Draft4Validator.check_schema(formats.composed_trip_format)
     Draft4Validator.check_schema(formats.plan_trip_notification_response_format)
 
-    test(trip_paris_reims())
+    test(Trip.paris_reims())

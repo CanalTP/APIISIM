@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 
+import os
 import json
 import logging
+from logging import config
 import sys
 
 from jsonschema import Draft4Validator
@@ -12,16 +14,24 @@ from apiisim.common.plan_trip import StartingSearch, EndingSearch, PlanTripNotif
 
 from apiisim.planner import Planner
 from apiisim.planner.planner_process import PlannerProcessHandler
-from apiisim.tests.planner_client import *
+from apiisim.test_clients.planner_client import TripCollection as Trip
 
 
 def init_logging():
-    handler = logging.StreamHandler(stream=sys.stdout)
-    formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-    handler.setFormatter(formatter)
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(handler)
+    handler = None
+
+    config_file = os.path.join(os.path.dirname(__file__), "logging.conf")
+    if os.path.isfile(config_file):
+        logging.config.fileConfig(config_file)
+    else:
+        handler = logging.StreamHandler(stream=sys.stdout)
+
+    if handler:
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        root_logger.addHandler(handler)
 
 
 def test(plan_trip_request):
@@ -29,16 +39,12 @@ def test(plan_trip_request):
     runner = PlannerProcessHandler(planner, plan_trip_request)
     runner.process()
 
-    print
-    print "Notifications received:"
     while True:
-        print
         notification = runner._notif_queue.get()
-        print json.dumps(notification.marshal())
+        logging.info("-- Notification received: %s" % json.dumps(notification.marshal()))
         runner._notif_queue.task_done()
         if isinstance(notification, EndingSearch):
             return
-    print
 
 
 if __name__ == '__main__':
@@ -63,4 +69,4 @@ if __name__ == '__main__':
     Draft4Validator.check_schema(formats.composed_trip_format)
     Draft4Validator.check_schema(formats.plan_trip_notification_response_format)
 
-    test(trip_orly_reims())
+    test(Trip.orly_reims())

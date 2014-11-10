@@ -38,15 +38,17 @@ class WorkerThread(threading.Thread):
 
     @log_error
     def run(self):
-        logging.debug("Worker Thread started")
         trace = self._job_queue.get()
+        logging.info("WorkerThread started on job %s" % trace)
         trip_calculator = PlanTripCalculator(self._planner, self._params, self._notification_queue)
         try:
             trip_calculator.compute_trip(trace)
             self.exit_code = 0
         except Exception as e:
             logging.error("compute_trip(%s): %s\n%s", trace, e, traceback.format_exc())
-        logging.debug("Worker Thread finished")
+
+    def __del__(self):
+        logging.info("WorkerThread finished")
 
 
 class CalculationManager(threading.Thread):
@@ -60,7 +62,7 @@ class CalculationManager(threading.Thread):
 
     @log_error
     def run(self):
-        logging.info("<CalculationManager> thread started")
+        logging.info("CalculationManager thread started")
         job_queue = Queue.Queue()
         i = 0
         workers = []
@@ -78,7 +80,7 @@ class CalculationManager(threading.Thread):
         for w in workers:
             w.join()
         self._termination_queue.put("FINISHED")
-        logging.info("<CalculationManager> thread finished")
+        logging.info("CalculationManager thread finished")
 
 
 class PlannerProcessHandler(object):
@@ -100,7 +102,7 @@ class PlannerProcessHandler(object):
             self._request.Arrival.AccessTime = timedelta()
 
     def _send_status(self, status, error=None):
-        logging.info("Sending <%s> status", status)
+        logging.debug("Sending <%s> status", status)
         answer = PlanTripResponse()
         answer.Status = status
         answer.clientRequestId = self._request_id
@@ -119,7 +121,7 @@ class PlannerProcessHandler(object):
             self._send_status(PlanTripStatusEnum.SERVER_ERROR, error)
             return
 
-        logging.info("MIS TRACES: %s", traces)
+        logging.info("MIS traces: %s", traces)
         self._send_status(PlanTripStatusEnum.OK)
         self._notif_queue.put(StartingSearch(MaxComposedTripSearched=len(traces), RequestId=self._request_id))
 

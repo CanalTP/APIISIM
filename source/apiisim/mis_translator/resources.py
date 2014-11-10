@@ -209,7 +209,7 @@ class RequestProcessor(object):
         logging.info("MIS NAME %s", mis_name)
         logging.info("REQUEST.URL: %s", request.url)
         if request.json:
-            logging.info("REQUEST.JSON: \n%s", request.json)
+            logging.info("REQUEST.JSON: %s", request.json)
 
     def _parse_request(self):
         return None
