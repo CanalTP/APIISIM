@@ -519,6 +519,35 @@ class PlanTripCalculator(object):
                           trip.Departure.DateTime, trip.Arrival.TripStopPlace.id, trip.Arrival.DateTime)
             dummy = resp.summedUpTrips.pop(i)
 
+    def _log_calculation_step(self, mis_name, dep_time, arr_time, lnk_time, log_dep, log_arr, log_lnk, clockwise):
+        if lnk_time:
+            if clockwise:
+                logging.info("Step %d - %s : dep %s arr %s lnk %s" %
+                             (self.step, mis_name, dep_time, arr_time, lnk_time))
+            else:
+                logging.info("Step %d - %s : lnk %s dep %s arr %s" %
+                             (self.step, mis_name, lnk_time, dep_time, arr_time))
+        else:
+            logging.info("Step %d - %s : dep %s arr %s" %
+                         (self.step, mis_name, dep_time, arr_time))
+
+        if clockwise:
+            logging.info("Step %d - %s : Org %s" %
+                         (self.step, mis_name, self._list_of_location_context_to_str(log_dep)))
+            logging.info("Step %d - %s : Dst %s" %
+                         (self.step, mis_name, self._list_of_location_context_to_str(log_arr)))
+        else:
+            logging.info("Step %d - %s : Dst %s" %
+                         (self.step, mis_name, self._list_of_location_context_to_str(log_arr)))
+            logging.info("Step %d - %s : Org %s" %
+                         (self.step, mis_name, self._list_of_location_context_to_str(log_dep)))
+
+        if log_lnk:
+            logging.info("Step %d - %s : Lnk %s" %
+                         (self.step, mis_name, self._list_of_location_context_to_str(log_lnk)))
+
+        self.step += 1
+
     """
         Compute a trip according to the detailed_trace provided
     """
@@ -532,7 +561,7 @@ class PlanTripCalculator(object):
         detailed_request = ItineraryRequestType()
         self._init_request(detailed_request)
 
-        step = 1
+        self.step = 1
 
         logging.info("Processing first pass (left->right) that optimize arrival time...")
 
@@ -560,17 +589,11 @@ class PlanTripCalculator(object):
                 l.arrival_time = a.arrival_time + t
 
             # Report intermediate results
-            rep_dep = sorted(departures, key=lambda s: s.arrival_time) if step > 1 else departures
+            rep_dep = sorted(departures, key=lambda s: s.arrival_time) if self.step > 1 else departures
             rep_arr, rep_lnk = tuple(zip(*sorted(zip(arrivals, linked_stops), key=lambda pair: pair[0].arrival_time)))
-            logging.info("Step %d - %s : dep %s arr %s" %
-                         (step, mis_api._name, summed_up_request.DepartureTime, rep_arr[0].arrival_time))
-            logging.info("Step %d - %s : Org %s" %
-                         (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-            logging.info("Step %d - %s : Dst %s" %
-                         (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
-            logging.info("Step %d - %s : Lnk %s" %
-                         (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
-            step += 1
+            self._log_calculation_step(mis_api._name, summed_up_request.DepartureTime,
+                         rep_arr[0].arrival_time, rep_lnk[0].arrival_time,
+                         rep_dep, rep_arr, rep_lnk, clockwise=True)
 
         # Do non-detailed optimized request (only one, always)
         mis_api, departures, arrivals, _, _ = detailed_trace[-1]
@@ -594,13 +617,8 @@ class PlanTripCalculator(object):
         # Report intermediate results
         mis_api, departures, arrivals, linked_stops, _ = detailed_trace[-1]
         rep_dep = sorted(departures, key=lambda s: s.arrival_time)
-        logging.info("Step %d - %s : dep %s arr %s" %
-                     (step, mis_api._name, summed_up_request.DepartureTime, best_arrival_time))
-        logging.info("Step %d - %s : Org %s" %
-                     (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-        logging.info("Step %d - %s : Dst %s" %
-                     (step, mis_api._name, self._list_of_location_context_to_str(arrivals)))
-        step += 1
+        self._log_calculation_step(mis_api._name, summed_up_request.DepartureTime, best_arrival_time, None,
+                                   rep_dep, arrivals, None, clockwise=True)
 
         # tell the client that we have found the best arrival time
         notif = PlanTripExistenceNotificationResponseType(
@@ -626,12 +644,9 @@ class PlanTripCalculator(object):
         rep_dep, rep_lnk = tuple(
             zip(*sorted(zip(departures, linked_stops), key=lambda pair: pair[0].departure_time, reverse=1)))
         rep_arr = arrivals
-        logging.info(
-            "Step %d - %s : dep %s arr %s" % (step, mis_api._name, rep_dep[0].departure_time, best_arrival_time))
-        logging.info("Step %d - %s : Dst %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
-        logging.info("Step %d - %s : Org %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-        logging.info("Step %d - %s : Lnk %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
-        step += 1
+        self._log_calculation_step(mis_api._name,
+                                   rep_dep[0].departure_time, best_arrival_time, rep_lnk[0].departure_time,
+                                   rep_dep, rep_arr, rep_lnk, clockwise=False)
 
         # Do arrival_at non-detailed requests
         if len(detailed_trace) > 2:
@@ -661,15 +676,9 @@ class PlanTripCalculator(object):
                 rep_dep, rep_lnk = tuple(
                     zip(*sorted(zip(departures, linked_stops), key=lambda pair: pair[0].departure_time, reverse=1)))
                 rep_arr = arrivals
-                logging.info("Step %d - %s : dep %s arr %s" %
-                             (step, mis_api._name, rep_dep[0].departure_time, summed_up_request.ArrivalTime))
-                logging.info("Step %d - %s : Dst %s" %
-                             (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
-                logging.info("Step %d - %s : Org %s" %
-                             (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-                logging.info("Step %d - %s : Lnk %s" %
-                             (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
-                step += 1
+                self._log_calculation_step(mis_api._name,
+                                   rep_dep[0].departure_time, summed_up_request.ArrivalTime, rep_lnk[0].departure_time,
+                                   rep_dep, rep_arr, rep_lnk, clockwise=False)
 
         logging.info("Processing third pass (left->right) that give detailed results")
 
@@ -706,27 +715,17 @@ class PlanTripCalculator(object):
                 rep_dep = [prev_stop]
                 rep_arr = arrivals
                 rep_lnk = linked_stops
-                logging.info("Step %d - %s : dep %s arr %s" %
-                             (step, mis_api._name, resp.DetailedTrip.Departure.DateTime,
-                              resp.DetailedTrip.Arrival.DateTime))
-                logging.info("Step %d - %s : Org %s" %
-                             (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-                logging.info("Step %d - %s : Dst %s" %
-                             (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
-                logging.info("Step %d - %s : Lnk %s" %
-                             (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
-                step += 1
+                self._log_calculation_step(mis_api._name,
+                                           resp.DetailedTrip.Departure.DateTime, resp.DetailedTrip.Arrival.DateTime,
+                                           None,
+                                           rep_dep, rep_arr, rep_lnk, clockwise=True)
             else:
                 rep_dep = [prev_stop]
                 rep_arr = sorted(arrivals, key=lambda s: s.arrival_time)
-                logging.info("Step %d - %s : dep %s arr %s" %
-                             (step, mis_api._name, resp.DetailedTrip.Departure.DateTime,
-                              resp.DetailedTrip.Arrival.DateTime))
-                logging.info("Step %d - %s : Org %s" %
-                             (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-                logging.info("Step %d - %s : Dst %s" %
-                             (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
-                step += 1
+                self._log_calculation_step(mis_api._name,
+                                           resp.DetailedTrip.Departure.DateTime, resp.DetailedTrip.Arrival.DateTime,
+                                           None,
+                                           rep_dep, rep_arr, None, clockwise=False)
 
             if not linked_stops:
                 # We are at the end of the trace.

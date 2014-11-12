@@ -365,27 +365,32 @@ class _RandomMisApi(_StubMisApi):
 # Return itineraries based on "as the crow flies" distance between stops.
 class _CrowFliesMisApi(_StubMisApi):
     # Return closest location to loc.
-    def _get_closest_location(self, loc, locations):
+    def _get_earliest_location(self, loc, locations, access_time_factor):
         distances = []  # [(LocationContextType, distance to loc (in meters))]
+
         if loc.PlaceTypeId:
             geog1 = self._db_session.query(metabase.Stop.geog) \
                 .filter(metabase.Stop.code == loc.PlaceTypeId) \
                 .subquery().c.geog
         else:
             geog1 = StGeogFromText('POINT(%s %s)' % (loc.Position.Longitude, loc.Position.Latitude))
-        for l in locations[:32]:  # limit cause it is so slow
+
+        for l in locations[:32]:  # limit count of stops cause it is so slow
             if l.PlaceTypeId:
                 geog2 = self._db_session.query(metabase.Stop.geog) \
                     .filter(metabase.Stop.code == l.PlaceTypeId) \
                     .subquery().c.geog
             else:
                 geog2 = StGeogFromText('POINT(%s %s)' % (l.Position.Longitude, l.Position.Latitude))
-            d = self._db_session.query(ST_Distance(geog1, geog2)).first()[0]
-            distances.append((l, d))
 
-        distances.sort(key=lambda x: x[1])
-        # logging.debug("Best stop: %s | Distance: %s", distances[0][0].PlaceTypeId, distances[0][1])
-        return distances[0]
+            distance = self._db_session.query(ST_Distance(geog1, geog2)).first()[0]
+            duration = timedelta(minutes=distance // 1000)
+            time_duration = duration + access_time_factor * l.AccessTime
+            distances.append((l, distance, duration, time_duration))
+
+        distances.sort(key=lambda x: x[3])
+
+        return distances[0][:3]
 
     def _generate_detailed_trip(self, departures, arrivals, departure_time, arrival_time):
         if len(departures) > 1 and len(arrivals) > 1:
@@ -397,38 +402,32 @@ class _CrowFliesMisApi(_StubMisApi):
         ret.InterchangeNumber = 4
         ret.sections = []
 
-        # TODO fix get_closest_location (must use AccessTime to find the best trip!)
         if len(departures) > 1:
-            best_departure, distance = self._get_closest_location(arrivals[0], departures)
-
+            best_departure, distance, duration = self._get_earliest_location(arrivals[0], departures,
+                                                                             1 if departure_time else 0)
             if departure_time:
                 ret.Departure = location_to_end_point(best_departure,
                                                       point_time=departure_time + best_departure.AccessTime)
                 ret.Arrival = location_to_end_point(arrivals[0],
-                                                    point_time=departure_time + best_departure.AccessTime)
+                                                    point_time=departure_time + best_departure.AccessTime + duration)
             elif arrival_time:
                 ret.Departure = location_to_end_point(best_departure,
-                                                      point_time=arrival_time + arrivals[0].AccessTime)
+                                                      point_time=arrival_time + arrivals[0].AccessTime - duration)
                 ret.Arrival = location_to_end_point(arrivals[0],
                                                     point_time=arrival_time + arrivals[0].AccessTime)
         else:
-            best_arrival, distance = self._get_closest_location(departures[0], arrivals)
+            best_arrival, distance, duration = self._get_earliest_location(departures[0], arrivals,
+                                                                           -1 if arrival_time else 0)
             if departure_time:
                 ret.Departure = location_to_end_point(departures[0],
                                                       point_time=departure_time + departures[0].AccessTime)
                 ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime,
-                                                    point_time=departure_time + departures[0].AccessTime)
+                                                    point_time=departure_time + departures[0].AccessTime + duration)
             else:
                 ret.Departure = location_to_end_point(departures[0],
-                                                      point_time=arrival_time + best_arrival.AccessTime)
+                                                      point_time=arrival_time + best_arrival.AccessTime - duration)
                 ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime,
                                                     point_time=arrival_time + best_arrival.AccessTime)
-
-        duration = timedelta(minutes=distance // 1000)
-        if departure_time:
-            ret.Arrival.DateTime += duration
-        else:
-            ret.Departure.DateTime -= duration
 
         ret.Distance = distance
         ret.Duration = duration
@@ -446,35 +445,31 @@ class _CrowFliesMisApi(_StubMisApi):
         ret = SummedUpTripType()
 
         if len(departures) > 1:
-            best_departure, distance = self._get_closest_location(arrivals[0], departures)
+            best_departure, distance, duration = self._get_earliest_location(arrivals[0], departures,
+                                                                             1 if departure_time else 0)
             if departure_time:
                 ret.Departure = location_to_end_point(best_departure,
                                                       point_time=departure_time + best_departure.AccessTime)
                 ret.Arrival = location_to_end_point(arrivals[0],
-                                                    point_time=departure_time + best_departure.AccessTime)
+                                                    point_time=departure_time + best_departure.AccessTime + duration)
             elif arrival_time:
                 ret.Departure = location_to_end_point(best_departure,
-                                                      point_time=arrival_time + arrivals[0].AccessTime)
+                                                      point_time=arrival_time + arrivals[0].AccessTime - duration)
                 ret.Arrival = location_to_end_point(arrivals[0],
                                                     point_time=arrival_time + arrivals[0].AccessTime)
         else:
-            best_arrival, distance = self._get_closest_location(departures[0], arrivals)
+            best_arrival, distance, duration = self._get_earliest_location(departures[0], arrivals,
+                                                                           -1 if arrival_time else 0)
             if departure_time:
                 ret.Departure = location_to_end_point(departures[0],
                                                       point_time=departure_time + departures[0].AccessTime)
                 ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime,
-                                                    point_time=departure_time + departures[0].AccessTime)
+                                                    point_time=departure_time + departures[0].AccessTime + duration)
             else:
                 ret.Departure = location_to_end_point(departures[0],
-                                                      point_time=arrival_time + best_arrival.AccessTime)
+                                                      point_time=arrival_time + best_arrival.AccessTime - duration)
                 ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime,
                                                     point_time=arrival_time + best_arrival.AccessTime)
-
-        duration = timedelta(minutes=distance // 1000)
-        if departure_time:
-            ret.Arrival.DateTime += duration
-        else:
-            ret.Departure.DateTime -= duration
 
         ret.InterchangeCount = randint(0, 10)
         ret.InterchangeDuration = randint(0, 1000)
