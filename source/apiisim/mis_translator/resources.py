@@ -67,10 +67,13 @@ Return new MisApi object based on given mis_name.
 
 
 def get_mis_api(mis_name, api_key=""):
-    if mis_name in mis_api_mapping:
-        return mis_api_mapping[mis_name](mis_api_config, api_key)
-    else:
-        return None
+    try:
+        if mis_name in mis_api_mapping:
+            return mis_api_mapping[mis_name](mis_api_config, api_key)
+    except:
+        pass
+
+    return None
 
 
 def get_mis_or_abort(mis_name, api_key=""):

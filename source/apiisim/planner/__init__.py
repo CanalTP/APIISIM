@@ -215,7 +215,7 @@ def parse_sections(sections):
     for section in sections:
         ptr = None
         leg = None
-        if "PTRide" in section:
+        if "PTRide" in section and section["PTRide"]:
             p = section["PTRide"]
             ptr = PTRideType()
 
@@ -242,7 +242,7 @@ def parse_sections(sections):
             ptr.Distance = p.get("Distance", None)
             ptr.StopHeadSign = p.get("StopHeadSign", None)
             ptr.steps = parse_steps(p["steps"])
-        elif "Leg" in section:
+        elif "Leg" in section and section["Leg"]:
             l = section["Leg"]
             leg = LegType()
             leg.SelfDriveMode = l["SelfDriveMode"]

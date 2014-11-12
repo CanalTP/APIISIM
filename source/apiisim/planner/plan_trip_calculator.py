@@ -206,14 +206,14 @@ class PlanTripCalculator(object):
         # Filter out Mis that don't support at least one of the requested modes
         if self._params.modes and not TransportModeEnum.ALL in self._params.modes:
             departure_mises = set([x for x in departure_mises if (set(self._params.modes) & self._get_mis_modes(x))])
-        logging.info("Departure MIS (mode compatibles): %s", departure_mises)
+        logging.info("Departure MIS (compatible modes): %s", departure_mises)
 
         logging.info("Finding arrival MIS...")
         arrival_mises = self._get_surrounding_mises(self._params.Arrival.Position, date)
         # Filter out Mis that don't support at least one of the requested modes
         if self._params.modes and not TransportModeEnum.ALL in self._params.modes:
             arrival_mises = set([x for x in arrival_mises if (set(self._params.modes) & self._get_mis_modes(x))])
-        logging.info("Arrival MIS (mode compatibles): %s", arrival_mises)
+        logging.info("Arrival MIS (compatible modes): %s", arrival_mises)
 
         return self._filter_traces(
             self._get_mis_traces(departure_mises, arrival_mises, self.MAX_TRACE_LENGTH))
@@ -251,8 +251,8 @@ class PlanTripCalculator(object):
     # [TraceStop], # departures
     # [TraceStop], # arrivals
     # [TraceStop], # linked_stops (stops linked to arrivals via a transfer)
-    #     [timedelta]  # transfer_durations
-    #   )
+    # [timedelta]  # transfer_durations
+    # )
 
     @benchmark
     def _departure_at_detailed_trace(self, mis_trace):
@@ -263,7 +263,7 @@ class PlanTripCalculator(object):
         # MisApi,
         # [TraceStop], # departures
         # [TraceStop], # arrivals
-        #     [TraceStop], # linked_stops (stops linked to arrivals via a transfer)
+        # [TraceStop], # linked_stops (stops linked to arrivals via a transfer)
         #     [timedelta]  # transfer_durations
         #   )
         # ]
@@ -333,7 +333,7 @@ class PlanTripCalculator(object):
         # MisApi,
         # [TraceStop], # departures
         # [TraceStop], # arrivals
-        #     [TraceStop], # linked_stops (stops linked to departures via a transfer)
+        # [TraceStop], # linked_stops (stops linked to departures via a transfer)
         #     [timedelta]  # transfer_durations
         #   )
         # ]
@@ -440,7 +440,8 @@ class PlanTripCalculator(object):
               its linked stops) are removed from the whole "meta-trip".
     """
 
-    def _update_transtion_stops(self, transition_stops, linked_stops, stop_field, trips, trip_field):
+    def _update_transtion_stops(self, transition_stops, linked_stops, transition_durations, stop_field, trips,
+                                trip_field):
         logging.debug("Updating transition stops...")
         logging.debug("Requested: %d %s", len(transition_stops), trip_field)
         for stop in transition_stops:
@@ -469,6 +470,8 @@ class PlanTripCalculator(object):
             if linked_stops:
                 deleted_stop = linked_stops.pop(i)
                 logging.debug("Also deleting its linked stop point %s", deleted_stop)
+                if transition_durations:
+                    transition_durations.pop(i)
 
         if not transition_stops:
             raise NoItineraryFoundException()
@@ -480,8 +483,9 @@ class PlanTripCalculator(object):
               its linked stops) are removed from the whole "meta-trip".
     """
 
-    def _update_arrivals(self, arrivals, linked_stops, trips):
-        self._update_transtion_stops(arrivals, linked_stops, "arrival_time", trips, "Arrival")
+    def _update_arrivals(self, arrivals, linked_stops, transition_durations, trips):
+        self._update_transtion_stops(arrivals, linked_stops, transition_durations,
+                                     "arrival_time", trips, "Arrival")
 
     """
         Update departure stops after receiving itinerary results from a MIS.
@@ -490,8 +494,9 @@ class PlanTripCalculator(object):
               (and its linked stops) are removed from the whole "meta-trip".
     """
 
-    def _update_departures(self, departures, linked_stops, trips):
-        self._update_transtion_stops(departures, linked_stops, "departure_time", trips, "Departure")
+    def _update_departures(self, departures, linked_stops, transition_durations, trips):
+        self._update_transtion_stops(departures, linked_stops, transition_durations,
+                                     "departure_time", trips, "Departure")
 
     """
         Keep the best trip from SIM response
@@ -546,7 +551,7 @@ class PlanTripCalculator(object):
             if self._cancelled:
                 raise CancelledRequestException()
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
-            self._update_arrivals(arrivals, linked_stops, resp.summedUpTrips)
+            self._update_arrivals(arrivals, linked_stops, transfer_durations, resp.summedUpTrips)
             if len(arrivals) == 0:
                 raise NoItineraryFoundException()
 
@@ -557,10 +562,14 @@ class PlanTripCalculator(object):
             # Report intermediate results
             rep_dep = sorted(departures, key=lambda s: s.arrival_time) if step > 1 else departures
             rep_arr, rep_lnk = tuple(zip(*sorted(zip(arrivals, linked_stops), key=lambda pair: pair[0].arrival_time)))
-            logging.info("Step %d - %s : dep %s arr %s" % (step, mis_api._name, summed_up_request.DepartureTime, rep_arr[0].arrival_time))
-            logging.info("Step %d - %s : Org %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-            logging.info("Step %d - %s : Dst %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
-            logging.info("Step %d - %s : Lnk %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
+            logging.info("Step %d - %s : dep %s arr %s" %
+                         (step, mis_api._name, summed_up_request.DepartureTime, rep_arr[0].arrival_time))
+            logging.info("Step %d - %s : Org %s" %
+                         (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
+            logging.info("Step %d - %s : Dst %s" %
+                         (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
+            logging.info("Step %d - %s : Lnk %s" %
+                         (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
             step += 1
 
         # Do non-detailed optimized request (only one, always)
@@ -576,7 +585,7 @@ class PlanTripCalculator(object):
             raise CancelledRequestException()
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
         self._filter_best_trip_response(resp, True)
-        self._update_departures(departures, detailed_trace[-2][2], resp.summedUpTrips)
+        self._update_departures(departures, detailed_trace[-2][2], detailed_trace[-2][4], resp.summedUpTrips)
         if len(departures) == 0:
             raise NoItineraryFoundException()
 
@@ -585,10 +594,12 @@ class PlanTripCalculator(object):
         # Report intermediate results
         mis_api, departures, arrivals, linked_stops, _ = detailed_trace[-1]
         rep_dep = sorted(departures, key=lambda s: s.arrival_time)
-        logging.info("Step %d - %s : dep %s arr %s" % (step, mis_api._name, summed_up_request.DepartureTime, best_arrival_time))
-        logging.info("Step %d - %s : Org %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-        logging.info("Step %d - %s : Dst %s" % (step, mis_api._name, self._list_of_location_context_to_str(arrivals)))
-        logging.info("Step %d - %s : Lnk %s" % (step, mis_api._name, self._list_of_location_context_to_str(linked_stops)))
+        logging.info("Step %d - %s : dep %s arr %s" %
+                     (step, mis_api._name, summed_up_request.DepartureTime, best_arrival_time))
+        logging.info("Step %d - %s : Org %s" %
+                     (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
+        logging.info("Step %d - %s : Dst %s" %
+                     (step, mis_api._name, self._list_of_location_context_to_str(arrivals)))
         step += 1
 
         # tell the client that we have found the best arrival time
@@ -610,11 +621,13 @@ class PlanTripCalculator(object):
             a.departure_time = l.departure_time - t
 
         # Report intermediate results
-        mis_api, _, arrivals, _, _= detailed_trace[-1]
+        mis_api, _, arrivals, _, _ = detailed_trace[-1]
         _, _, linked_stops, departures, _ = detailed_trace[-2]
-        rep_dep, rep_lnk = tuple(zip(*sorted(zip(departures, linked_stops), key=lambda pair: pair[0].departure_time, reverse=1)))
+        rep_dep, rep_lnk = tuple(
+            zip(*sorted(zip(departures, linked_stops), key=lambda pair: pair[0].departure_time, reverse=1)))
         rep_arr = arrivals
-        logging.info("Step %d - %s : dep %s arr %s" % (step, mis_api._name, rep_dep[0].departure_time, best_arrival_time))
+        logging.info(
+            "Step %d - %s : dep %s arr %s" % (step, mis_api._name, rep_dep[0].departure_time, best_arrival_time))
         logging.info("Step %d - %s : Dst %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
         logging.info("Step %d - %s : Org %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
         logging.info("Step %d - %s : Lnk %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
@@ -634,7 +647,8 @@ class PlanTripCalculator(object):
                 if self._cancelled:
                     raise CancelledRequestException()
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
-                self._update_departures(departures, detailed_trace[i - 1][2], resp.summedUpTrips)
+                self._update_departures(departures, detailed_trace[i - 1][2], detailed_trace[i - 1][4],
+                                        resp.summedUpTrips)
 
                 # Substract transfer time from previous request results
                 _, _, arrivals, linked_stops, transfer_durations = detailed_trace[i - 1]
@@ -642,9 +656,22 @@ class PlanTripCalculator(object):
                     a.departure_time = l.departure_time - t
 
                 # Report intermediate results
-                # TO DO
-                #logging.info("summary for step 3 at %s : departure %s arrival %s", mis_api,
-                #             min([x.departure_time for x in departures]), summed_up_request.ArrivalTime)
+                linked_stops = arrivals
+                mis_api, departures, arrivals, _, _ = detailed_trace[i]
+                rep_dep, rep_lnk = tuple(
+                    zip(*sorted(zip(departures, linked_stops), key=lambda pair: pair[0].departure_time, reverse=1)))
+                rep_arr = arrivals
+                logging.info("Step %d - %s : dep %s arr %s" %
+                             (step, mis_api._name, rep_dep[0].departure_time, summed_up_request.ArrivalTime))
+                logging.info("Step %d - %s : Dst %s" %
+                             (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
+                logging.info("Step %d - %s : Org %s" %
+                             (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
+                logging.info("Step %d - %s : Lnk %s" %
+                             (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
+                step += 1
+
+        logging.info("Processing third pass (left->right) that give detailed results")
 
         # Do all detailed requests.
         # Best arrival stop from previous request, will become the departure
@@ -674,6 +701,33 @@ class PlanTripCalculator(object):
                 raise NoItineraryFoundException()
             ret.append((mis_api, resp.DetailedTrip))
 
+            # Report intermediate results
+            if detailed_request.DepartureTime:
+                rep_dep = [prev_stop]
+                rep_arr = arrivals
+                rep_lnk = linked_stops
+                logging.info("Step %d - %s : dep %s arr %s" %
+                             (step, mis_api._name, resp.DetailedTrip.Departure.DateTime,
+                              resp.DetailedTrip.Arrival.DateTime))
+                logging.info("Step %d - %s : Org %s" %
+                             (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
+                logging.info("Step %d - %s : Dst %s" %
+                             (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
+                logging.info("Step %d - %s : Lnk %s" %
+                             (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
+                step += 1
+            else:
+                rep_dep = [prev_stop]
+                rep_arr = sorted(arrivals, key=lambda s: s.arrival_time)
+                logging.info("Step %d - %s : dep %s arr %s" %
+                             (step, mis_api._name, resp.DetailedTrip.Departure.DateTime,
+                              resp.DetailedTrip.Arrival.DateTime))
+                logging.info("Step %d - %s : Org %s" %
+                             (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
+                logging.info("Step %d - %s : Dst %s" %
+                             (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
+                step += 1
+
             if not linked_stops:
                 # We are at the end of the trace.
                 break
@@ -689,33 +743,6 @@ class PlanTripCalculator(object):
             # the one which has best departure_time.
             best_stops.sort(key=lambda x: x.departure_time)
             prev_stop = best_stops[0]
-
-            # Report intermediate results
-            if detailed_request.DepartureTime:
-                rep_dep = [prev_stop]
-                rep_arr, rep_lnk = tuple(zip(*sorted(zip(arrivals, linked_stops), key=lambda pair: pair[0].arrival_time)))
-                logging.info("Step %d - %s : dep %s arr %s" % (step, mis_api._name, summed_up_request.DepartureTime, rep_arr[0].arrival_time))
-                logging.info("Step %d - %s : Org %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-                logging.info("Step %d - %s : Dst %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
-                logging.info("Step %d - %s : Lnk %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_lnk)))
-                step += 1
-
-                #logging.info("summary for step 4 at %s : departure %s arrival %s", mis_api,
-                #             detailed_request.DepartureTime, min([x.arrival_time for x in arrivals]))
-            else:
-                mis_api, _, arrivals, _, _= detailed_trace[-1]
-                _, _, linked_stops, departures, _ = detailed_trace[-2]
-                rep_dep = [departures[0]]
-                rep_arr = sorted(arrivals, key=lambda x: x.arrival_time, reverse=1)
-                logging.info("Step %d - %s : dep %s arr %s" % (step, mis_api._name, rep_dep[0].departure_time, best_arrival_time))
-                logging.info("Step %d - %s : Dst %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_arr)))
-                logging.info("Step %d - %s : Org %s" % (step, mis_api._name, self._list_of_location_context_to_str(rep_dep)))
-                step += 1
-
-                logging.info("Processing third pass (left->right) that give detailed results")
-
-                #logging.info("summary for step 4 at %s : departure None arrival %s", mis_api,
-                #             min([x.arrival_time for x in arrivals]))
 
         return ret
 
@@ -746,7 +773,7 @@ class PlanTripCalculator(object):
             if self._cancelled:
                 raise CancelledRequestException()
             resp = mis_api.get_summed_up_itineraries(summed_up_request)
-            self._update_departures(departures, linked_stops, resp.summedUpTrips)
+            self._update_departures(departures, linked_stops, transfer_durations, resp.summedUpTrips)
 
             # To have linked_stops departure_time, just substract transfer time
             # from request results.
@@ -765,7 +792,7 @@ class PlanTripCalculator(object):
         if self._cancelled:
             raise CancelledRequestException()
         resp = mis_api.get_summed_up_itineraries(summed_up_request)
-        self._update_arrivals(arrivals, detailed_trace[-2][1], resp.summedUpTrips)
+        self._update_arrivals(arrivals, detailed_trace[-2][1], detailed_trace[-2][4], resp.summedUpTrips)
         best_departure_time = max([x.Departure.DateTime for x in resp.summedUpTrips])
 
         # Add transfer time from previous request results
@@ -796,7 +823,7 @@ class PlanTripCalculator(object):
                 if self._cancelled:
                     raise CancelledRequestException()
                 resp = mis_api.get_summed_up_itineraries(summed_up_request)
-                self._update_arrivals(arrivals, detailed_trace[i - 1][1], resp.summedUpTrips)
+                self._update_arrivals(arrivals, detailed_trace[i - 1][1], detailed_trace[i - 1][4], resp.summedUpTrips)
 
                 # Add transfer time from previous request results
                 _, departures, _, linked_stops, transfer_durations = detailed_trace[i - 1]

@@ -45,7 +45,8 @@ class WorkerThread(threading.Thread):
             trip_calculator.compute_trip(trace)
             self.exit_code = 0
         except Exception as e:
-            logging.error("compute_trip(%s): %s\n%s", trace, e, traceback.format_exc())
+            logging.error("compute_trip(%s): %s", trace, e)
+            logging.getLogger("exceptions").error("compute_trip(%s): %s\n%s", trace, e, traceback.format_exc())
 
     def __del__(self):
         logging.info("WorkerThread finished")

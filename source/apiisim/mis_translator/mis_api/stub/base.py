@@ -14,6 +14,7 @@
 """
 import json
 import logging
+import traceback
 import os
 from datetime import timedelta, datetime
 from random import randint
@@ -94,25 +95,31 @@ def create_db(db_name):
     try:
         conn.execute("COMMIT")
         conn.execute("DROP DATABASE IF EXISTS %s" % db_name)
+        conn.execute("COMMIT")
+        conn.execute("CREATE DATABASE %s" % db_name)
+        conn.execute("COMMIT")
     except:
-        pass
-
-    conn.execute("COMMIT")
-    conn.execute("CREATE DATABASE %s" % db_name)
-    conn.close()
-    engine.dispose()
+        logging.getLogger('exceptions').error(traceback.format_exc())
+        raise
+    finally:
+        conn.close()
+        engine.dispose()
 
     engine = create_engine("postgresql+psycopg2://%s:%s@localhost/%s" %
                            (DB_ADMIN_NAME, DB_ADMIN_PASS, db_name),
                            echo=False)
     conn = engine.connect()
-    conn.execute("CREATE EXTENSION IF NOT EXISTS postgis")
-
-    Base.metadata.create_all(bind=engine)
-
-    conn.execute(DB_TRIGGER)
-    conn.close()
-    engine.dispose()
+    try:
+        conn.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+        conn.execute("COMMIT")
+        Base.metadata.create_all(bind=engine)
+        conn.execute(DB_TRIGGER)
+    except:
+        logging.getLogger('exceptions').error(traceback.format_exc())
+        raise
+    finally:
+        conn.close()
+        engine.dispose()
 
 
 def connect_db(db_name):
@@ -124,7 +131,6 @@ def connect_db(db_name):
 
 def populate_db(db_name, stops_file, stops_field):
     db_session = connect_db(db_name)
-
     try:
         with open(stops_file, 'r') as f:
             content = f.read()
@@ -160,9 +166,11 @@ def random_date(min_date, max_date):
 
 
 # location is a LocationContextType object
-def location_to_end_point(location, departure_time=None, arrival_time=None):
+def location_to_end_point(location, departure_time=None, arrival_time=None, point_time=None):
     ret = EndPointType()
-    if not departure_time and not arrival_time:
+    if point_time:
+        ret.DateTime = point_time
+    elif not departure_time and not arrival_time:
         ret.DateTime = None
     else:
         ret.DateTime = random_date(departure_time, arrival_time)
@@ -177,13 +185,14 @@ def location_to_end_point(location, departure_time=None, arrival_time=None):
 
 def generate_section(leg=False):
     ret = SectionType()
+    ret.PartialTripId = "stub_id"
 
     end_point = EndPointType(
         TripStopPlace=TripStopPlaceType(
             id="stop_id",
             TypeOfPlaceRef=TypeOfPlaceEnum.LOCATION,
             Position=LocationStructure(Latitude=0, Longitude=0)))
-    ret.PartialTripId = "stub_id"
+
     if not leg:
         ptr = PTRideType()
         line = LineType()
@@ -233,6 +242,7 @@ def generate_section(leg=False):
         leg.Arrival.DateTime = datetime(year=2014, month=3, day=7)
         leg.Duration = timedelta(seconds=30)
         leg.SelfDriveMode = SelfDriveModeEnum.FOOT
+
         ret.Leg = leg
 
     return ret
@@ -242,7 +252,8 @@ class _StubMisApi(object):
     _initialized_databases = set([])
 
     def __init__(self, stops_file, stops_field, db_name):
-        if not (db_name in self._initialized_databases):
+        self._db_session = None
+        if not (db_name in self.__class__._initialized_databases):
             create_db(db_name)
             populate_db(db_name, stops_file, stops_field)
             self.__class__._initialized_databases.add(db_name)
@@ -362,8 +373,7 @@ class _CrowFliesMisApi(_StubMisApi):
                 .subquery().c.geog
         else:
             geog1 = StGeogFromText('POINT(%s %s)' % (loc.Position.Longitude, loc.Position.Latitude))
-            print "ici2"
-        for l in locations:
+        for l in locations[:32]:  # limit cause it is so slow
             if l.PlaceTypeId:
                 geog2 = self._db_session.query(metabase.Stop.geog) \
                     .filter(metabase.Stop.code == l.PlaceTypeId) \
@@ -387,22 +397,38 @@ class _CrowFliesMisApi(_StubMisApi):
         ret.InterchangeNumber = 4
         ret.sections = []
 
+        # TODO fix get_closest_location (must use AccessTime to find the best trip!)
         if len(departures) > 1:
             best_departure, distance = self._get_closest_location(arrivals[0], departures)
-            ret.Departure = location_to_end_point(best_departure)
-            ret.Arrival = location_to_end_point(arrivals[0])
+
+            if departure_time:
+                ret.Departure = location_to_end_point(best_departure,
+                                                      point_time=departure_time + best_departure.AccessTime)
+                ret.Arrival = location_to_end_point(arrivals[0],
+                                                    point_time=departure_time + best_departure.AccessTime)
+            elif arrival_time:
+                ret.Departure = location_to_end_point(best_departure,
+                                                      point_time=arrival_time + arrivals[0].AccessTime)
+                ret.Arrival = location_to_end_point(arrivals[0],
+                                                    point_time=arrival_time + arrivals[0].AccessTime)
         else:
             best_arrival, distance = self._get_closest_location(departures[0], arrivals)
-            ret.Departure = location_to_end_point(departures[0])
-            ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime, arrival_time)
+            if departure_time:
+                ret.Departure = location_to_end_point(departures[0],
+                                                      point_time=departure_time + departures[0].AccessTime)
+                ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime,
+                                                    point_time=departure_time + departures[0].AccessTime)
+            else:
+                ret.Departure = location_to_end_point(departures[0],
+                                                      point_time=arrival_time + best_arrival.AccessTime)
+                ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime,
+                                                    point_time=arrival_time + best_arrival.AccessTime)
 
-        duration = timedelta(seconds=distance / 10)
+        duration = timedelta(minutes=distance // 1000)
         if departure_time:
-            ret.Departure.DateTime = departure_time
-            ret.Arrival.DateTime = departure_time + duration
+            ret.Arrival.DateTime += duration
         else:
-            ret.Departure.DateTime = arrival_time - duration
-            ret.Arrival.DateTime = arrival_time
+            ret.Departure.DateTime -= duration
 
         ret.Distance = distance
         ret.Duration = duration
@@ -418,22 +444,37 @@ class _CrowFliesMisApi(_StubMisApi):
             raise Exception("<generate_summed_up_trip> only supports 1-n requests")
 
         ret = SummedUpTripType()
+
         if len(departures) > 1:
             best_departure, distance = self._get_closest_location(arrivals[0], departures)
-            ret.Departure = location_to_end_point(best_departure)
-            ret.Arrival = location_to_end_point(arrivals[0])
+            if departure_time:
+                ret.Departure = location_to_end_point(best_departure,
+                                                      point_time=departure_time + best_departure.AccessTime)
+                ret.Arrival = location_to_end_point(arrivals[0],
+                                                    point_time=departure_time + best_departure.AccessTime)
+            elif arrival_time:
+                ret.Departure = location_to_end_point(best_departure,
+                                                      point_time=arrival_time + arrivals[0].AccessTime)
+                ret.Arrival = location_to_end_point(arrivals[0],
+                                                    point_time=arrival_time + arrivals[0].AccessTime)
         else:
             best_arrival, distance = self._get_closest_location(departures[0], arrivals)
-            ret.Departure = location_to_end_point(departures[0])
-            ret.Arrival = location_to_end_point(best_arrival)
+            if departure_time:
+                ret.Departure = location_to_end_point(departures[0],
+                                                      point_time=departure_time + departures[0].AccessTime)
+                ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime,
+                                                    point_time=departure_time + departures[0].AccessTime)
+            else:
+                ret.Departure = location_to_end_point(departures[0],
+                                                      point_time=arrival_time + best_arrival.AccessTime)
+                ret.Arrival = location_to_end_point(best_arrival, ret.Departure.DateTime,
+                                                    point_time=arrival_time + best_arrival.AccessTime)
 
-        duration = timedelta(seconds=distance / 10)
+        duration = timedelta(minutes=distance // 1000)
         if departure_time:
-            ret.Departure.DateTime = departure_time
-            ret.Arrival.DateTime = departure_time + duration
+            ret.Arrival.DateTime += duration
         else:
-            ret.Departure.DateTime = arrival_time - duration
-            ret.Arrival.DateTime = arrival_time
+            ret.Departure.DateTime -= duration
 
         ret.InterchangeCount = randint(0, 10)
         ret.InterchangeDuration = randint(0, 1000)

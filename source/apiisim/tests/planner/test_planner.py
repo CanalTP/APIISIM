@@ -307,6 +307,10 @@ class TestPlanner(unittest.TestCase):
                         TraceStop(PlaceTypeId="l2"),
                         TraceStop(PlaceTypeId="l3"),
                         TraceStop(PlaceTypeId="l4")]
+        link_durations = [timedelta(seconds=20),
+                          timedelta(seconds=40),
+                          timedelta(seconds=60),
+                          timedelta(seconds=80)]
         trips = [
             SummedUpTripType(
                 Departure=EndPointType(
@@ -325,7 +329,7 @@ class TestPlanner(unittest.TestCase):
                     TripStopPlace=TripStopPlaceType(id="3"),
                     DateTime=datetime(year=2014, month=2, day=21))),
         ]
-        calculator._update_departures(departures, linked_stops, trips)
+        calculator._update_departures(departures, linked_stops, link_durations, trips)
         self.assertEquals(len(departures), 2)
         self.assertEquals(departures[0].PlaceTypeId, "1")
         self.assertEquals(departures[0].departure_time, datetime(year=2014, month=2, day=1))
@@ -334,6 +338,9 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(len(linked_stops), 2)
         self.assertEquals(linked_stops[0].PlaceTypeId, "l1")
         self.assertEquals(linked_stops[1].PlaceTypeId, "l3")
+        self.assertEquals(len(link_durations), 2)
+        self.assertEquals(link_durations[0].seconds, 20)
+        self.assertEquals(link_durations[1].seconds, 60)
 
     def test_update_arrivals(self):
         request = PlanTripRequestType()
@@ -346,6 +353,10 @@ class TestPlanner(unittest.TestCase):
                         TraceStop(PlaceTypeId="l2"),
                         TraceStop(PlaceTypeId="l3"),
                         TraceStop(PlaceTypeId="l4")]
+        link_durations = [timedelta(seconds=20),
+                          timedelta(seconds=40),
+                          timedelta(seconds=60),
+                          timedelta(seconds=80)]
         trips = [
             SummedUpTripType(
                 Arrival=EndPointType(
@@ -364,7 +375,7 @@ class TestPlanner(unittest.TestCase):
                     TripStopPlace=TripStopPlaceType(id="43"),
                     DateTime=datetime(year=2014, month=2, day=4))),
         ]
-        calculator._update_arrivals(arrivals, linked_stops, trips)
+        calculator._update_arrivals(arrivals, linked_stops, link_durations, trips)
         self.assertEquals(len(arrivals), 2)
         self.assertEquals(arrivals[0].PlaceTypeId, "1")
         self.assertEquals(arrivals[0].arrival_time, datetime(year=2014, month=2, day=1))
@@ -373,6 +384,9 @@ class TestPlanner(unittest.TestCase):
         self.assertEquals(len(linked_stops), 2)
         self.assertEquals(linked_stops[0].PlaceTypeId, "l1")
         self.assertEquals(linked_stops[1].PlaceTypeId, "l4")
+        self.assertEquals(len(link_durations), 2)
+        self.assertEquals(link_durations[0].seconds, 20)
+        self.assertEquals(link_durations[1].seconds, 80)
 
 
 if __name__ == '__main__':

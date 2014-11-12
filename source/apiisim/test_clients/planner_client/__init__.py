@@ -27,8 +27,9 @@ class TripCollection:
         ret = PlanTripRequestType()
 
         ret.clientRequestId = "request_" + str(randint(0, 60000))
-        # ret.DepartureTime = datetime.datetime(year=2014, month=8, day=22, hour=18) - timedelta(days=50)
-        ret.DepartureTime = datetime.datetime.now() - datetime.timedelta(days=10)
+        now = datetime.datetime.now() - datetime.timedelta(days=10)
+        ret.DepartureTime = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=now.hour,
+                                              minute=now.minute)
         ret.ArrivalTime = None
         ret.Departure = departure
         ret.Arrival = arrival
@@ -51,5 +52,5 @@ class TripCollection:
     @staticmethod
     def orly_reims():
         return TripCollection._new_request(
-            TripCollection._new_location("stop_area:DUA:SA:59841", 2.369208, 48.729012),  # Orly
-            TripCollection._new_location("stop_area:CGD:SA:1137", 5.051595, 47.332904))  # Reims
+            TripCollection._new_location(None, 2.369208, 48.729012),  # Orly
+            TripCollection._new_location(None, 5.051595, 47.332904))  # Reims
