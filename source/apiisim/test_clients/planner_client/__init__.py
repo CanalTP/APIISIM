@@ -23,14 +23,21 @@ class TripCollection:
         return ret
 
     @staticmethod
-    def _new_request(departure, arrival):
+    def _new_request(departure, arrival, clockwise=True):
         ret = PlanTripRequestType()
 
         ret.clientRequestId = "request_" + str(randint(0, 60000))
         now = datetime.datetime.now() - datetime.timedelta(days=10)
-        ret.DepartureTime = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=now.hour,
-                                              minute=now.minute)
-        ret.ArrivalTime = None
+
+        if clockwise:
+            ret.DepartureTime = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=now.hour,
+                                                  minute=now.minute)
+            ret.ArrivalTime = None
+        else:
+            ret.DepartureTime = None
+            ret.ArrivalTime = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=now.hour,
+                                                  minute=now.minute)
+
         ret.Departure = departure
         ret.Arrival = arrival
 
@@ -44,13 +51,15 @@ class TripCollection:
         return ret
 
     @staticmethod
-    def paris_reims():
+    def paris_reims(clockwise=True):
         return TripCollection._new_request(
             TripCollection._new_location(None, 2.348294, 48.858108),  # Chatelet
-            TripCollection._new_location(None, 4.034720, 49.262780))  # Reims
+            TripCollection._new_location(None, 4.034720, 49.262780),  # Reims
+            clockwise)
 
     @staticmethod
-    def orly_reims():
+    def orly_reims(clockwise=True):
         return TripCollection._new_request(
             TripCollection._new_location(None, 2.369208, 48.729012),  # Orly
-            TripCollection._new_location(None, 5.051595, 47.332904))  # Reims
+            TripCollection._new_location(None, 5.051595, 47.332904),  # Reims
+            clockwise)

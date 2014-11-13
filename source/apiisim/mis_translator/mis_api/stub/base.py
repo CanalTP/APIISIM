@@ -375,7 +375,7 @@ class _CrowFliesMisApi(_StubMisApi):
         else:
             geog1 = StGeogFromText('POINT(%s %s)' % (loc.Position.Longitude, loc.Position.Latitude))
 
-        for l in locations[:32]:  # limit count of stops cause it is so slow
+        for l in locations:
             if l.PlaceTypeId:
                 geog2 = self._db_session.query(metabase.Stop.geog) \
                     .filter(metabase.Stop.code == l.PlaceTypeId) \

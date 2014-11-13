@@ -41,7 +41,7 @@ def test(plan_trip_request):
 
     while True:
         notification = runner._notif_queue.get()
-        logging.info("-- Notification received: %s" % json.dumps(notification.marshal()))
+        print "-- Notification received: %s" % json.dumps(notification.marshal())
         runner._notif_queue.task_done()
         if isinstance(notification, EndingSearch):
             return
