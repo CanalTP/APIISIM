@@ -69,4 +69,4 @@ if __name__ == '__main__':
     Draft4Validator.check_schema(formats.composed_trip_format)
     Draft4Validator.check_schema(formats.plan_trip_notification_response_format)
 
-    test(Trip.orly_reims())
+    test(Trip.orly_reims(clockwise=True))

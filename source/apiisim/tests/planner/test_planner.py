@@ -53,7 +53,7 @@ class TestPlanner(unittest.TestCase):
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
 
         for i in [2, 3, 4]:
-            res = calculator._departure_at_detailed_trace(range(1, i + 1))
+            res = calculator._detailed_trace(range(1, i + 1))
             logging.debug(res)
             for j in range(0, i):
                 k = j + 1
@@ -70,38 +70,6 @@ class TestPlanner(unittest.TestCase):
                     self.assertEquals(res[j][1][0].PlaceTypeId, "stop_code%s0" % k)
                     self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s1" % k)
                     self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k + 1))
-
-    def test_arrival_at_detailed_trace(self):
-        request = PlanTripRequestType()
-        request.Departure = TraceStop(PlaceTypeId="departure")
-        request.Arrival = TraceStop(PlaceTypeId="arrival")
-        calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
-
-        for i in [2, 3, 4]:
-            res = calculator._arrival_at_detailed_trace(range(1, i + 1))
-            logging.debug(res)
-            k = i
-            for j in range(0, i):
-                self.assertEquals(res[j][0].get_name(), "mis%s" % k)
-                if j == (i - 1):
-                    self.assertEquals(res[j][1][0].PlaceTypeId, "departure")
-                    self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s0" % k)
-                    self.assertEquals(res[j][3], None)
-                elif j == 0:
-                    self.assertEquals(res[j][1][0].PlaceTypeId, "stop_code%s0" % k)
-                    self.assertEquals(res[j][2][0].PlaceTypeId, "arrival")
-                    if k <= 2:
-                        self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k - 1))
-                    else:
-                        self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s1" % (k - 1))
-                else:
-                    self.assertEquals(res[j][1][0].PlaceTypeId, "stop_code%s0" % k)
-                    self.assertEquals(res[j][2][0].PlaceTypeId, "stop_code%s1" % k)
-                    if k <= 2:
-                        self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s0" % (k - 1))
-                    else:
-                        self.assertEquals(res[j][3][0].PlaceTypeId, "stop_code%s1" % (k - 1))
-                k -= 1
 
     def test_filter_traces(self):
         request = PlanTripRequestType()
@@ -225,16 +193,16 @@ class TestPlanner(unittest.TestCase):
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
         position = LocationStructure(Longitude=1, Latitude=1)
         date = date_type(year=2010, month=4, day=8)
-        self.assertEquals(calculator._get_surrounding_mises(position, date), {1})
+        self.assertEquals(calculator._get_surrounding_mis(position, date), {1})
 
         position = LocationStructure(Longitude=3, Latitude=3)
-        self.assertEquals(calculator._get_surrounding_mises(position, date), {3})
+        self.assertEquals(calculator._get_surrounding_mis(position, date), {3})
 
         position = LocationStructure(Longitude=7, Latitude=33)
-        self.assertEquals(calculator._get_surrounding_mises(position, date), set([]))
+        self.assertEquals(calculator._get_surrounding_mis(position, date), set([]))
 
         position = LocationStructure(Longitude=0, Latitude=0)
-        self.assertEquals(calculator._get_surrounding_mises(position, date), {1, 2, 3})
+        self.assertEquals(calculator._get_surrounding_mis(position, date), {1, 2, 3})
 
     def test_get_mis_modes(self):
         request = PlanTripRequestType()
@@ -249,12 +217,12 @@ class TestPlanner(unittest.TestCase):
     def test_get_connected_mis(self):
         request = PlanTripRequestType()
         calculator = PlanTripCalculator(self._planner, request, Queue.Queue())
-        self.assertEquals(calculator._get_connected_mises(1), {2, 4})
-        self.assertEquals(calculator._get_connected_mises(2), {1, 3})
-        self.assertEquals(calculator._get_connected_mises(3), {2, 4})
-        self.assertEquals(calculator._get_connected_mises(4), {1, 3})
-        self.assertEquals(calculator._get_connected_mises(5), set([]))
-        self.assertEquals(calculator._get_connected_mises(6), set([]))
+        self.assertEquals(calculator._get_connected_mis(1), {2, 4})
+        self.assertEquals(calculator._get_connected_mis(2), {1, 3})
+        self.assertEquals(calculator._get_connected_mis(3), {2, 4})
+        self.assertEquals(calculator._get_connected_mis(4), {1, 3})
+        self.assertEquals(calculator._get_connected_mis(5), set([]))
+        self.assertEquals(calculator._get_connected_mis(6), set([]))
 
     def test_get_trace_transfers(self):
         request = PlanTripRequestType()
@@ -329,7 +297,7 @@ class TestPlanner(unittest.TestCase):
                     TripStopPlace=TripStopPlaceType(id="3"),
                     DateTime=datetime(year=2014, month=2, day=21))),
         ]
-        calculator._update_departures(departures, linked_stops, link_durations, trips)
+        calculator._update_transition_departures(departures, linked_stops, link_durations, trips)
         self.assertEquals(len(departures), 2)
         self.assertEquals(departures[0].PlaceTypeId, "1")
         self.assertEquals(departures[0].departure_time, datetime(year=2014, month=2, day=1))
@@ -375,7 +343,7 @@ class TestPlanner(unittest.TestCase):
                     TripStopPlace=TripStopPlaceType(id="43"),
                     DateTime=datetime(year=2014, month=2, day=4))),
         ]
-        calculator._update_arrivals(arrivals, linked_stops, link_durations, trips)
+        calculator._update_transition_arrivals(arrivals, linked_stops, link_durations, trips)
         self.assertEquals(len(arrivals), 2)
         self.assertEquals(arrivals[0].PlaceTypeId, "1")
         self.assertEquals(arrivals[0].arrival_time, datetime(year=2014, month=2, day=1))

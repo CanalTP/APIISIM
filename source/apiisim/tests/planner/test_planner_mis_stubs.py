@@ -44,9 +44,9 @@ class _TestPlannerMisStubsBase(unittest.TestCase):
         logging.debug("TRACES: %s", traces)
         self.assertEquals(traces, self.EXPECTED_TRACES)
         departure_mises = [MisApi(db_session, x).get_name() for x in
-                           calculator._get_surrounding_mises(request.Departure.Position, date_type.today())]
+                           calculator._get_surrounding_mis(request.Departure.Position, date_type.today())]
         arrival_mises = [MisApi(db_session, x).get_name() for x in
-                         calculator._get_surrounding_mises(request.Arrival.Position, date_type.today())]
+                         calculator._get_surrounding_mis(request.Arrival.Position, date_type.today())]
         for t in traces:
             full_trip = calculator.compute_trip(t)
             notif = create_full_notification("test_id", "trace_id", full_trip, timedelta())

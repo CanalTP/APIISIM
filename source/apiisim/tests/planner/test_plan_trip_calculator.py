@@ -90,11 +90,11 @@ class TestPlanTripCalculator(unittest.TestCase):
 
     def test_filter_best_trip_response(self):
         trips = self.get_summed_up_itineraries_response_type_sample()
-        self.calculator._filter_best_trip_response(trips, True)
+        self.calculator._filter_best_trip_response(trips.summedUpTrips, True)
         self.assertTrue(len(trips.summedUpTrips) == 1)
         self.assertTrue(trips.summedUpTrips[0].Arrival.DateTime == datetime(2014, 10, 21, 13, 14))
         trips = self.get_summed_up_itineraries_response_type_sample()
-        self.calculator._filter_best_trip_response(trips, False)
+        self.calculator._filter_best_trip_response(trips.summedUpTrips, False)
         self.assertTrue(len(trips.summedUpTrips) == 1)
         self.assertTrue(trips.summedUpTrips[0].Departure.DateTime == datetime(2014, 10, 21, 14, 30))
 

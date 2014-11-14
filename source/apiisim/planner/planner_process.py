@@ -85,7 +85,7 @@ class CalculationManager(threading.Thread):
 
 
 class PlannerProcessHandler(object):
-    def __init__(self, planner, request, notification_queue = None):
+    def __init__(self, planner, request, notification_queue=None):
         self._planner = planner
         self._request = request
         self._request_id = self._request.clientRequestId
