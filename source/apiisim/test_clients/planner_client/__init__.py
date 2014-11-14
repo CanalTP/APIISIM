@@ -23,11 +23,11 @@ class TripCollection:
         return ret
 
     @staticmethod
-    def _new_request(departure, arrival, clockwise=True):
+    def _new_request(departure, arrival, req_time=None, clockwise=True):
         ret = PlanTripRequestType()
 
         ret.clientRequestId = "request_" + str(randint(0, 60000))
-        now = datetime.datetime.now() - datetime.timedelta(days=10)
+        now = req_time if req_time else datetime.datetime.now() - datetime.timedelta(days=10)
 
         if clockwise:
             ret.DepartureTime = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=now.hour,
@@ -36,7 +36,7 @@ class TripCollection:
         else:
             ret.DepartureTime = None
             ret.ArrivalTime = datetime.datetime(year=now.year, month=now.month, day=now.day, hour=now.hour,
-                                                  minute=now.minute)
+                                                minute=now.minute)
 
         ret.Departure = departure
         ret.Arrival = arrival
@@ -51,15 +51,22 @@ class TripCollection:
         return ret
 
     @staticmethod
-    def paris_reims(clockwise=True):
+    def paris_reims(req_time=None, clockwise=True):
         return TripCollection._new_request(
-            TripCollection._new_location(None, 2.348294, 48.858108),  # Chatelet
-            TripCollection._new_location(None, 4.034720, 49.262780),  # Reims
-            clockwise)
+            TripCollection._new_location(None, 2.348294, 48.858108),  # Chatelet (IDF)
+            TripCollection._new_location(None, 4.034720, 49.262780),  # Reims (Champagne)
+            req_time, clockwise)
 
     @staticmethod
-    def orly_reims(clockwise=True):
+    def orly_reims(req_time=None, clockwise=True):
         return TripCollection._new_request(
-            TripCollection._new_location(None, 2.369208, 48.729012),  # Orly
-            TripCollection._new_location(None, 5.051595, 47.332904),  # Reims
-            clockwise)
+            TripCollection._new_location(None, 2.369208, 48.729012),  # Orly (IDF)
+            TripCollection._new_location(None, 5.051595, 47.332904),  # Reims (Champagne)
+            req_time, clockwise)
+
+    @staticmethod
+    def bergson_vieville(req_time=None, clockwise=True):
+        return TripCollection._new_request(
+            TripCollection._new_location(None, 2.181307, 48.841171),  # Begson (IDF)
+            TripCollection._new_location(None, 5.135272, 48.239439),  # Vieville (Champagne)
+            req_time, clockwise)
