@@ -8,9 +8,9 @@ INSERT INTO mis (name, comment, api_url, api_key, start_date, end_date,
      DATE '2016-04-16', TRUE, 1),
     ('sncfnational', 'comment3', 'http://127.0.0.1:5000/sncf_national/v0/', '05a80956-5360-45e1-ba48-ffd3805404e1', DATE '2012-12-11', 
      DATE '2018-08-01', TRUE, 1),
-    ('alsace', 'comment4', 'http://preprod.vialsace2.tsi.cityway.fr/webservices/APII-SIM-Connector/1.0/', '', DATE '2012-12-11',
+    ('alsace', 'comment4', 'http://alsace.apisiim.api.cityway.fr/APII-SIM-Connector/1.0/', '', DATE '2012-12-11',
      DATE '2018-08-01', TRUE, 1),
-    ('oise', 'comment5', 'http://preprod.sismo.cityway.fr/webservices/APII-SIM-Connector/1.0/', '', DATE '2012-12-11',
+    ('oise', 'comment5', 'http://oise.apisiim.api.cityway.fr/APII-SIM-Connector/1.0/', '', DATE '2012-12-11',
      DATE '2018-08-01', TRUE, 1);
 
 COMMIT;
