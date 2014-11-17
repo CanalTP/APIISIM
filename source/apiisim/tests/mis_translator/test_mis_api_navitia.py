@@ -42,7 +42,7 @@ class TestNavitia(unittest.TestCase):
         steps = navitia.parse_stop_times(self._json_from_file("stoptimes1.json"))
 
         # print len(steps)
-        # step = steps[8]
+        #step = steps[8]
         #print step.id
         #print step.Departure.TripStopPlace.id
         #print step.Departure.TripStopPlace.Name
@@ -100,30 +100,34 @@ class TestNavitia(unittest.TestCase):
         trip = navitia.journey_to_summed_up_trip(self._json_from_file("journey1.json"))
 
         # print trip.InterchangeCount
-        # print trip.Departure.TripStopPlace.id
+        #print trip.InterchangeDuration
+
+        #print trip.Departure.DateTime
+        #print trip.Departure.TripStopPlace.id
         #print trip.Departure.TripStopPlace.Name
         #print trip.Departure.TripStopPlace.Position.Latitude
         #print trip.Departure.TripStopPlace.Position.Longitude
+
+        #print trip.Arrival.DateTime
         #print trip.Arrival.TripStopPlace.id
         #print trip.Arrival.TripStopPlace.Name
         #print trip.Arrival.TripStopPlace.Position.Latitude
         #print trip.Arrival.TripStopPlace.Position.Longitude
-        #print trip.Departure.DateTime
-        #print trip.Arrival.DateTime
-        #print trip.InterchangeDuration
 
         self.assertEquals(trip.InterchangeCount, 3)
+        self.assertEquals(trip.InterchangeDuration, 1886)
+
+        self.assertEquals(trip.Departure.DateTime, datetime(2014, 9, 30, 3, 49, 53))
         self.assertEquals(trip.Departure.TripStopPlace.id, "2.3468313805225653;48.859484964845606")
         self.assertEquals(trip.Departure.TripStopPlace.Name, "9 Rue des Halles (Paris)")
         self.assertEquals(trip.Departure.TripStopPlace.Position.Latitude, "48.859484964845606")
         self.assertEquals(trip.Departure.TripStopPlace.Position.Longitude, "2.3468313805225653")
+
+        self.assertEquals(trip.Arrival.DateTime, datetime(2014, 9, 30, 6, 47))
         self.assertEquals(trip.Arrival.TripStopPlace.id, "stop_area:DUA:SA:8738664")
         self.assertEquals(trip.Arrival.TripStopPlace.Name, "VILLENNES SUR SEINE (Villennes-sur-Seine)")
         self.assertEquals(trip.Arrival.TripStopPlace.Position.Latitude, "48.939491")
         self.assertEquals(trip.Arrival.TripStopPlace.Position.Longitude, "1.999496")
-        self.assertEquals(trip.Departure.DateTime, datetime(2014, 9, 30, 3, 49, 53))
-        self.assertEquals(trip.Arrival.DateTime, datetime(2014, 9, 30, 6, 47))
-        self.assertEquals(trip.InterchangeDuration, 1886)
 
     def test_journey2str(self):
         txt = navitia.journey_to_str(self._json_from_file("journey1.json"))
@@ -135,12 +139,27 @@ class TestNavitia(unittest.TestCase):
     def test_journey2detailed_trip(self):
         trip = navitia.journey_to_detailed_trip(self._json_from_file("journey1.json"))
 
+        print trip.Departure
+
         # print trip.Duration
-        # print trip.Distance
+        #print trip.Distance
         #print trip.Disrupted
         #print trip.InterchangeNumber
         #print trip.CarFootprint
         #print len(trip.sections)
+
+        #print trip.Departure.DateTime
+        #print trip.Departure.TripStopPlace.id
+        #print trip.Departure.TripStopPlace.Name
+        #print trip.Departure.TripStopPlace.Position.Latitude
+        #print trip.Departure.TripStopPlace.Position.Longitude
+
+        #print trip.Arrival.DateTime
+        #print trip.Arrival.TripStopPlace.id
+        #print trip.Arrival.TripStopPlace.Name
+        #print trip.Arrival.TripStopPlace.Position.Latitude
+        #print trip.Arrival.TripStopPlace.Position.Longitude
+
         #section = trip.sections[5]
         #print section.PartialTripId
 
@@ -181,6 +200,18 @@ class TestNavitia(unittest.TestCase):
         self.assertEquals(trip.InterchangeNumber, 3)
         self.assertEquals(trip.CarFootprint, None)
         self.assertEquals(len(trip.sections), 7)
+
+        self.assertEquals(trip.Departure.DateTime, datetime(2014, 9, 30, 3, 49, 53))
+        self.assertEquals(trip.Departure.TripStopPlace.id, "2.3468313805225653;48.859484964845606")
+        self.assertEquals(trip.Departure.TripStopPlace.Name, "9 Rue des Halles (Paris)")
+        self.assertEquals(trip.Departure.TripStopPlace.Position.Latitude, "48.859484964845606")
+        self.assertEquals(trip.Departure.TripStopPlace.Position.Longitude, "2.3468313805225653")
+
+        self.assertEquals(trip.Arrival.DateTime, datetime(2014, 9, 30, 6, 47))
+        self.assertEquals(trip.Arrival.TripStopPlace.id, "stop_area:DUA:SA:8738664")
+        self.assertEquals(trip.Arrival.TripStopPlace.Name, "VILLENNES SUR SEINE (Villennes-sur-Seine)")
+        self.assertEquals(trip.Arrival.TripStopPlace.Position.Latitude, "48.939491")
+        self.assertEquals(trip.Arrival.TripStopPlace.Position.Longitude, "1.999496")
 
         self.assertEquals(trip.sections[0].PartialTripId, "section_8_0")
         self.assertEquals(trip.sections[0].PTRide, None)
@@ -525,7 +556,7 @@ class TestNavitiaMisApi(unittest.TestCase):
         self.assertEquals(response.summedUpTrips[12].Departure.DateTime, datetime(2014, 10, 18, 11, 23))
         self.assertEquals(response.summedUpTrips[12].Arrival.TripStopPlace.id, "stop_area:DUA:SA:8741560")
         self.assertEquals(response.summedUpTrips[12].Arrival.DateTime, datetime(2014, 10, 18, 13, 9))
-        #print json.dumps(marshal(response, summed_up_itineraries_response_type))
+        # print json.dumps(marshal(response, summed_up_itineraries_response_type))
 
 
 if __name__ == '__main__':
