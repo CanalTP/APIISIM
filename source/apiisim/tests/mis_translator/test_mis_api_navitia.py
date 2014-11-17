@@ -281,6 +281,15 @@ class VirtualMisApi(navitia.MisApi):
         self.urls = []
         self.json_data = []
 
+    def set_config_nm_journeys(self, value):
+        self._nm_journeys = value
+
+    def set_config_multithread(self, value):
+        self._multithread = value
+
+    def set_config_max_threads(self, value):
+        self._max_threads = value
+
     def _send_request(self, url, json_data=None):
         self.last_url = url
         self.last_json_data = json.dumps(json_data) if json_data else None
@@ -356,7 +365,7 @@ class TestNavitiaMisApi(unittest.TestCase):
         # clean_up_trip_response (should be tested but redundant with tests below)
         pass
 
-    def test_get_itinerary(self):
+    def test_get_hardcoded_itinerary(self):
         departure_time = datetime(2014, 11, 13, 15, 12, 35)
         arrival_time = ""
         departures = []
@@ -378,7 +387,7 @@ class TestNavitiaMisApi(unittest.TestCase):
         language = ""
         options = []
         response = ItineraryResponseType()
-        response.DetailedTrip = self.mis_api.get_itinerary(
+        response.DetailedTrip = self.mis_api.get_hardcoded_itinerary(
             departures,
             arrivals,
             departure_time,
@@ -390,6 +399,116 @@ class TestNavitiaMisApi(unittest.TestCase):
             language,
             options)
 
+        #print self.mis_api.urls
+        #print self.mis_api.json_data[0]
+        self.assertEquals(len(self.mis_api.urls), 1)
+        self.assertEquals(self.mis_api.urls[0], "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/test//journeys")
+        d = "{\"from\": [{\"uri\": \"2.348294;48.858108\", \"access_duration\": 0}], " \
+            "\"to\": [{\"uri\": \"stop_area:DUA:SA:8768666\", \"access_duration\": 15}], " \
+            "\"datetime\": \"20141113T151235\", \"last_section_mode[]\": \"walking\", " \
+            "\"datetime_represents\": \"departure\", \"details\": \"true\", " \
+            "\"forbidden_uris[]\": [], \"first_section_mode[]\": \"walking\"}"
+        self.assertEquals(self.mis_api.json_data[0], d)
+
+        self.assertEquals(response.DetailedTrip.Departure.DateTime, datetime(2014, 11, 13, 16, 17, 40))
+        self.assertEquals(response.DetailedTrip.Arrival.DateTime, datetime(2014, 11, 13, 19, 22, 00))
+        self.assertEquals(response.DetailedTrip.Duration, timedelta(0, 3 * 3600 + 4 * 60 + 20))
+        self.assertEquals(response.DetailedTrip.InterchangeNumber, 2)
+
+        self.assertEquals(len(response.DetailedTrip.sections), 6)
+        self.assertEquals(response.DetailedTrip.sections[0].PartialTripId, "section_6_0")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Arrival.TripStopPlace.CityCode, "admin:7444")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Arrival.TripStopPlace.Name, "CHATELET LES HALLES")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Arrival.TripStopPlace.Position.Latitude, "48.861822")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Arrival.TripStopPlace.Position.Longitude, "2.347013")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Arrival.TripStopPlace.TypeOfPlaceRef, "STOP_PLACE")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Arrival.TripStopPlace.CityName, "Paris")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Arrival.TripStopPlace.id, "stop_point:DUA:SP:8775860")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Arrival.DateTime, datetime(2014, 11, 13, 16, 25, 46))
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Departure.TripStopPlace.CityCode, "admin:7444")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Departure.TripStopPlace.Name, " (Paris)")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Departure.TripStopPlace.Position.Latitude,
+                          "48.85807101538462")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Departure.TripStopPlace.Position.Longitude,
+                          "2.3483587230769243")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Departure.TripStopPlace.TypeOfPlaceRef, "ADDRESS")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Departure.TripStopPlace.CityName, "Paris")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Departure.TripStopPlace.id,
+                          "2.3483587230769243;48.85807101538462")
+        self.assertEquals(response.DetailedTrip.sections[0].Leg.Departure.DateTime, datetime(2014, 11, 13, 16, 17, 40))
+        self.assertEquals(response.DetailedTrip.sections[1].PartialTripId, "section_7_0")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Arrival.TripStopPlace.CityCode, "admin:7444")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Arrival.TripStopPlace.Name, "PARIS GARE DE LYON")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Arrival.TripStopPlace.Position.Latitude, "48.844139")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Arrival.TripStopPlace.Position.Longitude, "2.37326")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Arrival.TripStopPlace.TypeOfPlaceRef, "STOP_PLACE")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Arrival.TripStopPlace.CityName, "Paris")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Arrival.TripStopPlace.id,
+                          "stop_point:DUA:SP:8775858")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Arrival.DateTime, datetime(2014, 11, 13, 16, 29))
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Departure.TripStopPlace.CityCode, "admin:7444")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Departure.TripStopPlace.Name, "CHATELET LES HALLES")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Departure.TripStopPlace.Position.Latitude,
+                          "48.861822")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Departure.TripStopPlace.Position.Longitude,
+                          "2.347013")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Departure.TripStopPlace.TypeOfPlaceRef, "STOP_PLACE")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Departure.TripStopPlace.CityName, "Paris")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Departure.TripStopPlace.id,
+                          "stop_point:DUA:SP:8775860")
+        self.assertEquals(response.DetailedTrip.sections[1].PTRide.Departure.DateTime, datetime(2014, 11, 13, 16, 26))
+        self.assertEquals(response.DetailedTrip.sections[5].PartialTripId, "section_13_0")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Arrival.TripStopPlace.CityCode, "admin:7444")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Arrival.TripStopPlace.Name, "PARIS BERCY (Paris)")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Arrival.TripStopPlace.Position.Latitude, "48.838388")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Arrival.TripStopPlace.Position.Longitude, "2.38232")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Arrival.TripStopPlace.TypeOfPlaceRef, "STOP_PLACE")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Arrival.TripStopPlace.CityName, "Paris")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Arrival.TripStopPlace.id, "stop_area:DUA:SA:8768666")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Arrival.DateTime, datetime(2014, 11, 13, 19, 22))
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.CityCode, "admin:7444")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.Name, "GARE DE BERCY")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.Position.Latitude, "48.839081")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.Position.Longitude, "2.383028")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.TypeOfPlaceRef, "STOP_PLACE")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.CityName, "Paris")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.id, "stop_point:DUA:SP:8768666")
+        self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.DateTime, datetime(2014, 11, 13, 19, 22))
+        #print json.dumps(marshal(response, itinerary_response_type))
+
+    def test_get_emulated_itinerary(self):
+        departure_time = datetime(2014, 11, 13, 15, 12, 35)
+        arrival_time = ""
+        departures = []
+        departure = LocationContextType()
+        departure.Position = LocationStructure(Latitude="48.858108", Longitude="2.348294")
+        departure.AccessTime = timedelta(minutes=15)
+        departure.PlaceTypeId = None
+        departures.append(departure)
+        arrivals = []
+        arrival = LocationContextType()
+        arrival.Position = None
+        arrival.AccessTime = timedelta(minutes=15)
+        arrival.PlaceTypeId = "stop_area:DUA:SA:8768666"
+        arrivals.append(arrival)
+        algorithm = AlgorithmEnum.CLASSIC
+        modes = [TransportModeEnum.ALL]
+        self_drive_conditions = []
+        accessibility_constraint = False
+        language = ""
+        options = []
+        response = ItineraryResponseType()
+        response.DetailedTrip = self.mis_api.get_emulated_itinerary(
+            departures,
+            arrivals,
+            departure_time,
+            arrival_time,
+            algorithm,
+            modes,
+            self_drive_conditions,
+            accessibility_constraint,
+            language,
+            options)
         # print self.mis_api.urls
         self.assertEquals(len(self.mis_api.urls), 1)
         self.assertEquals(self.mis_api.urls[0],
@@ -462,10 +581,11 @@ class TestNavitiaMisApi(unittest.TestCase):
         self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.CityName, "Paris")
         self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.TripStopPlace.id, "stop_point:DUA:SP:8768666")
         self.assertEquals(response.DetailedTrip.sections[5].Leg.Departure.DateTime, datetime(2014, 11, 13, 19, 22))
-        # print json.dumps(marshal(response, itinerary_response_type))
+        #print json.dumps(marshal(response, itinerary_response_type))
 
     def test_get_emulated_summed_up_itineraries(self):
         # get_emulated_summed_up_itineraries (should be tested)
+        self.mis_api.set_config_nm_journeys(False)
         pass
 
     def test_get_hardcoded_summed_up_itineraries(self):
@@ -517,7 +637,7 @@ class TestNavitiaMisApi(unittest.TestCase):
             options)
 
         # print self.mis_api.urls
-        # print self.mis_api.json_data
+        #print self.mis_api.json_data
         self.assertEquals(len(self.mis_api.urls), 1)
         self.assertEquals(self.mis_api.urls[0], "http://navitia2-ws.ctp.dev.canaltp.fr/v1/coverage/test//journeys")
         d = "{\"from\": [{\"uri\": \"2.3467106;48.8594808\", \"access_duration\": 0}]" \
@@ -556,7 +676,7 @@ class TestNavitiaMisApi(unittest.TestCase):
         self.assertEquals(response.summedUpTrips[12].Departure.DateTime, datetime(2014, 10, 18, 11, 23))
         self.assertEquals(response.summedUpTrips[12].Arrival.TripStopPlace.id, "stop_area:DUA:SA:8741560")
         self.assertEquals(response.summedUpTrips[12].Arrival.DateTime, datetime(2014, 10, 18, 13, 9))
-        # print json.dumps(marshal(response, summed_up_itineraries_response_type))
+        #print json.dumps(marshal(response, summed_up_itineraries_response_type))
 
 
 if __name__ == '__main__':
