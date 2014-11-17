@@ -102,61 +102,60 @@ def gare_melun_champagne(access_time="PT0S"):
                                                   "Longitude": 2.655392}, PlaceTypeId="stop_area:SNC:SA:SAOCE87682005")
 
 
-def test_journeys(client):
-    departure_time = datetime.datetime.now().strftime(DATE_FORMAT)
-    arrival_time = (datetime.datetime.now() + timedelta(hours=24)).strftime(DATE_FORMAT)
+def test_journeys(client, req_time):
+    time_field = (datetime.datetime.now() if not req_time else req_time).strftime(DATE_FORMAT)
+
 
     data = {"ItineraryRequest": {"multiDepartures": {"Departure": [gare_melun_transilien(), gare_paris_transilien(),
                                                                    gare_etampes_transilien()],
                                                      "Arrival": gare_chartres_transilien()},
-                                 "DepartureTime": departure_time,
+                                 "DepartureTime": time_field,
                                  "modes": [TransportModeEnum.ALL]}}
 
     client.send_request("itineraries.json", data)
 
     data = {"ItineraryRequest": {"multiDepartures": {"Departure": [gare_dourdan_transilien(), gare_limay_transilien()],
                                                      "Arrival": no_code(gare_melun_transilien())},
-                                 "DepartureTime": departure_time,
+                                 "DepartureTime": time_field,
                                  "Algorithm": AlgorithmEnum.MINCHANGES}}
 
     client.send_request("itineraries.json", data)
 
     data = {"ItineraryRequest": {"multiArrivals": {"Departure": gare_melun_transilien(),
                                                    "Arrival": [gare_dourdan_transilien(), gare_limay_transilien()]},
-                                 "ArrivalTime": arrival_time,
+                                 "ArrivalTime": time_field,
                                  "Algorithm": AlgorithmEnum.MINCHANGES}}
 
     client.send_request("itineraries.json", data)
 
 
-def test_nm_journeys(client):
-    departure_time = datetime.datetime.now().strftime(DATE_FORMAT)
-    arrival_time = (datetime.datetime.now() + timedelta(hours=24)).strftime(DATE_FORMAT)
+def test_nm_journeys(client, req_time=None):
+    time_field = (datetime.datetime.now() if not req_time else req_time).strftime(DATE_FORMAT)
 
     data = {"SummedUpItinerariesRequest": {"departures": [gare_melun_transilien(), gare_limay_transilien()],
                                            "arrivals": [gare_chartres_transilien(), gare_etampes_transilien()],
-                                           "DepartureTime": departure_time,
+                                           "DepartureTime": time_field,
                                            "modes": [TransportModeEnum.ALL]}}
 
     client.send_request("summed_up_itineraries.json", data)
 
     data = {"SummedUpItinerariesRequest": {"departures": [gare_melun_transilien(), gare_limay_transilien()],
                                            "arrivals": [gare_chartres_transilien(), gare_etampes_transilien()],
-                                           "ArrivalTime": arrival_time,
+                                           "ArrivalTime": time_field,
                                            "modes": [TransportModeEnum.ALL]}}
 
     client.send_request("summed_up_itineraries.json", data)
 
     data = {"SummedUpItinerariesRequest": {"departures": [no_code(gare_melun_transilien())],
                                            "arrivals": [gare_chartres_transilien(), gare_etampes_transilien()],
-                                           "DepartureTime": departure_time,
+                                           "DepartureTime": time_field,
                                            "modes": [TransportModeEnum.ALL]}}
 
     client.send_request("summed_up_itineraries.json", data)
 
     data = {"SummedUpItinerariesRequest": {"departures": [gare_melun_transilien(), gare_limay_transilien()],
                                            "arrivals": [no_code(gare_etampes_transilien())],
-                                           "ArrivalTime": arrival_time,
+                                           "ArrivalTime": time_field,
                                            "modes": [TransportModeEnum.ALL]}}
 
     client.send_request("summed_up_itineraries.json", data)
@@ -166,5 +165,5 @@ if __name__ == '__main__':
     mis_client = MisTranslatorClient("http://127.0.0.1:5000/transilien/v0",
                                      "f8a9befb-6bd9-4620-b942-b6b69a07487d")
 
-    test_journeys(mis_client)
-    test_nm_journeys(mis_client)
+    test_journeys(mis_client, datetime.datetime(2014, 11, 02, 12, 30))
+    test_nm_journeys(mis_client, datetime.datetime(2014, 11, 02, 12, 30))

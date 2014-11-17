@@ -7,6 +7,7 @@ import traceback
 from datetime import datetime, timedelta
 from operator import itemgetter
 from copy import deepcopy
+from Queue import Queue
 import threading
 
 import httplib2
@@ -383,7 +384,6 @@ def algo_fastest(journeys, departure_at, optimize_departure_and_arrival=False):
 
 def algo_minchanges(journeys, departure_at, optimize_departure_and_arrival=False):
     # Get journey with minimum transfer duration
-
     transfer_durations = []  # [(journey, transfer_duration)]
     for journey in journeys:
         transfer_durations.append(
@@ -491,6 +491,17 @@ class MisApi(MisApiBase):
     def __init__(self, config, api_key=""):
         self._api_url = "http://navitia2-ws.ctp.xxx.canaltp.fr//v1/coverage/yyy/"
         self._api_key = api_key
+
+        self._nm_journeys = False
+        self._multithread = True
+        self._max_threads = 32
+        if config and config.has_section("Navitia"):
+            if config.has_option('Navitia', 'nm_journeys'):
+                self._nm_journeys = config.getboolean('Navitia', 'nm_journeys')
+            if config.has_option('Navitia', 'multithread'):
+                self._multithread = config.getboolean('Navitia', 'multithread')
+            if config.has_option('Navitia', 'max_threads'):
+                self._max_threads = config.getint('Navitia', 'max_threads')
 
     @staticmethod
     def _check_answer(resp, content, get_or_post_str, url):
@@ -655,65 +666,121 @@ class MisApi(MisApiBase):
         ret = [journey_to_summed_up_trip(x) for x in best_journeys if x]
         return ret
 
-    def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
-                      algorithm, modes, self_drive_conditions,
-                      accessibility_constraint, language, options):
+    def itinerary_worker(self, sync_queue, sync_params, sync_departure_time, sync_arrival_time,
+                         sync_journeys, sync_lock):
+        while True:
+            sync_lock.acquire()
+            ends = sync_queue.empty()
+            if not ends:
+                worker_departure, worker_arrival = sync_queue.get()
+            sync_lock.release()
+            if ends:
+                break
+            thread_params = deepcopy(sync_params)
+            thread_params['from'] = get_location_id(worker_departure)
+            thread_params['to'] = get_location_id(worker_arrival)
+            params_set_datetime(thread_params, sync_departure_time, sync_arrival_time, worker_departure, worker_arrival)
+            try:
+                worker_journeys = self._journeys_request(thread_params)
+            except:
+                worker_journeys = []
+                logging.getLogger('exceptions').error(traceback.format_exc())
+            for j in worker_journeys:
+                sync_lock.acquire()
+                sync_journeys.append((worker_departure, worker_arrival, j))
+
+                sync_lock.release()
+            sync_queue.task_done()
+
+    def get_emulated_itinerary(self, departures, arrivals, departure_time, arrival_time,
+                               algorithm, modes, self_drive_conditions,
+                               accessibility_constraint, language, options):
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
+
         journeys = []
         # Request journeys for every departure/arrival pair and then
         # choose best.
+        q = Queue(maxsize=0)
         if len(departures) > 1:
-            params['to'] = get_location_id(arrivals[0])
             for d in departures:
-                params['from'] = get_location_id(d)
-                params_set_datetime(params, departure_time, arrival_time, d, arrivals[0])
-                try:
-                    journeys.extend(self._journeys_request(params))
-                except:
-                    logging.getLogger('exceptions').error(traceback.format_exc())
+                q.put((d, arrivals[0]))
         else:
-            params['from'] = get_location_id(departures[0])
             for a in arrivals:
-                params['to'] = get_location_id(a)
-                params_set_datetime(params, departure_time, arrival_time, departures[0], a)
-                journeys.extend(self._journeys_request(params))
+                q.put((departures[0], a))
+        threads = []
+        thread_lock = threading.Lock()
+        for _ in range(self._max_threads) if self._multithread else [0]:
+            worker = threading.Thread(target=self.itinerary_worker,
+                                      args=(q, params, departure_time, arrival_time, journeys, thread_lock))
+            worker.setDaemon(True)
+            worker.start()
+            threads.append(worker)
+        q.join()
+        for thread in threads:
+            thread.join()
+
+        best_journey = choose_best_journey(zip(*journeys)[2], algorithm, bool(departure_time))
+        # If no journey found, DetailedTrip is None
+        return journey_to_detailed_trip(best_journey)
+
+    def get_hardcoded_itinerary(self, departures, arrivals, departure_time, arrival_time,
+                                algorithm, modes, self_drive_conditions,
+                                accessibility_constraint, language, options):
+        params = {}
+        params_set_modes(params, modes, self_drive_conditions)
+
+        # fix json format issues
+        params["forbidden_uris[]"] = list(params["forbidden_uris[]"])
+        params["first_section_mode[]"] = "walking"
+        params["last_section_mode[]"] = "walking"
+
+        # request detailed itinerary 1-n or n-1
+        if len(departures) > 1:
+            params['to'] = [{"uri": get_location_id(arrivals[0]), "access_duration": 0}]
+            params['from'] = []
+            for d in departures:
+                params['from'].append(
+                    {"uri": get_location_id(d), "access_duration": int(d.AccessTime.total_seconds() // 60)})
+        else:
+            params['from'] = [{"uri": get_location_id(departures[0]), "access_duration": 0}]
+            params['to'] = []
+            for a in arrivals:
+                params['to'].append(
+                    {"uri": get_location_id(a), "access_duration": int(a.AccessTime.total_seconds() // 60)})
+
+        if departure_time:
+            params['datetime_represents'] = 'departure'
+            params['datetime'] = departure_time.strftime(DATE_FORMAT)
+        else:
+            params['datetime_represents'] = 'arrival'
+            params['datetime'] = arrival_time.strftime(DATE_FORMAT)
+
+        params['details'] = 'true'
+
+        journeys = self._nm_journeys_request(params)
 
         best_journey = choose_best_journey(journeys, algorithm, bool(departure_time))
         # If no journey found, DetailedTrip is None
         return journey_to_detailed_trip(best_journey)
 
-    class ThreadSummedUpItinerary(threading.Thread):
-        def __init__(self, thread_id, caller, journeys, params, d, a, departure_time, arrival_time):
-            threading.Thread.__init__(self)
-            self.threadID = thread_id
-            self.caller = caller
-            self.journeys = journeys
-            self.params = deepcopy(params)
-            self.d = d
-            self.a = a
-            self.departure_time = departure_time
-            self.arrival_time = arrival_time
-
-        def run(self):
-            self.params['from'] = get_location_id(self.d)
-            self.params['to'] = get_location_id(self.a)
-            params_set_datetime(self.params, self.departure_time, self.arrival_time, self.d, self.a)
-            try:
-                journeys = self.caller._journeys_request(self.params)
-            except:
-                journeys = []
-                logging.getLogger('exceptions').error(traceback.format_exc())
-            for j in journeys:
-                self.caller.threadLock.acquire()
-                self.journeys.append((self.d, self.a, j))
-                self.caller.threadLock.release()
+    def get_itinerary(self, departures, arrivals, departure_time, arrival_time,
+                      algorithm, modes, self_drive_conditions,
+                      accessibility_constraint, language, options):
+        if self._nm_journeys:
+            return self.get_hardcoded_itinerary(departures, arrivals, departure_time, arrival_time,
+                                                algorithm, modes, self_drive_conditions,
+                                                accessibility_constraint, language, options)
+        else:
+            return self.get_emulated_itinerary(departures, arrivals, departure_time, arrival_time,
+                                               algorithm, modes, self_drive_conditions,
+                                               accessibility_constraint, language, options)
 
     def get_emulated_summed_up_itineraries(self, departures, arrivals, departure_time,
                                            arrival_time, algorithm,
                                            modes, self_drive_conditions,
                                            accessibility_constraint,
-                                           language, options, multithreaded=False):
+                                           language, options):
         # Limit size of departures and arrivals
         if departure_time:
             arrivals = arrivals[0:30]
@@ -723,30 +790,24 @@ class MisApi(MisApiBase):
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
 
+        journeys = []
         # Request itinerary for every departure/arrival pair and then
         # choose best.
-        journeys = []
-        if multithreaded:
-            threads = []
-            count = 1
-            self.threadLock = threading.Lock()
-            for d in departures:
-                for a in arrivals:
-                    thread = self.ThreadSummedUpItinerary(count, self, journeys, params, d, a, departure_time,
-                                                          arrival_time)
-                    thread.start()
-                    threads.append(thread)
-                    count += 1
-            for thread in threads:
-                thread.join()
-        else:
-            for d in departures:
-                for a in arrivals:
-                    params['from'] = get_location_id(d)
-                    params['to'] = get_location_id(a)
-                    params_set_datetime(params, departure_time, arrival_time, d, a)
-                    for j in self._journeys_request(params):
-                        journeys.append((d, a, j))
+        q = Queue(maxsize=0)
+        for d in departures:
+            for a in arrivals:
+                q.put((d, a))
+        threads = []
+        thread_lock = threading.Lock()
+        for _ in range(self._max_threads) if self._multithread else [0]:
+            worker = threading.Thread(target=self.itinerary_worker,
+                                      args=(q, params, departure_time, arrival_time, journeys, thread_lock))
+            worker.setDaemon(True)
+            worker.start()
+            threads.append(worker)
+        q.join()
+        for thread in threads:
+            thread.join()
 
         trips = MisApi._clean_up_trip_response(journeys, departures, arrivals, departure_time, algorithm, options)
         return trips
@@ -765,7 +826,7 @@ class MisApi(MisApiBase):
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
 
-        #  fix json format issues
+        # fix json format issues
         params["forbidden_uris[]"] = list(params["forbidden_uris[]"])
         params["first_section_mode[]"] = "walking"
         params["last_section_mode[]"] = "walking"
@@ -788,7 +849,7 @@ class MisApi(MisApiBase):
             params['datetime_represents'] = 'arrival'
             params['datetime'] = arrival_time.strftime(DATE_FORMAT)
 
-        params['details'] = 'false'
+        params['details'] = 'true' if PlanSearchOptions.DEPARTURE_ARRIVAL_OPTIMIZED in options else 'false'
 
         journeys = []
         for j in self._nm_journeys_request(params):
@@ -802,7 +863,7 @@ class MisApi(MisApiBase):
                     [sorted([(s, (lambda (x, y): 0.44 * x * x + y * y)(
                         (s.Position.Latitude - float(org.TripStopPlace.Position.Latitude),
                          s.Position.Longitude - float(org.TripStopPlace.Position.Longitude)))) for s in departures],
-                        key=lambda distance: distance[1])[0][0]]
+                            key=lambda distance: distance[1])[0][0]]
 
             # fix pareto
             if d[0].PlaceTypeId:
@@ -815,7 +876,7 @@ class MisApi(MisApiBase):
                     [sorted([(s, (lambda (x, y): 0.44 * x * x + y * y)(
                         (s.Position.Latitude - float(dst.TripStopPlace.Position.Latitude),
                          s.Position.Longitude - float(dst.TripStopPlace.Position.Longitude)))) for s in arrivals],
-                        key=lambda distance: distance[1])[0][0]]
+                            key=lambda distance: distance[1])[0][0]]
 
             # fix pareto
             if a[0].PlaceTypeId:
@@ -832,13 +893,15 @@ class MisApi(MisApiBase):
                                   modes, self_drive_conditions,
                                   accessibility_constraint,
                                   language, options):
-        # return self.get_emulated_summed_up_itineraries(departures, arrivals, departure_time,
-        # arrival_time, algorithm,
-        # modes, self_drive_conditions,
-        # accessibility_constraint,
-        # language, options, multithreaded=True)
-        return self.get_hardcoded_summed_up_itineraries(departures, arrivals, departure_time,
-                                                        arrival_time, algorithm,
-                                                        modes, self_drive_conditions,
-                                                        accessibility_constraint,
-                                                        language, options)
+        if self._nm_journeys:
+            return self.get_hardcoded_summed_up_itineraries(departures, arrivals, departure_time,
+                                                            arrival_time, algorithm,
+                                                            modes, self_drive_conditions,
+                                                            accessibility_constraint,
+                                                            language, options)
+        else:
+            return self.get_emulated_summed_up_itineraries(departures, arrivals, departure_time,
+                                                           arrival_time, algorithm,
+                                                           modes, self_drive_conditions,
+                                                           accessibility_constraint,
+                                                           language, options)
