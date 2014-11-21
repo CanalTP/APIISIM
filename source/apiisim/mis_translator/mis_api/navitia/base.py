@@ -492,9 +492,14 @@ class MisApi(MisApiBase):
         self._api_url = "http://navitia2-ws.ctp.xxx.canaltp.fr//v1/coverage/yyy/"
         self._api_key = api_key
 
+        self._geographic_position_compliant = True
+
+        # emulation mode
         self._nm_journeys = False
         self._multithread = True
-        self._max_threads = 32
+        self._max_threads = 24
+        self._max_stops = 20
+
         if config and config.has_section("Navitia"):
             if config.has_option('Navitia', 'nm_journeys'):
                 self._nm_journeys = config.getboolean('Navitia', 'nm_journeys')
@@ -502,6 +507,8 @@ class MisApi(MisApiBase):
                 self._multithread = config.getboolean('Navitia', 'multithread')
             if config.has_option('Navitia', 'max_threads'):
                 self._max_threads = config.getint('Navitia', 'max_threads')
+            if config.has_option('Navitia', 'max_stops'):
+                self._max_stops = config.getint('Navitia', 'max_stops')
 
     @staticmethod
     def _check_answer(resp, content, get_or_post_str, url):
@@ -573,7 +580,7 @@ class MisApi(MisApiBase):
         return [x for x in content.get("journeys", [])]
 
     def get_capabilities(self):
-        return MisCapabilities(True, True, [TransportModeEnum.ALL])
+        return MisCapabilities(True, self._geographic_position_compliant, [TransportModeEnum.ALL])
 
     def _get_stops_by_mode(self, physical_mode):
         ret = []
@@ -688,13 +695,16 @@ class MisApi(MisApiBase):
             for j in worker_journeys:
                 sync_lock.acquire()
                 sync_journeys.append((worker_departure, worker_arrival, j))
-
                 sync_lock.release()
             sync_queue.task_done()
 
     def get_emulated_itinerary(self, departures, arrivals, departure_time, arrival_time,
                                algorithm, modes, self_drive_conditions,
                                accessibility_constraint, language, options):
+        # Limit size of departures and arrivals
+        departures = departures[:self._max_stops]
+        arrivals = arrivals[:self._max_stops]
+
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
 
@@ -782,10 +792,8 @@ class MisApi(MisApiBase):
                                            accessibility_constraint,
                                            language, options):
         # Limit size of departures and arrivals
-        if departure_time:
-            arrivals = arrivals[0:30]
-        if arrival_time:
-            departures = departures[0:30]
+        departures = departures[:self._max_stops]
+        arrivals = arrivals[:self._max_stops]
 
         params = {}
         params_set_modes(params, modes, self_drive_conditions)

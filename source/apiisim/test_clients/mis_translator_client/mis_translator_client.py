@@ -52,6 +52,21 @@ def gare_reims_champagne(access_time="PT0S"):
                                                   "Longitude": 4.033091}, PlaceTypeId="stop_area:TAD:SA:51454")
 
 
+def gare_juvisy_national(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.689470,
+                                                  "Longitude": 2.383211}, PlaceTypeId="stop_area:SCF:SA:SAOCE87545244")
+
+
+def gare_marseille_national(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 43.302734,
+                                                  "Longitude": 5.380651}, PlaceTypeId="stop_area:SCF:SA:SAOCE87751008")
+
+
+def gare_rennes_national(access_time="PT0S"):
+    return dict(AccessTime=access_time, Position={"Latitude": 48.103516,
+                                                  "Longitude": -1.672320}, PlaceTypeId="stop_area:SCF:SA:SAOCE87471003")
+
+
 def gare_chartres_transilien(access_time="PT0S"):
     return dict(AccessTime=access_time, Position={"Latitude": 48.448385,
                                                   "Longitude": 1.480871}, PlaceTypeId="stop_area:DUA:SA:8739400")
@@ -104,7 +119,6 @@ def gare_melun_champagne(access_time="PT0S"):
 
 def test_journeys(client, req_time):
     time_field = (datetime.datetime.now() if not req_time else req_time).strftime(DATE_FORMAT)
-
 
     data = {"ItineraryRequest": {"multiDepartures": {"Departure": [gare_melun_transilien(), gare_paris_transilien(),
                                                                    gare_etampes_transilien()],
