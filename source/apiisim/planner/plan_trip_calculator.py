@@ -153,7 +153,7 @@ class PlanTripCalculator(object):
         for mis_id in departure_mises:
             connected_mis = self._get_connected_mis(mis_id)
             for sub_trace in self._get_mis_traces(connected_mis,
-                                                 arrival_mises, max_trace_length - 1):
+                                                  arrival_mises, max_trace_length - 1):
                 if not mis_id in sub_trace:
                     sub_trace.insert(0, mis_id)
                     ret.append(sub_trace)
@@ -187,8 +187,10 @@ class PlanTripCalculator(object):
         return ret
 
     def _filter_traces(self, traces):
-        # For each trace, check that MISes that are 'in the middle' of the trace,
+        # For each trace,
+        # check that MIS that are 'in the middle' of the trace,
         # (i.e. not the first or last MIS of trace) support n-m itineraries requests.
+        # check that the first and the last MIS of trace is geographic-compliant.
         # If not, ignore that trace.
         ret = []
         for t in traces:
@@ -196,10 +198,16 @@ class PlanTripCalculator(object):
             for mis_id in t[1:-1]:
                 if not MisApi(self._db_session, mis_id).get_multiple_starts_and_arrivals():
                     is_valid = False
+                    logging.info("Trace filtered out (nm calculation not supported): %s" % t)
+                    break
+            for mis_id in list({t[0], t[-1]}):
+                if not MisApi(self._db_session, mis_id).get_geographic_position_compliant():
+                    is_valid = False
+                    logging.info("Trace filtered out (geographic position not supported): %s" % t)
                     break
             if is_valid:
                 ret.append(t)
-        return ret
+        return sorted(ret, key=lambda t: len(t))  # sort by trace length
 
     @benchmark
     def compute_traces(self):
@@ -781,14 +789,6 @@ class PlanTripCalculator(object):
         start_date = datetime.now()
         if not mis_trace:
             raise Exception("Empty MIS trace")
-
-        # Check that first and last MIS support departure/arrival points with
-        # geographic coordinates.
-        for mis_id in [mis_trace[0], mis_trace[-1]]:
-            if not self._db_session.query(metabase.Mis.geographic_position_compliant) \
-                    .filter_by(id=mis_id) \
-                    .one()[0]:
-                raise Exception("First or last MIS is not geographic_position_compliant")
 
         trace_id = self._generate_trace_id(mis_trace)
         providers = self._get_providers(mis_trace)

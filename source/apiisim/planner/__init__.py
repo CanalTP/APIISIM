@@ -326,8 +326,12 @@ class MisApi(object):
         self._api_url = mis.api_url
         self._api_key = mis.api_key
         self._name = mis.name
+        self._geographic_position_compliant = mis.geographic_position_compliant
         self._multiple_starts_and_arrivals = mis.multiple_starts_and_arrivals
         self._http = httplib2.Http()
+
+    def get_geographic_position_compliant(self):
+        return self._geographic_position_compliant
 
     def get_multiple_starts_and_arrivals(self):
         return self._multiple_starts_and_arrivals
