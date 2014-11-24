@@ -68,8 +68,8 @@ def gare_rennes_national(access_time="PT0S"):
 
 
 def gare_chartres_transilien(access_time="PT0S"):
-    return dict(AccessTime=access_time, Position={"Latitude": 48.448385,
-                                                  "Longitude": 1.480871}, PlaceTypeId="stop_area:DUA:SA:8739400")
+    return dict(AccessTime=access_time, Position={"Latitude": 48.695623,
+                                                  "Longitude": 2.179481}, PlaceTypeId="stop_area:DUA:SA:57:940")
 
 
 def gare_chartres_champagne(access_time="PT0S"):
@@ -176,7 +176,7 @@ def test_nm_journeys(client, req_time=None):
 
 
 if __name__ == '__main__':
-    mis_client = MisTranslatorClient("http://127.0.0.1:5000/transilien/v0",
+    mis_client = MisTranslatorClient("http://127.0.0.1:5000/stub_transilien/v0",
                                      "f8a9befb-6bd9-4620-b942-b6b69a07487d")
 
     test_journeys(mis_client, datetime.datetime(2014, 11, 02, 12, 30))

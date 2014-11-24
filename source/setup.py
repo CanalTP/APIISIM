@@ -1,8 +1,7 @@
 from setuptools import find_packages, setup
 
 excluded_packages = ['apiisim.tests',
-                     # Uncomment the line below to NOT install stub MIS APIs
-                     # 'apiisim.mis_translator.mis_api.stub'
+                     'apiisim.test_clients',
 ]
 
 setup(name='apiisim',

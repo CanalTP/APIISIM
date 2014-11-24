@@ -11,10 +11,10 @@ Dependencies
    * sqlalchemy
    * flask
    * geoalchemy2
-   * python-mod-pywebsocket
    * flask-restful (https://github.com/l-vincent-l/flask-restful) **patched version**
-   * websocket-client (only needed by test client)
-   * jsonschema (only needed by planner_client example)
+   * python-mod-pywebsocket (needed by planner webservice)   
+   * websocket-client (only needed by 'planner_client' module, can be skipped using 'planner_client_no_ws' module)
+   * jsonschema (only needed by test clients)
 
 #. Other
 

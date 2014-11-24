@@ -70,3 +70,10 @@ class TripCollection:
             TripCollection._new_location(None, 2.181307, 48.841171),  # Begson (IDF)
             TripCollection._new_location(None, 5.135272, 48.239439),  # Vieville (Champagne)
             req_time, clockwise)
+
+    @staticmethod
+    def paris_reims(req_time=None, clockwise=True):
+        return TripCollection._new_request(
+            TripCollection._new_location(None, 2.3467106, 48.8594808),  # Begson (IDF)
+            TripCollection._new_location(None, 4.0225421, 49.2334403),  # Vieville (Champagne)
+            req_time, clockwise)

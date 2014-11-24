@@ -5,6 +5,7 @@ import json
 import logging
 from logging import config
 import sys
+import datetime
 
 from jsonschema import Draft4Validator
 
@@ -35,7 +36,8 @@ def init_logging():
 
 
 def test(plan_trip_request):
-    planner = Planner("postgresql+psycopg2://postgres:postgres@localhost/afimb_stubs_db")
+    #planner = Planner("postgresql+psycopg2://postgres:postgres@localhost/afimb_stubs_db")
+    planner = Planner("postgresql+psycopg2://postgres:postgres@localhost/afimb_navitia_db")
     runner = PlannerProcessHandler(planner, plan_trip_request)
     runner.process()
 
@@ -69,4 +71,4 @@ if __name__ == '__main__':
     Draft4Validator.check_schema(formats.composed_trip_format)
     Draft4Validator.check_schema(formats.plan_trip_notification_response_format)
 
-    test(Trip.orly_reims(clockwise=True))
+    test(Trip.paris_reims(req_time=datetime.datetime(2014, 10, 27, 16, 49, 1), clockwise=True))

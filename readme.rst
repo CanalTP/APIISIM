@@ -33,7 +33,7 @@ This project is divided into several components:
 
 * The MIS translator: Web service that translates the generic API into MIS specific APIs. It acts as an abstraction layer for both the Back Office and the Meta Planner to make them communicate with different MIS via a unique API.
 
-* The Meta Planner: Web service that provides an API to compute trip plannings within all avalaible MIS, this is the only component that the final user web client will communicate with.
+* The Meta Planner: Web service that provides an API to compute trip plannings within all available MIS, this is the only component that the final user web client will communicate with.
 
 
 
