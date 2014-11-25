@@ -4,6 +4,7 @@ import json
 import logging
 import urllib
 import traceback
+import math
 from datetime import datetime, timedelta
 from operator import itemgetter
 from copy import deepcopy
@@ -497,8 +498,8 @@ class MisApi(MisApiBase):
         # emulation mode
         self._nm_journeys = False
         self._multithread = True
-        self._max_threads = 24
-        self._max_stops = 20
+        self._max_threads = 16
+        self._max_stops = 16
 
         if config and config.has_section("Navitia"):
             if config.has_option('Navitia', 'nm_journeys'):
@@ -701,9 +702,14 @@ class MisApi(MisApiBase):
     def get_emulated_itinerary(self, departures, arrivals, departure_time, arrival_time,
                                algorithm, modes, self_drive_conditions,
                                accessibility_constraint, language, options):
-        # Limit size of departures and arrivals
-        departures = departures[:self._max_stops]
-        arrivals = arrivals[:self._max_stops]
+        # Limit count of target stop points to improve speed of navitia requests
+        # Disperse stop list, so we hope not to obtain geographically concentrated points
+        # *hint: planner engine remove non used target points so we can filter them out here
+        # !! planner engine keep origin points so we have to do the same in order to keep determinism between pass
+        if departure_time:
+            arrivals = arrivals[0::len(arrivals)//self._max_stops or 1][:self._max_stops]
+        else:
+            departures = departures[0::len(departures)//self._max_stops or 1][:self._max_stops]
 
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
@@ -791,9 +797,16 @@ class MisApi(MisApiBase):
                                            modes, self_drive_conditions,
                                            accessibility_constraint,
                                            language, options):
-        # Limit size of departures and arrivals
-        departures = departures[:self._max_stops]
-        arrivals = arrivals[:self._max_stops]
+        # Limit count of target stop points to improve speed of navitia requests
+        # Disperse stop list, so we hope not to obtain geographically concentrated points
+        # *hint: planner engine remove non used target points so we can filter them out here
+        # !! planner engine keep origin points so we have to do the same in order to keep determinism between pass
+        if departure_time:
+            count_stops = self._max_stops // int(math.sqrt(len(departures))) or 1
+            arrivals = arrivals[0::len(arrivals)//count_stops or 1][:count_stops]
+        else:
+            count_stops = self._max_stops // int(math.sqrt(len(arrivals))) or 1
+            departures = departures[0::len(departures)//count_stops or 1][:count_stops]
 
         params = {}
         params_set_modes(params, modes, self_drive_conditions)
