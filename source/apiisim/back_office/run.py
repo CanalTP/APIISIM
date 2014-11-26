@@ -196,20 +196,6 @@ def retrieve_all_stops(db_session, stats):
             if nb_ignored > 0:
                 logging.info("Ignored %s stops with no coordinates", nb_ignored)
 
-            shape = MisApi(mis.api_url, mis.api_key).get_shape(mis.name)
-            if shape:
-                # Check if stops are included in MIS shape
-                nb_ignored = 0
-                stops = copy(all_stops[mis.id])
-                for s in stops:
-                    intersect = db_session.query(ST_Intersects(
-                        StGeogFromText('POINT(%s %s)' % (s.long, s.lat)),
-                        StGeogFromText(shape))).one()[0]
-                    if not intersect:
-                        nb_ignored += 1
-                        all_stops[mis.id].remove(s)
-                logging.info("Ignored %s stops not in shape %s", nb_ignored, shape)
-
             if count_stops > len(all_stops[mis.id]):
                 logging.info("Keep %s stops", len(all_stops[mis.id]))
         except Exception as e:

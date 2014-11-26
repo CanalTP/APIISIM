@@ -102,17 +102,7 @@ class PlanTripCalculator(object):
                     metabase.Stop.geog,
                     StGeogFromText('POINT(%s %s)' % (position.Longitude, position.Latitude)),
                     self.SURROUNDING_MISES_MAX_DISTANCE)).count() > 0 and (mis.start_date <= date <= mis.end_date):
-
-                shape = MisApi(self._db_session, mis.id).get_shape()
-                if shape:
-                    intersect = self._db_session.query(ST_Intersects(
-                        StGeogFromText('POINT(%s %s)' % (position.Longitude, position.Latitude)),
-                        StGeogFromText(shape))).one()[0]
-                    logging.debug("INTERSECTS <%s>: %s", mis.name, intersect)
-                    if intersect:
-                        ret.add(mis.id)
-                else:
-                    ret.add(mis.id)
+                ret.add(mis.id)
 
         logging.info("MIS surrounding point (%s %s): %s",
                      position.Longitude, position.Latitude, ret)
@@ -207,6 +197,7 @@ class PlanTripCalculator(object):
                     break
             if is_valid:
                 ret.append(t)
+
         return sorted(ret, key=lambda t: len(t))  # sort by trace length
 
     @benchmark
