@@ -504,6 +504,9 @@ class PlanTripCalculator(object):
                           trip.Departure.DateTime, trip.Arrival.TripStopPlace.id, trip.Arrival.DateTime)
             resp_trips.pop(i)
 
+        while len(resp_trips) > 1:
+            resp_trips.pop(1)
+
     def _clear_access_time(self, departures, arrivals):
         for d in departures:
             d.AccessTime = timedelta()

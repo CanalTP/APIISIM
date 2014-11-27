@@ -700,8 +700,6 @@ class TestBackOffice(unittest.TestCase):
         self.db_session.commit()
         self.assertTrue(mis_dates_overlap(self.db_session, mis1_id, mis2_id))
 
-        # TODO make tests with different values of maxdistance to compute transfers
-
 
 if __name__ == '__main__':
     unittest.main()
